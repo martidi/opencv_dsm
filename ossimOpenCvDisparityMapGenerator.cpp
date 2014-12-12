@@ -42,7 +42,22 @@ ossimOpenCvDisparityMapGenerator::ossimOpenCvDisparityMapGenerator()
 
 cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave_mat)
 {
-	cout << "DISPARITY MAP GENERATION..." << endl;
+	cout << "DISPARITY MAP GENERATION \t in progress..." << endl;
+		
+	//******************************************************
+	// Abilitate for computing disparity on different scales 
+	//******************************************************
+	/*
+	double fscale = 1.0/2.0;
+	cv::resize(master_mat, master_mat, cv::Size(), fscale, fscale, cv::INTER_AREA );
+	cv::resize(slave_mat, slave_mat, cv::Size(), fscale, fscale, cv::INTER_AREA );	
+	cv::namedWindow( "Scaled master", CV_WINDOW_NORMAL );
+	cv::imshow( "Scaled master", master_mat);
+	cv::namedWindow( "Scaled slave", CV_WINDOW_NORMAL );
+	cv::imshow( "Scaled slave", slave_mat);
+	*/	
+		
+			
 	// Disparity Map generation
 	int ndisparities = 16; //Maximum disparity minus minimum disparity //con fattore di conversione 1 metti 16*2*2
 	int SADWindowSize = 11;   //Matched block size
@@ -62,7 +77,7 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	sgbm.speckleWindowSize = 100;
 	sgbm.speckleRange = 1;
 	sgbm.disp12MaxDiff = 1; // Maximum allowed difference (in integer pixel units) in the left-right disparity check
-	//sgbm.fullDP = true;
+	//sgbm.fullDP = true; //activate for consider 8 directions (Hirschmuller algorithm) instead of 5;
 	
 	double minVal, maxVal;
 	cv::Mat array_disp;
@@ -70,13 +85,21 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	sgbm(master_mat, slave_mat, array_disp);
 	minMaxLoc( array_disp, &minVal, &maxVal );
 	array_disp.convertTo( array_disp_8U, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));   
-    cout << "min\t" << minVal << "max\t" << maxVal << endl;
+    cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
 	cv::namedWindow( "SGM Disparity", CV_WINDOW_NORMAL );
 	cv::imshow( "SGM Disparity", array_disp_8U);
 	cv::imwrite( "SGM Disparity.tif", array_disp_8U);
+
+
+
+	//******************************************************
+	// Abilitate for computing disparity on different scales 
+	//****************************************************** 	
+	//array_disp = array_disp/fscale; // to consider the scale factor also in the disparity values (i singoli valori sono alterati)
+	//cv::resize(array_disp, array_disp, cv::Size(), 1.0/fscale, 1.0/fscale, cv::INTER_AREA ); // to resize the disparity map as the initial image
+
 	
 	cv::waitKey(0);
-
 
 	//Create and write the log file
 	ofstream disparity;
@@ -86,8 +109,7 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	disparity << "MINIMUM DISPARITY VALUE:"<< sgbm.minDisparity << endl;
 	disparity.close();	
 
-
-	
+		
 	return array_disp;
 }
 

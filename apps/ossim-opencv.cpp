@@ -99,7 +99,7 @@ int main(int argc,  char* argv[])
 	try
 	{ 
 		// PARSER *******************************
-		cout << "arg number " << ap.argc() << endl;
+		cout << "Arg number " << ap.argc() << endl;
 				
 		ossimKeywordlist master_key;
 		ossimKeywordlist slave_key;
@@ -259,10 +259,10 @@ int main(int argc,  char* argv[])
 */		
 		
 	    cout << "Start master orthorectification" << endl;
-		ortho(master_key); 
+		//ortho(master_key); 
 	
 		cout << "Start slave orthorectification" << endl;
-		ortho(slave_key);
+		//ortho(slave_key);
 		
 		
 		// Elevation manager instance

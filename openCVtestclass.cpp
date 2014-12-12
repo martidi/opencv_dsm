@@ -66,12 +66,11 @@ openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr
 
 bool openCVtestclass::execute()
 {			
-	//openCVtestclass::wallis *filter = openCVtestclass::wallis(master_mat);
-	//test->wallis(img_slave);
-	
-	// Wallis filter				
-   	//master_mat = wallis(master_mat);	
-   	//slave_mat = wallis(slave_mat);		  	
+	// ****************************
+	// Activate for Wallis filter	
+	// ****************************			
+	//master_mat = wallis(master_mat);	
+	//slave_mat = wallis(slave_mat);		  	
    	
 	double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
 	cv::Mat master_mat_8U;
@@ -95,30 +94,12 @@ bool openCVtestclass::execute()
 	//cv::imwrite("Slave_8bit_bSGM.tif",  slave_mat_warp);
     	
 	ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
-	
-	//***
-	// Abilitate for computing disparity on different scales 
-	/*
-	double fscale = 1.0/2.0;
-	cv::resize(master_mat_8U, master_mat_8U, cv::Size(), fscale, fscale, cv::INTER_AREA );
-	cv::resize(slave_mat_warp, slave_mat_warp, cv::Size(), fscale, fscale, cv::INTER_AREA );	
-	cv::namedWindow( "Scaled master", CV_WINDOW_NORMAL );
-	cv::imshow( "Scaled master", master_mat_8U);
-	cv::namedWindow( "Scaled slave", CV_WINDOW_NORMAL );
-	cv::imshow( "Scaled slave", slave_mat_warp);
-	*/
-	//***
-	
+		
 	//master_mat.convertTo(master_mat, CV_16U);
-	
 	//slave_mat_warp.convertTo(slave_mat_warp, CV_16U);
 	
 	out_disp = dense_matcher->execute(master_mat_8U, slave_mat_warp); 
-	
-	// Abilitate for computing disparity on different scales 	
-	//out_disp = out_disp/fscale; // to consider the scale factor also in the disparity values
-	//cv::resize(out_disp, out_disp, cv::Size(), 1.0/fscale, 1.0/fscale, cv::INTER_AREA );
-	
+		
 	return true;
 }
 
@@ -131,7 +112,7 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	out_disp.convertTo(out_disp, CV_64F);
 	out_16bit_disp = (out_disp/16.0) / mean_conversionF;
 	
-	cout<< "DSM GENERATION \t wait few minutes ..." << endl;
+	cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
 
 	for(int i=0; i< out_16bit_disp.rows; i++)
 	{
