@@ -329,9 +329,9 @@ int main(int argc,  char* argv[])
 			cv::meanStdDev(conv_factor, mean_conv_factor, stDev_conv_factor);
 
 			double stDev_conversionF = stDev_conv_factor.val[0];
-			double mean_conversionF = mean_conv_factor.val[0];	        
+			double mean_conversionF = mean_conv_factor.val[0]/(2200.00-200.00);	        
 			
-			cout << "Conversion Factor from pixels to meters\t" << mean_conversionF/(2200.00-200.00) <<endl;
+			cout << "Conversion Factor from pixels to meters\t" << mean_conversionF <<endl;
 			cout << "Standard deviation Conversion Factor\t" << stDev_conversionF <<endl;
 			
 			
@@ -347,7 +347,7 @@ int main(int argc,  char* argv[])
 			myfile << master_key << endl;
 			myfile << "Slave orthorectification parameters" <<endl;
 			myfile << slave_key << endl;
-			myfile <<"Conversion Factor from pixels to meters\t" << mean_conversionF/(2200.00-200.00) <<endl;
+			myfile <<"Conversion Factor from pixels to meters\t" << mean_conversionF <<endl;
 			myfile <<"Standard deviation Conversion Factor\t" << stDev_conversionF <<endl; 
 			myfile.close();			
 						

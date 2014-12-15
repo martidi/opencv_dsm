@@ -110,8 +110,9 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
     
 	cv::Mat out_16bit_disp = cv::Mat::zeros (out_disp.size(),CV_64F);
 	out_disp.convertTo(out_disp, CV_64F);
-	out_16bit_disp = (out_disp/16.0) / mean_conversionF;
-	
+	//out_16bit_disp = (out_disp/16.0) / mean_conversionF;
+	cout <<  "fattore di conv" << mean_conversionF << endl;
+	out_16bit_disp = (out_disp/16.0) * mean_conversionF;	
 	cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
 
 	for(int i=0; i< out_16bit_disp.rows; i++)
@@ -122,7 +123,8 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 			ossimGpt world_pt;     
 			master_geom->localToWorld(image_pt, world_pt);
 			ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
-			if(out_16bit_disp.at<double>(i,j) <= -7.5/mean_conversionF)
+			//if(out_16bit_disp.at<double>(i,j) <= -7.5/mean_conversionF)
+			if(out_16bit_disp.at<double>(i,j) <= -7.5*mean_conversionF)
 			{ 
 				out_16bit_disp.at<double>(i,j) = 0.0;
 			}
