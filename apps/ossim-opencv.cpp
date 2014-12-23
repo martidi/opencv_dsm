@@ -101,15 +101,18 @@ int main(int argc,  char* argv[])
 		// PARSER *******************************
 		cout << "Arg number " << ap.argc() << endl;
 				
-		ossimKeywordlist master_key;
-		ossimKeywordlist slave_key;
+		ossimKeywordlist forward_key;
+		ossimKeywordlist nadir_key;
+		ossimKeywordlist backward_key;		
 		
 		//Default keyword for orthorectification
-		master_key.addPair(OP_KW, "ortho");
-		slave_key.addPair( OP_KW, "ortho");
+		forward_key.addPair(OP_KW, "ortho");
+		nadir_key.addPair( OP_KW, "ortho");
+		backward_key.addPair( OP_KW, "ortho");		
 		
-		master_key.addPair(RESAMPLER_FILTER_KW, "box");
-		slave_key.addPair( RESAMPLER_FILTER_KW, "box");
+		forward_key.addPair(RESAMPLER_FILTER_KW, "box");
+		nadir_key.addPair( RESAMPLER_FILTER_KW, "box");
+		backward_key.addPair( RESAMPLER_FILTER_KW, "box");		
 		
 		// Parsing
 		std::string tempString1,tempString2,tempString3,tempString4;
@@ -120,24 +123,29 @@ int main(int argc,  char* argv[])
     
 		if(ap.read("--meters", stringParam1) )
 		{
-			master_key.addPair(METERS_KW, tempString1 );
-			slave_key.addPair( METERS_KW, tempString1 );
+			forward_key.addPair(METERS_KW, tempString1 );
+			nadir_key.addPair( METERS_KW, tempString1 );
+			backward_key.addPair( METERS_KW, tempString1 );			
 		}
 		
 		cout << "Orthoimages resolution = " << tempString1 <<" meters"<< endl << endl;
         
 		if( ap.read("--cut-bbox-ll", stringParam1, stringParam2, stringParam3, stringParam4) )
 		{
-			master_key.addPair( CUT_MIN_LAT_KW, tempString1 );
-			master_key.addPair( CUT_MIN_LON_KW, tempString2 );
-			master_key.addPair( CUT_MAX_LAT_KW, tempString3 );
-			master_key.addPair( CUT_MAX_LON_KW, tempString4 );
+			forward_key.addPair( CUT_MIN_LAT_KW, tempString1 );
+			forward_key.addPair( CUT_MIN_LON_KW, tempString2 );
+			forward_key.addPair( CUT_MAX_LAT_KW, tempString3 );
+			forward_key.addPair( CUT_MAX_LON_KW, tempString4 );
 			
-			slave_key.addPair( CUT_MIN_LAT_KW, tempString1 );
-			slave_key.addPair( CUT_MIN_LON_KW, tempString2 );
-			slave_key.addPair( CUT_MAX_LAT_KW, tempString3 );
-			slave_key.addPair( CUT_MAX_LON_KW, tempString4 );
+			nadir_key.addPair( CUT_MIN_LAT_KW, tempString1 );
+			nadir_key.addPair( CUT_MIN_LON_KW, tempString2 );
+			nadir_key.addPair( CUT_MAX_LAT_KW, tempString3 );
+			nadir_key.addPair( CUT_MAX_LON_KW, tempString4 );
 		
+			backward_key.addPair( CUT_MAX_LON_KW, tempString4 ); 
+			backward_key.addPair( CUT_MIN_LON_KW, tempString2 );
+			backward_key.addPair( CUT_MAX_LAT_KW, tempString3 );
+			backward_key.addPair( CUT_MAX_LON_KW, tempString4 );
      						     								
 			cout << "Tile extent:" << "\tLat_min = "<< tempString1 << endl   
 								<<"\t\tLon_min = " << tempString2 << endl
@@ -155,20 +163,21 @@ int main(int argc,  char* argv[])
 		
 		ossimString  key	= "";
 		
-		if(ap.argc() >= 6) //ap.argv[0] is the application name
+		if(ap.argc() >= 7) //ap.argv[0] is the application name
 		{
-			master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[3]);		
-			slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[4]);
+			forward_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[4]);		
+			nadir_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[5]);
+			backward_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[6]);	*******************		
 			
-			
-			master_key.addPair("image1.file", ap[1]);
-			slave_key.addPair("image1.file", ap[2]);
+			forward_key.addPair("image1.file", ap[1]);
+			nadir_key.addPair("image1.file", ap[2]);
+			backward_key.addPair("image1.file", ap[3]);
 		}
 		else 
 		{
 			ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
 			std::string errMsg = "Few arguments...";
-			cout << endl << "Usage: ossim-opencv <input_left_image> <input_right_image> <output_ortho_left_image> <output_ortho_right_image> <output_DSM> [options]" << endl;
+			cout << endl << "Usage: ossim-dsm-app <input_fwd_image> <input_nad_image> <input_bwd_image> <output_ortho_fwd_image> <output_ortho_nad_image> <output_ortho_bwd_image> [options] <output_DSM>" << endl;
 			cout << "Options:" << endl;
 			cout << "--cut-bbox-ll <min_lat> <min_lon> <max_lat> <max_lon> \t Specify a bounding box with the minimum"   << endl;   
 			cout << "\t\t\t\t\t\t\tlatitude/longitude and max latitude/longitude" << endl; 
@@ -179,8 +188,9 @@ int main(int argc,  char* argv[])
 		
 		//END PARSER****************************
 	        
-        cout << endl << "MASTER DIRECTORY:" << " " << ap[1] << endl;
-        cout << "SLAVE DIRECTORY:"  << " " << ap[2] << endl << endl;	
+        cout << endl << "FORWARD DIRECTORY:" << " " << ap[1] << endl;
+        cout << "NADIR DIRECTORY:"  << " " << ap[2] << endl;	
+        cout << "BACKWARD DIRECTORY:"  << " " << ap[3] << endl << endl;        
 	
 /*	
    string tempString;
