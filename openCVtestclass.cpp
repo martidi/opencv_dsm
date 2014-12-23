@@ -69,8 +69,8 @@ bool openCVtestclass::execute()
 	// ****************************
 	// Activate for Wallis filter	
 	// ****************************			
-	master_mat = wallis(master_mat);	
-	slave_mat = wallis(slave_mat);		  	
+	//master_mat = wallis(master_mat);	
+	//slave_mat = wallis(slave_mat);		  	
    	
 	double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
 	cv::Mat master_mat_8U;
@@ -85,14 +85,7 @@ bool openCVtestclass::execute()
 	TPfinder->run();
 	
 	cv::Mat slave_mat_warp = TPfinder->warp(slave_mat);
-	
-	//cv::Ptr<cv::CLAHE> filtro = cv::createCLAHE(3.0);
-	//filtro->apply(master_mat_8U, master_mat_8U); 
-	//filtro->apply(slave_mat_warp, slave_mat_warp);
-    
-	//cv::imwrite("Master_8bit_bSGM.tif",  master_mat_8U);
-	//cv::imwrite("Slave_8bit_bSGM.tif",  slave_mat_warp);
-    	
+	    	
 	ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
 		
 	//master_mat.convertTo(master_mat, CV_16U);

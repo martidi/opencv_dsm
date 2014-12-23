@@ -142,7 +142,7 @@ int main(int argc,  char* argv[])
 			nadir_key.addPair( CUT_MAX_LAT_KW, tempString3 );
 			nadir_key.addPair( CUT_MAX_LON_KW, tempString4 );
 		
-			backward_key.addPair( CUT_MAX_LON_KW, tempString4 ); 
+			backward_key.addPair( CUT_MIN_LAT_KW, tempString1 );
 			backward_key.addPair( CUT_MIN_LON_KW, tempString2 );
 			backward_key.addPair( CUT_MAX_LAT_KW, tempString3 );
 			backward_key.addPair( CUT_MAX_LON_KW, tempString4 );
@@ -167,7 +167,7 @@ int main(int argc,  char* argv[])
 		{
 			forward_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[4]);		
 			nadir_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[5]);
-			backward_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[6]);	*******************		
+			backward_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[6]);			
 			
 			forward_key.addPair("image1.file", ap[1]);
 			nadir_key.addPair("image1.file", ap[2]);
@@ -268,36 +268,49 @@ int main(int argc,  char* argv[])
 
 */		
 		
-	    cout << "Start master orthorectification" << endl;
-		//ortho(master_key); 
+	    cout << "Start forward orthorectification" << endl;
+		ortho(forward_key); 
 	
-		cout << "Start slave orthorectification" << endl;
-		//ortho(slave_key);
+		cout << "Start nadir orthorectification" << endl;
+		ortho(nadir_key);
 		
-		
+		cout << "Start backward orthorectification" << endl;
+		ortho(backward_key);
+				
 		// Elevation manager instance
 		ossimElevManager* elev = ossimElevManager::instance();		
   
 		// ImageHandlers & ImageGeometry instance
-		ossimImageHandler* master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[3]));             
-		ossimImageHandler* slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[4]));
-  
-		ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[1]));
-		ossimImageHandler* raw_slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]));
-                      
+		ossimImageHandler* forward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[4]));             
+		ossimImageHandler* nadir_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[5]));
+		ossimImageHandler* backward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[6]));
+		  
+		ossimImageHandler* raw_forward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[1]));
+		ossimImageHandler* raw_nadir_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]));
+		ossimImageHandler* raw_backward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[3]));                      
     				
-		if(master_handler && slave_handler && raw_master_handler && raw_slave_handler) // enter if exist both master and slave  
+		if(forward_handler && nadir_handler && backward_handler && raw_forward_handler && raw_nadir_handler && raw_backward_handler) // enter if exist both forward, nadir and backward  
 		{
 			// Load ortho images
-			ossimIrect bounds_master = master_handler->getBoundingRect(0); 			
-			ossimIrect bounds_slave = slave_handler->getBoundingRect(0);   
-			ossimRefPtr<ossimImageData> img_master = master_handler->getTile(bounds_master, 0);          
-			ossimRefPtr<ossimImageData> img_slave = slave_handler->getTile(bounds_slave, 0); 
-
+			ossimIrect bounds_forward = forward_handler->getBoundingRect(0); 			
+			ossimIrect bounds_nadir = nadir_handler->getBoundingRect(0); 
+			ossimIrect bounds_backward = backward_handler->getBoundingRect(0);   
+			  
+			ossimRefPtr<ossimImageData> img_forward = forward_handler->getTile(bounds_forward, 0);          
+			ossimRefPtr<ossimImageData> img_nadir = nadir_handler->getTile(bounds_nadir, 0); 
+			ossimRefPtr<ossimImageData> img_backward = backward_handler->getTile(bounds_backward, 0); 
+			
 			// TPs generation 
-			openCVtestclass *test = new openCVtestclass(img_master, img_slave) ; 					
-   			test->execute();
-
+			
+			openCVtestclass *test_bwdnad = new openCVtestclass(img_backward, img_nadir) ; 					
+   			test_bwdnad->execute();
+   						
+			openCVtestclass *test_nadfwd = new openCVtestclass(img_nadir, img_forward) ; 					
+   			test_nadfwd->execute();
+   			
+			
+			
+/*  			
 			// Conversion factor (from pixels to meters) computation
 			ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();    
 			ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry(); 
@@ -359,7 +372,8 @@ int main(int argc,  char* argv[])
 			myfile << slave_key << endl;
 			myfile <<"Conversion Factor from pixels to meters\t" << mean_conversionF <<endl;
 			myfile <<"Standard deviation Conversion Factor\t" << stDev_conversionF <<endl; 
-			myfile.close();			
+			myfile.close();		
+			* /	
 						
 /*			
 		cv::Mat parallax = cv::Mat::zeros(good_matches.size(), 1, CV_64F);
@@ -376,7 +390,7 @@ int main(int argc,  char* argv[])
 		cout << "dev_y = " << dev_y << endl
 	         << "mean_diff_y = " << mean_diff_y << endl;			
 */				
-				
+			/*	
 			// From Disparity to DSM
 			ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();			
 			test->computeDSM(mean_conversionF, elev, master_geom);
@@ -388,8 +402,9 @@ int main(int argc,  char* argv[])
 			writer->connectMyInputTo(0, handler_disp);
 			writer->execute();
             
-			delete writer;
-			delete test;				
+			delete writer;  */
+			delete test_bwdnad;	
+			delete test_nadfwd;			
 		}
 	}     
 	catch (const ossimException& e)

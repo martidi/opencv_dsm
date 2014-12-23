@@ -78,13 +78,15 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	sgbm.speckleRange = 1;
 	sgbm.disp12MaxDiff = 1; // Maximum allowed difference (in integer pixel units) in the left-right disparity check
 	//sgbm.fullDP = true; //activate for consider 8 directions (Hirschmuller algorithm) instead of 5;
-	
+	cout << "a" << endl;
 	double minVal, maxVal;
 	cv::Mat array_disp;
 	cv::Mat array_disp_8U;   
 	sgbm(master_mat, slave_mat, array_disp);
+	cout << "b" << endl;
 	minMaxLoc( array_disp, &minVal, &maxVal );
-	array_disp.convertTo( array_disp_8U, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));   
+	cout << "c" << endl;
+	array_disp.convertTo( array_disp_8U, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));  
     cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
 	cv::namedWindow( "SGM Disparity", CV_WINDOW_NORMAL );
 	cv::imshow( "SGM Disparity", array_disp_8U);
