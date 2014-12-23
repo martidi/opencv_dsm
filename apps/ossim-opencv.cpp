@@ -155,7 +155,7 @@ int main(int argc,  char* argv[])
 		
 		ossimString  key	= "";
 		
-		if(ap.argc() >= 6) //ap.argv[0] is the application name
+		if(ap.argc() >= 5) //ap.argv[0] is the application name
 		{
 			master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[3]);		
 			slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[4]);
@@ -168,7 +168,7 @@ int main(int argc,  char* argv[])
 		{
 			ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
 			std::string errMsg = "Few arguments...";
-			cout << endl << "Usage: ossim-opencv <input_left_image> <input_right_image> <output_ortho_left_image> <output_ortho_right_image> <output_DSM> [options]" << endl;
+			cout << endl << "Usage: ossim-dsm-app <input_left_image> <input_right_image> <output_ortho_left_image> <output_ortho_right_image> [options] <output_DSM>" << endl;
 			cout << "Options:" << endl;
 			cout << "--cut-bbox-ll <min_lat> <min_lon> <max_lat> <max_lon> \t Specify a bounding box with the minimum"   << endl;   
 			cout << "\t\t\t\t\t\t\tlatitude/longitude and max latitude/longitude" << endl; 
