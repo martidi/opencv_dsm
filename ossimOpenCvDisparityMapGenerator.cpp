@@ -59,8 +59,8 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 		
 			
 	// Disparity Map generation
-	int ndisparities = 16; //Maximum disparity minus minimum disparity //con fattore di conversione 1 metti 16*2*2
-	int SADWindowSize = 11;   //Matched block size
+	int ndisparities = 16*2; //Maximum disparity minus minimum disparity //con fattore di conversione 1 metti 16*2*2
+	int SADWindowSize = 9;   //Matched block size >=1
 
 	cv::StereoSGBM sgbm;
 
@@ -71,7 +71,7 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 
 	sgbm.P1 = 8*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
 	sgbm.P2 = 40*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
-	sgbm.minDisparity = -8; // Minimum possible disparity value  //con fattore di conversione 1 metti -16*2
+	sgbm.minDisparity = -8*2; // Minimum possible disparity value  //con fattore di conversione 1 metti -16*2
 	sgbm.numberOfDisparities = ndisparities;
 	sgbm.uniquenessRatio = 5;
 	sgbm.speckleWindowSize = 100;
@@ -89,7 +89,6 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	cv::namedWindow( "SGM Disparity", CV_WINDOW_NORMAL );
 	cv::imshow( "SGM Disparity", array_disp_8U);
 	cv::imwrite( "SGM Disparity.tif", array_disp_8U);
-
 
 
 	//******************************************************
