@@ -307,9 +307,7 @@ int main(int argc,  char* argv[])
    						
 			openCVtestclass *test_nadfwd = new openCVtestclass(img_nadir, img_forward) ; 					
    			test_nadfwd->execute();
-   			
-			
-			
+   						
 /*  			
 			// Conversion factor (from pixels to meters) computation
 			ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();    
