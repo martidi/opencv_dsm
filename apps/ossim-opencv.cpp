@@ -259,10 +259,10 @@ int main(int argc,  char* argv[])
 */		
 		
 	    cout << "Start master orthorectification" << endl;
-		//ortho(master_key); 
+		ortho(master_key); 
 	
 		cout << "Start slave orthorectification" << endl;
-		//ortho(slave_key);
+		ortho(slave_key);
 		
 		
 		// Elevation manager instance

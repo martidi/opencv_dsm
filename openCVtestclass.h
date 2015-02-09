@@ -37,6 +37,7 @@ public:
 	cv::vector<cv::KeyPoint> keypoints1, keypoints2;
 	vector<cv::DMatch > good_matches;
 	cv::Mat out_disp; 
+	double null_disp_threshold;
 };
 
 #endif /* #ifndef openCVtestclass_HEADER */

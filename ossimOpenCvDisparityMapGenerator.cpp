@@ -57,21 +57,19 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	cv::imshow( "Scaled slave", slave_mat);
 	*/	
 		
+	ndisparities = 32; //Maximum disparity minus minimum disparity 
+	minimumDisp = -16;
+	SADWindowSize = 5; //Matched block size	
 			
 	// Disparity Map generation
-	int ndisparities = 16; //Maximum disparity minus minimum disparity //con fattore di conversione 1 metti 16*2*2
-	int SADWindowSize = 11;   //Matched block size
-
+	int cn = master_mat.channels();
 	cv::StereoSGBM sgbm;
 
 	sgbm.preFilterCap = 63;
 	sgbm.SADWindowSize = SADWindowSize > 0 ? SADWindowSize : 3;
-
-	int cn = master_mat.channels();
-
 	sgbm.P1 = 8*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
 	sgbm.P2 = 40*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
-	sgbm.minDisparity = -8; // Minimum possible disparity value  //con fattore di conversione 1 metti -16*2
+	sgbm.minDisparity = minimumDisp; // Minimum possible disparity value  //con fattore di conversione 1 metti -16*2
 	sgbm.numberOfDisparities = ndisparities;
 	sgbm.uniquenessRatio = 5;
 	sgbm.speckleWindowSize = 100;
@@ -89,7 +87,6 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	cv::namedWindow( "SGM Disparity", CV_WINDOW_NORMAL );
 	cv::imshow( "SGM Disparity", array_disp_8U);
 	cv::imwrite( "SGM Disparity.tif", array_disp_8U);
-
 
 
 	//******************************************************

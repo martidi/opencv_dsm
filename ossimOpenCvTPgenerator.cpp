@@ -209,7 +209,7 @@ void ossimOpenCvTPgenerator::run()
 	cv::namedWindow( "slave_img", CV_WINDOW_NORMAL );
 	cv::imshow("slave_img", slave_mat);
    
-	cv::waitKey(0);
+	//cv::waitKey(0);
    
 	TPgen();  
 	TPdraw();
@@ -228,7 +228,7 @@ void ossimOpenCvTPgenerator::TPdraw()
                good_matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
                vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS );
 	
-	cv::resize(img_matches, img_matches, cv::Size(), 1.0/8.0, 1.0/8.0, cv::INTER_AREA);
+	cv::resize(img_matches, img_matches, cv::Size(), 1.0/1.0, 1.0/1.0, cv::INTER_AREA);
 
 	cv::namedWindow("TP matched", CV_WINDOW_NORMAL );
 	cv::imshow("TP matched", img_matches );	
@@ -410,7 +410,7 @@ cv::Mat ossimOpenCvTPgenerator::warp(cv::Mat slave_16bit)
 	cv::imshow("Warped image", warp_dst );
 	cv::imwrite("Slave_8bit.tif",  warp_dst);
 	
-	cv::waitKey(0);
+	//cv::waitKey(0);
     
 	return warp_dst;
 }	
