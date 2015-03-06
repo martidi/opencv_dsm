@@ -126,6 +126,14 @@ int main(int argc,  char* argv[])
 		
 		cout << "Orthoimages resolution = " << tempString1 <<" meters"<< endl << endl;
         
+			double lat_min;
+			double lon_min;
+			double lat_max;
+     		double lon_max;     
+       
+       
+       
+       
 		if( ap.read("--cut-bbox-ll", stringParam1, stringParam2, stringParam3, stringParam4) )
 		{
 			master_key.addPair( CUT_MIN_LAT_KW, tempString1 );
@@ -138,11 +146,20 @@ int main(int argc,  char* argv[])
 			slave_key.addPair( CUT_MAX_LAT_KW, tempString3 );
 			slave_key.addPair( CUT_MAX_LON_KW, tempString4 );
 		
+			lat_min = atof(tempString1.c_str());
+			lon_min = atof(tempString2.c_str());
+			lat_max = atof(tempString3.c_str());
+     		lon_max = atof(tempString4.c_str());
+     		
+ 			cout << "Tile extent:" << "\tLat_min = "<< lat_min << endl   
+								<<"\t\tLon_min = " << lon_min << endl
+								<<"\t\tLat_max = " << lat_max << endl
+								<<"\t\tLon_max = " << lon_max << endl;    		
      						     								
-			cout << "Tile extent:" << "\tLat_min = "<< tempString1 << endl   
+			/*cout << "Tile extent:" << "\tLat_min = "<< tempString1 << endl   
 								<<"\t\tLon_min = " << tempString2 << endl
 								<<"\t\tLat_max = " << tempString3 << endl
-								<<"\t\tLon_max = " << tempString4 << endl;
+								<<"\t\tLon_max = " << tempString4 << endl;*/
 		}
 		// End of arg parsing
 		ap.reportRemainingOptionsAsUnrecognized();
@@ -259,10 +276,10 @@ int main(int argc,  char* argv[])
 */		
 		
 	    cout << "Start master orthorectification" << endl;
-		ortho(master_key); 
+		//ortho(master_key); 
 	
 		cout << "Start slave orthorectification" << endl;
-		ortho(slave_key);
+		//ortho(slave_key);
 		
 		
 		// Elevation manager instance
@@ -292,24 +309,35 @@ int main(int argc,  char* argv[])
 			ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();    
 			ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry(); 
 			
-			ossimGpt ul,ur,lr,ll;
-			raw_master_geom->getCornerGpts(ul, ur, lr, ll);
-					
-			double Dlon = (ur.lon - ul.lon)/2.0;
-			double Dlat = (ul.lat - ll.lat)/2.0;
+			//ossimGpt ul,ur,lr,ll;
+			//raw_master_geom->getCornerGpts(ul, ur, lr, ll);
+			
+			//cout << lat_min <<"\t"<< lon_min <<"\t"<< lat_max <<"\t"<< lon_max << endl;
+
+			//double Dlon = (ur.lon - ul.lon)/2.0;
+			//double Dlat = (ul.lat - ll.lat)/2.0;
         
+        
+			//CALCOLO SUL TILE CONSIDERATO E NON SU TUTTA L'IMMAGINE		       
+			double Dlon = (lon_max - lon_min)/2.0;
+			double Dlat = (lat_max - lat_min)/2.0;
+						
 			cv::Mat conv_factor = cv::Mat::zeros(3,3, CV_64F);
 			
 			for (int i=0 ; i<3 ; i++) //LAT
 			{
 				for (int j=0 ; j<3 ; j++) //LON
 				{
-					ossimGpt punto_terra(ur.lat-i*Dlat,ul.lon+j*Dlon,200.00);
-					ossimGpt punto_terra_up(ur.lat-i*Dlat,ul.lon+j*Dlon,2200.00);	
+					//ossimGpt punto_terra(ur.lat-i*Dlat,ul.lon+j*Dlon,0.00);  forse devo mettere ul.lat al posto di ur.lat
+					//ossimGpt punto_terra_up(ur.lat-i*Dlat,ul.lon+j*Dlon,100.00);	
+					
+					ossimGpt punto_terra(lat_max-i*Dlat,lon_min+j*Dlon,0.00);
+					ossimGpt punto_terra_up(lat_max-i*Dlat,lon_min+j*Dlon,100.00);
+					
 					ossimDpt punto_img(0.,0.);
 					ossimDpt punto_img_up(0.,0.);
 				
-					raw_master_geom->worldToLocal(punto_terra,punto_img);              
+					raw_master_geom->worldToLocal(punto_terra,punto_img);        //con qst trasf ottengo punto_img della master      
 					raw_master_geom->worldToLocal(punto_terra_up,punto_img_up);   
 					
 					double DeltaI_Master = punto_img_up.x - punto_img.x;
@@ -322,14 +350,18 @@ int main(int argc,  char* argv[])
 					double DeltaJ_Slave = punto_img_up.y - punto_img.y;
 					
 					conv_factor.at<double>(i,j) = DeltaJ_Slave - DeltaJ_Master;
+					
+					cout << punto_terra <<"\t" << punto_img <<"\t"<< punto_terra_up <<"\t"<< punto_img_up <<"\t"<< endl;
 				}			
 			}
-	
+			
+			cout << conv_factor << endl;
+			
 			cv::Scalar mean_conv_factor, stDev_conv_factor;
 			cv::meanStdDev(conv_factor, mean_conv_factor, stDev_conv_factor);
 
 			double stDev_conversionF = stDev_conv_factor.val[0];
-			double mean_conversionF = mean_conv_factor.val[0]/(2200.00-200.00);	        
+			double mean_conversionF = mean_conv_factor.val[0]/(100.00-0.00);	        
 			
 			cout << "Conversion Factor from pixels to meters\t" << mean_conversionF <<endl;
 			cout << "Standard deviation Conversion Factor\t" << stDev_conversionF <<endl;

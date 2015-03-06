@@ -43,7 +43,7 @@ ossimOpenCvDisparityMapGenerator::ossimOpenCvDisparityMapGenerator()
 cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave_mat)
 {
 	cout << "DISPARITY MAP GENERATION \t in progress..." << endl;
-		
+			
 	//******************************************************
 	// Abilitate for computing disparity on different scales 
 	//******************************************************

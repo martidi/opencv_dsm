@@ -226,8 +226,8 @@ void ossimOpenCvTPgenerator::TPdraw()
 	cv::Mat img_matches;
 	cv::drawMatches(filt_master, keypoints1, filt_slave, keypoints2,
                good_matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
-               vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS );
-	
+               vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);	
+             
 	cv::resize(img_matches, img_matches, cv::Size(), 1.0/1.0, 1.0/1.0, cv::INTER_AREA);
 
 	cv::namedWindow("TP matched", CV_WINDOW_NORMAL );

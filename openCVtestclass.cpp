@@ -69,8 +69,8 @@ bool openCVtestclass::execute()
 	// ****************************
 	// Activate for Wallis filter	
 	// ****************************			
-	//master_mat = wallis(master_mat);	
-	//slave_mat = wallis(slave_mat);
+	master_mat = wallis(master_mat);	
+	slave_mat = wallis(slave_mat);
 	//		  	
    	// ****************************
 	double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
@@ -88,7 +88,24 @@ bool openCVtestclass::execute()
 	cv::Mat slave_mat_warp = TPfinder->warp(slave_mat);
 
 	ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();	
+	
+		// to check the time necessary for Disp Map gen
+		ossimNotify(ossimNotifyLevel_NOTICE)
+		<< "elapsed time in seconds: "
+		<< std::setiosflags(ios::fixed)
+		<< std::setprecision(3)
+		<< ossimTimer::instance()->time_s() << endl << endl;
+	
+	
 	out_disp = dense_matcher->execute(master_mat_8U, slave_mat_warp); 
+	
+		ossimNotify(ossimNotifyLevel_NOTICE)
+		<< "elapsed time in seconds: "
+		<< std::setiosflags(ios::fixed)
+		<< std::setprecision(3)
+		<< ossimTimer::instance()->time_s() << endl << endl;
+		
+	
 	null_disp_threshold = (dense_matcher->minimumDisp)+0.5;	
 
 	return true;
@@ -105,7 +122,7 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	out_16bit_disp = (out_disp/16.0) / mean_conversionF;
 	//out_16bit_disp = (out_disp/16.0) * mean_conversionF;	
 	cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
-
+	cout << "null_disp_threshold"<< null_disp_threshold<< endl;
 	for(int i=0; i< out_16bit_disp.rows; i++)
 	{
 		for(int j=0; j< out_16bit_disp.cols; j++)
@@ -114,9 +131,10 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 			ossimGpt world_pt;     
 			master_geom->localToWorld(image_pt, world_pt);
 			ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
-			//if(out_16bit_disp.at<double>(i,j) <= 7.5/mean_conversionF)
-			if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold/abs(mean_conversionF))			
+			if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold/abs(mean_conversionF))		
+			//if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold*abs(mean_conversionF))					
 			//if(out_16bit_disp.at<double>(i,j) <= -7.5*mean_conversionF)
+			//if(out_16bit_disp.at<double>(i,j) <= 7.5/mean_conversionF)
 			{ 
 				out_16bit_disp.at<double>(i,j) = 0.0;
 			}
