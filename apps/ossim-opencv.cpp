@@ -316,13 +316,22 @@ int main(int argc,  char* argv[])
 
 			//double Dlon = (ur.lon - ul.lon)/2.0;
 			//double Dlat = (ul.lat - ll.lat)/2.0;
-        
-        
+          
 			//CALCOLO SUL TILE CONSIDERATO E NON SU TUTTA L'IMMAGINE		       
 			double Dlon = (lon_max - lon_min)/2.0;
 			double Dlat = (lat_max - lat_min)/2.0;
 						
 			cv::Mat conv_factor = cv::Mat::zeros(3,3, CV_64F);
+			
+						char * prova = ap[4];			
+			string log(prova);	
+			log.erase(log.end()-4, log.end()-0 );
+			log = log + "_logfile.txt";			
+			
+			// Creating and writing the log file
+			ofstream myfile;
+			myfile.open (log.c_str());
+			
 			
 			for (int i=0 ; i<3 ; i++) //LAT
 			{
@@ -342,16 +351,19 @@ int main(int argc,  char* argv[])
 					
 					double DeltaI_Master = punto_img_up.x - punto_img.x;
 					double DeltaJ_Master = punto_img_up.y - punto_img.y;
-        
+					
+					myfile << punto_terra <<"\t" << punto_img <<"\t"<< punto_terra_up <<"\t"<< punto_img_up <<"\t";    
+					    
 					raw_slave_geom->worldToLocal(punto_terra,punto_img);       
 					raw_slave_geom->worldToLocal(punto_terra_up,punto_img_up);    
 					
 					double DeltaI_Slave = punto_img_up.x - punto_img.x;
 					double DeltaJ_Slave = punto_img_up.y - punto_img.y;
 					
-					conv_factor.at<double>(i,j) = DeltaJ_Slave - DeltaJ_Master;
-					
-					cout << punto_terra <<"\t" << punto_img <<"\t"<< punto_terra_up <<"\t"<< punto_img_up <<"\t"<< endl;
+					//conv_factor.at<double>(i,j) = DeltaJ_Slave - DeltaJ_Master; // conv_factor for along-track imgs
+					conv_factor.at<double>(i,j) = DeltaI_Slave - DeltaI_Master; // conv_factor for across-track imgs
+										
+					myfile << punto_terra <<"\t" << punto_img <<"\t"<< punto_terra_up <<"\t"<< punto_img_up <<"\t"<< endl;
 				}			
 			}
 			
@@ -367,14 +379,7 @@ int main(int argc,  char* argv[])
 			cout << "Standard deviation Conversion Factor\t" << stDev_conversionF <<endl;
 			
 			
-			char * prova = ap[4];			
-			string log(prova);	
-			log.erase(log.end()-4, log.end()-0 );
-			log = log + "_logfile.txt";			
-			
-			// Creating and writing the log file
-			ofstream myfile;
-			myfile.open (log.c_str());
+
 			myfile << "Master orthorectification parameters" <<endl;
 			myfile << master_key << endl;
 			myfile << "Slave orthorectification parameters" <<endl;

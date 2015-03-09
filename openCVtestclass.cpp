@@ -56,11 +56,11 @@ openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr
 	cout << "OSSIM->OpenCV image conversion done" << endl;
 	
 	// Rotation for along-track images
-	cv::transpose(master_mat, master_mat);
-	cv::flip(master_mat, master_mat, 1);
+	//cv::transpose(master_mat, master_mat);
+	//cv::flip(master_mat, master_mat, 1);
 	
-	cv::transpose(slave_mat, slave_mat);
-	cv::flip(slave_mat, slave_mat, 1);	
+	//cv::transpose(slave_mat, slave_mat);
+	//cv::flip(slave_mat, slave_mat, 1);	
 }
 
 
@@ -113,8 +113,9 @@ bool openCVtestclass::execute()
 
 bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
-	cv::transpose(out_disp, out_disp);
-	cv::flip(out_disp, out_disp, 0);
+	// Rotation for along-track images	
+	//cv::transpose(out_disp, out_disp);
+	//cv::flip(out_disp, out_disp, 0);
     
 	cv::Mat out_16bit_disp = cv::Mat::zeros (out_disp.size(),CV_64F);
 	out_disp.convertTo(out_disp, CV_64F);
@@ -187,8 +188,9 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 
 bool openCVtestclass::writeDisparity(double conv_factor)
 {
-	cv::transpose(out_disp, out_disp);
-	cv::flip(out_disp, out_disp, 0);
+	// Rotation for along-track images
+	//cv::transpose(out_disp, out_disp);
+	//cv::flip(out_disp, out_disp, 0);
     
 	out_disp = (out_disp/16.0) * conv_factor;
 	cv::imwrite("mDisparity.jpg", out_disp);
@@ -280,7 +282,7 @@ cv::Mat openCVtestclass::wallis(cv::Mat image)
 	double b = 0.9;
 	
 	// mf is the target value of the LOCAL MEAN in a i,j window [127.0-140.0]
-	// an higher value wil brighten the image
+	// an higher value will brighten the image
 	double mf = 127.0;
 	
 	int px = 0, py = 0;
