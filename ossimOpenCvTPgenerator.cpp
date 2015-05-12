@@ -77,12 +77,36 @@ cv::Mat ossimOpenCvTPgenerator::estRT(std::vector<cv::Point2f> master, std::vect
 	slave_x = mean_slave_x.val[0];
 	slave_y	= mean_slave_y.val[0];		
 	
+	double master_x_devst = stDev_master_x.val[0];
+	double master_y_devst = stDev_master_y.val[0];
+	double slave_x_devst = stDev_slave_x.val[0];
+	double slave_y_devst = stDev_slave_y.val[0];	
 	
-	cout << "mean_x_master = " << master_x << endl
-		 << "mean_y_master = " << master_y << endl
-		 << "mean_x_slave = "  << slave_x  << endl
-		 << "mean_y_slave = "  << slave_y  << endl << endl; 
-
+			
+	cout << "Mean_x_master = " << master_x << endl
+		 << "Mean_y_master = " << master_y << endl
+		 << "Mean_x_slave = "  << slave_x  << endl
+		 << "Mean_y_slave = "  << slave_y  << endl  
+		 << "Shift in x = "	<< master_x - slave_x << "\tpixel" << endl
+		 << "Shift in y = "	<< master_y - slave_y << "\tpixel" <<endl << endl
+		 << "St.dev. master x = " <<	master_x_devst << endl	 
+		 << "St.dev. master y = " <<	master_y_devst << endl	
+		 << "St.dev. slave x = " <<	slave_x_devst << endl	
+		 << "St.dev. slave y = " <<	slave_y_devst << endl << endl;    	 
+		 
+/*
+	// Control for image type ***non credo vada qua***
+	if(abs(master_x - slave_x) > (abs(master_y - slave_y)))
+		{
+			cout << "Image type: ALONG-TRACK" << endl;
+			cout << abs(master_x - slave_x) << endl;
+		}
+	else
+		{
+			cout << "Image type: ACROSS-TRACK" << endl;
+			cout << abs(master_y - slave_y) << endl;
+		}
+*/	
 			
 	std::vector<cv::Point2f> bar_master, bar_slave;
 
@@ -218,7 +242,7 @@ void ossimOpenCvTPgenerator::run()
 void ossimOpenCvTPgenerator::TPdraw()
 {
 	cv::Mat filt_master, filt_slave;
-	cv::Ptr<cv::CLAHE> filtro = cv::createCLAHE(3.0);
+	cv::Ptr<cv::CLAHE> filtro = cv::createCLAHE(8.0); //threshold for contrast limiting
 	filtro->apply(master_mat, filt_master); 
 	filtro->apply(slave_mat, filt_slave);
 	

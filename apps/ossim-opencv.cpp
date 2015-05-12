@@ -130,9 +130,7 @@ int main(int argc,  char* argv[])
 			double lon_min;
 			double lat_max;
      		double lon_max;     
-       
-       
-       
+        
        
 		if( ap.read("--cut-bbox-ll", stringParam1, stringParam2, stringParam3, stringParam4) )
 		{
@@ -199,89 +197,13 @@ int main(int argc,  char* argv[])
         cout << endl << "MASTER DIRECTORY:" << " " << ap[1] << endl;
         cout << "SLAVE DIRECTORY:"  << " " << ap[2] << endl << endl;	
 	
-/*	
-   string tempString;
-   ossimArgumentParser::ossimParameter stringParam(tempString);
-   ossimArgumentParser argumentParser(&argc, argv);
-   ossimInit::instance()->addOptions(argumentParser);
-   ossimInit::instance()->initialize(argumentParser);
-
-   if(traceDebug())
-   {
-      ossimNotify(ossimNotifyLevel_DEBUG) << "entered main" << std::endl;
-   }
-   
-   argumentParser.getApplicationUsage()->setApplicationName(argumentParser.getApplicationName());
-   argumentParser.getApplicationUsage()->setDescription(argumentParser.getApplicationName()+" takes a spec file as input and produces a product");
-   argumentParser.getApplicationUsage()->setCommandLineUsage(argumentParser.getApplicationName()+" [options] <spec_file>");
-   argumentParser.getApplicationUsage()->addCommandLineOption("-t or --thumbnail", "thumbnail resolution");
-   argumentParser.getApplicationUsage()->addCommandLineOption("-h or --help","Display this information");
- 
-
-   if(argumentParser.read("-h") ||
-      argumentParser.read("--help")||
-      argumentParser.argc() <2)
-   {
-      argumentParser.getApplicationUsage()->write(std::cout);
-      exit(0);
-   }
-
-   ossimRefPtr<ossimIgen> igen = new ossimIgen;
-   double start=0, stop=0;
-   
-   ossimMpi::instance()->initialize(&argc, &argv);
-   start = ossimMpi::instance()->getTime();
-
-   ossimKeywordlist kwl;
-   kwl.setExpandEnvVarsFlag(true);
-   
-   while(argumentParser.read("-t", stringParam)   ||
-         argumentParser.read("--thumbnail", stringParam));
-   
-   if(ossimMpi::instance()->getRank() > 0)
-   {
-      // since this is not the master process
-      // then it will set the keyword list form the master
-      // so set this to empty
-      //
-      igen->initialize(ossimKeywordlist());
-   }
-   else if(argumentParser.argc() > 1)
-   {
-      if(kwl.addFile(argumentParser.argv()[1]))
-      {
-         if(tempString != "")
-         {
-            kwl.add("igen.thumbnail",
-                    "true",
-                    true);
-            kwl.add("igen.thumbnail_res",
-                    tempString.c_str(),
-                    true);
-         }
-         else
-         {
-            kwl.add("igen.thumbnail",
-                    "false",
-                    true);
-         }
-         kwl.add("igen.thumbnail_res",
-                 tempString.c_str(),
-                 true);
-
-         igen->initialize(kwl);
-      }
-   }
-
-*/		
 		
 	    cout << "Start master orthorectification" << endl;
 		//ortho(master_key); 
 	
 		cout << "Start slave orthorectification" << endl;
 		//ortho(slave_key);
-		
-		
+			
 		// Elevation manager instance
 		ossimElevManager* elev = ossimElevManager::instance();		
   
@@ -305,41 +227,32 @@ int main(int argc,  char* argv[])
 			openCVtestclass *test = new openCVtestclass(img_master, img_slave) ; 					
    			test->execute();
 
-			// Conversion factor (from pixels to meters) computation
+			// CONVERSION FACTOR (from pixels to meters) computation
 			ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();    
 			ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry(); 
-			
-			//ossimGpt ul,ur,lr,ll;
-			//raw_master_geom->getCornerGpts(ul, ur, lr, ll);
-			
-			//cout << lat_min <<"\t"<< lon_min <<"\t"<< lat_max <<"\t"<< lon_max << endl;
-
-			//double Dlon = (ur.lon - ul.lon)/2.0;
-			//double Dlat = (ul.lat - ll.lat)/2.0;
           
-			//CALCOLO SUL TILE CONSIDERATO E NON SU TUTTA L'IMMAGINE		       
+			//Conversion factor computed on tile and not over all the image		       
 			double Dlon = (lon_max - lon_min)/2.0;
 			double Dlat = (lat_max - lat_min)/2.0;
 						
-			cv::Mat conv_factor = cv::Mat::zeros(3,3, CV_64F);
-			
-						char * prova = ap[4];			
-			string log(prova);	
+
+			// Getting ready the log file
+			char * logfile = ap[3];			
+			string log(logfile);	
 			log.erase(log.end()-4, log.end()-0 );
 			log = log + "_logfile.txt";			
 			
 			// Creating and writing the log file
 			ofstream myfile;
 			myfile.open (log.c_str());
-			
-			
+				
+			cv::Mat conv_factor_J = cv::Mat::zeros(3,3, CV_64F);				
+			cv::Mat conv_factor_I = cv::Mat::zeros(3,3, CV_64F);	
+											
 			for (int i=0 ; i<3 ; i++) //LAT
 			{
 				for (int j=0 ; j<3 ; j++) //LON
 				{
-					//ossimGpt punto_terra(ur.lat-i*Dlat,ul.lon+j*Dlon,0.00);  forse devo mettere ul.lat al posto di ur.lat
-					//ossimGpt punto_terra_up(ur.lat-i*Dlat,ul.lon+j*Dlon,100.00);	
-					
 					ossimGpt punto_terra(lat_max-i*Dlat,lon_min+j*Dlon,0.00);
 					ossimGpt punto_terra_up(lat_max-i*Dlat,lon_min+j*Dlon,100.00);
 					
@@ -348,44 +261,57 @@ int main(int argc,  char* argv[])
 				
 					raw_master_geom->worldToLocal(punto_terra,punto_img);        //con qst trasf ottengo punto_img della master      
 					raw_master_geom->worldToLocal(punto_terra_up,punto_img_up);   
+
+					myfile << "MASTER IMAGE" << "\t" << "Ground point" << punto_terra << "\t" << "Image point" << punto_img << "\t" << "Ground point up" << punto_terra_up << "\t" << "Image point up" << punto_img_up << "\t";    
 					
 					double DeltaI_Master = punto_img_up.x - punto_img.x;
 					double DeltaJ_Master = punto_img_up.y - punto_img.y;
-					
-					myfile << punto_terra <<"\t" << punto_img <<"\t"<< punto_terra_up <<"\t"<< punto_img_up <<"\t";    
 					    
 					raw_slave_geom->worldToLocal(punto_terra,punto_img);       
 					raw_slave_geom->worldToLocal(punto_terra_up,punto_img_up);    
+
+					myfile << "SLAVE IMAGE" << "\t" << "Ground point" << punto_terra << "\t" << "Image point" << punto_img << "\t" << "Ground point up" << punto_terra_up << "\t" << "Image point up" << punto_img_up << "\t" << endl;    
 					
 					double DeltaI_Slave = punto_img_up.x - punto_img.x;
 					double DeltaJ_Slave = punto_img_up.y - punto_img.y;
 					
-					//conv_factor.at<double>(i,j) = DeltaJ_Slave - DeltaJ_Master; // conv_factor for along-track imgs
-					conv_factor.at<double>(i,j) = DeltaI_Slave - DeltaI_Master; // conv_factor for across-track imgs
-										
-					myfile << punto_terra <<"\t" << punto_img <<"\t"<< punto_terra_up <<"\t"<< punto_img_up <<"\t"<< endl;
+					conv_factor_J.at<double>(i,j) = DeltaJ_Slave - DeltaJ_Master; // conv_factor for ACROSS-track imgs
+					conv_factor_I.at<double>(i,j) = DeltaI_Slave - DeltaI_Master; // conv_factor for ALONG-track imgs 
 				}			
 			}
 			
-			cout << conv_factor << endl;
+			cout << conv_factor_J << endl;
+			cout << conv_factor_I << endl;	
+									
+			cv::Scalar mean_conv_factor_J, stDev_conv_factor_J;
+			cv::meanStdDev(conv_factor_J, mean_conv_factor_J, stDev_conv_factor_J);
 			
-			cv::Scalar mean_conv_factor, stDev_conv_factor;
-			cv::meanStdDev(conv_factor, mean_conv_factor, stDev_conv_factor);
+			cv::Scalar mean_conv_factor_I, stDev_conv_factor_I;
+			cv::meanStdDev(conv_factor_I, mean_conv_factor_I, stDev_conv_factor_I);			
 
-			double stDev_conversionF = stDev_conv_factor.val[0];
-			double mean_conversionF = mean_conv_factor.val[0]/(100.00-0.00);	        
+			double stDev_conversionF_J = stDev_conv_factor_J.val[0];
+			double mean_conversionF_J = mean_conv_factor_J.val[0]/(100.00-0.00);	        
+	
+			double stDev_conversionF_I = stDev_conv_factor_I.val[0];
+			double mean_conversionF_I = mean_conv_factor_I.val[0]/(100.00-0.00);	
 			
-			cout << "Conversion Factor from pixels to meters\t" << mean_conversionF <<endl;
-			cout << "Standard deviation Conversion Factor\t" << stDev_conversionF <<endl;
+			double mean_conversionF = sqrt((mean_conversionF_J*mean_conversionF_J) + (mean_conversionF_I*mean_conversionF_I));
 			
-			
+			cout << "J Conversion Factor from pixels to meters\t" << mean_conversionF_J << endl;
+			cout << "Standard deviation J Conversion Factor\t" << stDev_conversionF_J << endl << endl;
 
-			myfile << "Master orthorectification parameters" <<endl;
+			cout << "I Conversion Factor from pixels to meters\t" << mean_conversionF_I << endl;
+			cout << "Standard deviation I Conversion Factor\t" << stDev_conversionF_I << endl << endl;
+			
+			cout << "Total Conversion Factor from pixels to meters\t" << mean_conversionF << endl;
+			
+			
+			myfile << endl << "Master orthorectification parameters" <<endl;
 			myfile << master_key << endl;
 			myfile << "Slave orthorectification parameters" <<endl;
 			myfile << slave_key << endl;
-			myfile <<"Conversion Factor from pixels to meters\t" << mean_conversionF <<endl;
-			myfile <<"Standard deviation Conversion Factor\t" << stDev_conversionF <<endl; 
+			myfile <<"Conversion Factor from pixels to meters\t" << mean_conversionF_J <<endl;
+			myfile <<"Standard deviation Conversion Factor\t" << stDev_conversionF_J <<endl; 
 			myfile.close();			
 						
 /*			
