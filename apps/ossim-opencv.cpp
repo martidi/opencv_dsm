@@ -32,8 +32,10 @@
 #include "ossim/imaging/ossimImageGeometry.h"
 #include "ossim/imaging/ossimImageFileWriter.h"
 #include "ossim/imaging/ossimImageWriterFactoryRegistry.h"
+#include "ossim/imaging/ossimSrtmTileSource.h"
 
 #include <ossim/elevation/ossimElevManager.h>
+#include <ossim/elevation/ossimSrtmHandler.h>
 
 #include "ossimOpenCvTPgenerator.h"
 #include "openCVtestclass.h"
@@ -99,7 +101,7 @@ int main(int argc,  char* argv[])
 	try
 	{ 
 		// PARSER *******************************
-		cout << "Arg number " << ap.argc() << endl;
+		cout << endl << "Arg number " << ap.argc() << endl;
 				
 		ossimKeywordlist master_key;
 		ossimKeywordlist slave_key;
@@ -131,6 +133,8 @@ int main(int argc,  char* argv[])
 			double lat_max;
      		double lon_max;     
         
+            double MinHeight;
+            double MaxHeight;
        
 		if( ap.read("--cut-bbox-ll", stringParam1, stringParam2, stringParam3, stringParam4) )
 		{
@@ -152,14 +156,201 @@ int main(int argc,  char* argv[])
  			cout << "Tile extent:" << "\tLat_min = "<< lat_min << endl   
 								<<"\t\tLon_min = " << lon_min << endl
 								<<"\t\tLat_max = " << lat_max << endl
-								<<"\t\tLon_max = " << lon_max << endl;    		
-     						     								
-			/*cout << "Tile extent:" << "\tLat_min = "<< tempString1 << endl   
-								<<"\t\tLon_min = " << tempString2 << endl
-								<<"\t\tLat_max = " << tempString3 << endl
-								<<"\t\tLon_max = " << tempString4 << endl;*/
-		}
+								<<"\t\tLon_max = " << lon_max << endl << endl; 
+
+             //ossimGpt world_point(lat_min, lon_min, 0.00);
+
+            std::vector<ossim_float64> HeightAboveMSL;
+
+            for(double lat = lat_min; lat < lat_max; lat += 0.0001)
+            {
+                for(double lon = lon_min; lon < lon_max; lon += 0.0001)
+                {
+                    ossimGpt world_point(lat, lon, 0.00);
+
+                    ossim_float64 hgtAboveMsl = ossimElevManager::instance()->getHeightAboveMSL(world_point);
+                    //ossim_float64 hgtAboveEllipsoid = ossimElevManager::instance()->getHeightAboveEllipsoid(world_point);
+                    //ossim_float64 geoidOffset = ossimGeoidManager::instance()->offsetFromEllipsoid(world_point);
+                    //ossim_float64 mslOffset = 0.0;
+
+                    HeightAboveMSL.push_back(hgtAboveMsl);
+                }
+            }
+
+            MinHeight = *min_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
+            MaxHeight = *max_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
+            cout << "Min height for this tile is " << std::setprecision(6) << MinHeight << " m" << endl;
+            cout << "Max height for this tile is " << std::setprecision(6) << MaxHeight << " m" << endl;
+
+
+/*
+            //Calcolo max e min
+
+			// Elevation manager instance
+			ossim_float64 hgtAboveMsl = ossimElevManager::instance()->getHeightAboveMSL(world_point);
+			ossim_float64 hgtAboveEllipsoid = ossimElevManager::instance()->getHeightAboveEllipsoid(world_point);
+			ossim_float64 geoidOffset = ossimGeoidManager::instance()->offsetFromEllipsoid(world_point);
+            ossim_float64 mslOffset = 0.0;
+
+
+			ossimDrect boundBox = ossimDrect(lon_min, lat_max, lon_max, lat_min); //vuole dei double in input
+						
+			ossimSrtmTileSource* dsm = new ossimSrtmTileSource();
+			std::vector<std::string> cells;	
+            ossimElevManager::instance()->getCellsForBounds(lat_min,lon_min,lat_max,lon_max, cells);
+
+   			cout << cells[0] << endl;
+
+            ossimRefPtr<ossimImageData> tile = dsm->getTile(boundBox);
+
+
+            std::vector<ossim_float64> minvalue (1,0.0);
+            std::vector<ossim_float64> maxvalue (1,100.0);
+
+            tile->computeMinMaxPix(minvalue, maxvalue);  //mi dà un void...quindi come faccio a tirar fuori qualcosa?
+
+
+            dsm->initialize();
+
+            dsm->open();
+
+            cout << "qt POWER " << dsm->getMaxPixelValue() << endl;
+
+
+			ossimSrtmSupportData sd;
+
+			sd.setFilename(cells[0], true);
+
+			cout << "stronzi " << sd.getMaxPixelValue() << endl;
+			cout << "stronzi 2 " << sd.getMinPixelValue() << endl;
+
+			return 0;
+*/
+			//ossimRefPtr<ossimImageData> geom = dsm->getTile(boundBox);
+			
+			//std::vector<ossim_float64> minvalue (1,0.0);
+			//std::vector<ossim_float64> maxvalue (1,100.0);
+
+			//double pippo = geom->getWidth();
+
+//			cout << pippo << endl;
+
+			//geom->computeMinMaxPix(minvalue, maxvalue);
+			
+//			cout << minvalue[0] << "bella per noi " << maxvalue[0] << endl; 
+
+
+			//ossimRefPtr<ossimImageData> geom = 
+			//ossimSrtmTileSource::getImageGeometry()
+			
+			//ossimRefPtr<ossimImageData> geom = ossimElevManager::instance()->ImageGeometry();
+
+			//Prendo il tile con getTile
+			//ossimRefPtr<ossimImageData> SrtmTile = ossimSrtmTileSource::getTile(boundBox);
+
+
+/*
+			double SrtmMinHeight = ossimElevManager::instance()->getMinHeightAboveMSL();
+			double SrtmMaxHeight = ossimElevManager::instance()->getMaxHeightAboveMSL();
+			cout << SrtmMinHeight << "MinHeight" << endl <<  SrtmMaxHeight << "MaxHeight" << endl;
+			
+*/
+
+
+/*
+			ossimSrtmHandler mySrtm (data/elevation/srtm/v4_1");
+
+			double minH = mySrtm.getMinHeightAboveMSL();
+						
+			ossimGpt myLocation;
+			ossimElevManager::instance()->getHeightAboveMSL(myLocation);
+			double maxH = ossimElevManager::instance()->getMaxHeightAboveMSL();
+			
+			cout << "max height = " << maxH << endl << endl;
+					
+		ossimElevManager* elev = ossimElevManager::instance();     
+		ossim_float64 hgtAboveMSL = elev->getHeightAboveMSL(myLocation);
+		double minH = elev->getMinHeightAboveMSL();	
+		cout << "min height = " << minH << endl << endl;
+		//ossimElevSource* source = ossimElevSource::ossimElevSource();	
+		//ossim_float64 hgtAboveMsl_min = source->getMinHeightAboveMSL(); 
+		//ossim_float64 hgtAboveMsl_min = ossimElevSource()->getMinHeightAboveMSL(); 
+
+
+		ossimElevSource::ossimElevSource(const ossimElevSource& src)
+			:ossimSource(src),
+		theMinHeightAboveMSL(src.theMinHeightAboveMSL),
+		theMaxHeightAboveMSL(src.theMaxHeightAboveMSL),
+		
+		ossim_float64 hgtAboveMsl_min = ossimElevSource::getMinHeightAboveMSL(); 
+		ossim_float64 hgtAboveMsl_max = ossimElevSource::getMaxHeightAboveMSL(); 
+
+		cout << "Min Height above MSL" << hgtAboveMsl_min << endl;
+		//cout << "Max Height above MSL" << hgtAboveMsl_max << endl;
+
+			if(ossim::isnan(hgtAboveEllipsoid)||ossim::isnan(hgtAboveMsl))
+			{
+				mslOffset = ossim::nan();
+			}
+			else
+			{
+				mslOffset = hgtAboveEllipsoid - hgtAboveMsl;
+			}
+   
+			std::vector<ossimFilename> cellList;
+			ossimElevManager::instance()->getOpenCellList(cellList);
+   
+			if (!cellList.empty())
+			{
+				cout << "Opened cell:            " << cellList[0] << "\n";
+			}
+			else
+			{
+				cout << "Did not find cell for point: " << lat_min << "\n";
+			}   
+
+			cout << "MSL to ellipsoid delta for ll point: ";
+			if (!ossim::isnan(mslOffset))
+			{
+				cout << std::setprecision(15) << mslOffset;
+			}
+			else
+			{
+				cout << "nan";
+			}
+   
+			cout << "\nHeight above MSL for ll point:       ";
+			if (!ossim::isnan(hgtAboveMsl))
+			{
+				cout << std::setprecision(15) << hgtAboveMsl;
+			}
+			else
+			{
+				cout << "nan";
+			}
+   
+			cout << "\nHeight above ellipsoid for ll point: ";
+			if (!ossim::isnan(hgtAboveEllipsoid))
+			{
+				cout << std::setprecision(15) << hgtAboveEllipsoid << "\n";
+			}
+			else
+			{
+				cout << "nan" << "\n";
+			}
+   
+			cout << "Geoid value for ll point:            ";
+			if (!ossim::isnan(geoidOffset))
+			{
+				cout << std::setprecision(15) << geoidOffset << std::endl;
+			}
+			else
+			{
+				cout << "nan" << std::endl;
+            }*/
+        }
 		// End of arg parsing
+		
 		ap.reportRemainingOptionsAsUnrecognized();
 		if (ap.errors())
 		{
@@ -174,8 +365,7 @@ int main(int argc,  char* argv[])
 		{
 			master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[3]);		
 			slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ap[4]);
-			
-			
+						
 			master_key.addPair("image1.file", ap[1]);
 			slave_key.addPair("image1.file", ap[2]);
 		}
@@ -227,7 +417,7 @@ int main(int argc,  char* argv[])
 			openCVtestclass *test = new openCVtestclass(img_master, img_slave) ; 					
    			test->execute();
 
-			// CONVERSION FACTOR (from pixels to meters) computation
+			// CONVERSION FACTOR (from pixels to meters) COMPUTATION *************
 			ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();    
 			ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry(); 
           
@@ -235,7 +425,6 @@ int main(int argc,  char* argv[])
 			double Dlon = (lon_max - lon_min)/2.0;
 			double Dlat = (lat_max - lat_min)/2.0;
 						
-
 			// Getting ready the log file
 			char * logfile = ap[3];			
 			string log(logfile);	
@@ -253,8 +442,8 @@ int main(int argc,  char* argv[])
 			{
 				for (int j=0 ; j<3 ; j++) //LON
 				{
-					ossimGpt punto_terra(lat_max-i*Dlat,lon_min+j*Dlon,0.00);
-					ossimGpt punto_terra_up(lat_max-i*Dlat,lon_min+j*Dlon,100.00);
+                    ossimGpt punto_terra(lat_max-i*Dlat,lon_min+j*Dlon,0.00);
+                    ossimGpt punto_terra_up(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight);
 					
 					ossimDpt punto_img(0.,0.);
 					ossimDpt punto_img_up(0.,0.);
@@ -280,8 +469,8 @@ int main(int argc,  char* argv[])
 				}			
 			}
 			
-			cout << conv_factor_J << endl;
-			cout << conv_factor_I << endl;	
+			//cout << conv_factor_J << endl;
+			//cout << conv_factor_I << endl;	
 									
 			cv::Scalar mean_conv_factor_J, stDev_conv_factor_J;
 			cv::meanStdDev(conv_factor_J, mean_conv_factor_J, stDev_conv_factor_J);
@@ -290,10 +479,10 @@ int main(int argc,  char* argv[])
 			cv::meanStdDev(conv_factor_I, mean_conv_factor_I, stDev_conv_factor_I);			
 
 			double stDev_conversionF_J = stDev_conv_factor_J.val[0];
-			double mean_conversionF_J = mean_conv_factor_J.val[0]/(100.00-0.00);	        
+            double mean_conversionF_J = mean_conv_factor_J.val[0]/(MaxHeight -0.00);
 	
 			double stDev_conversionF_I = stDev_conv_factor_I.val[0];
-			double mean_conversionF_I = mean_conv_factor_I.val[0]/(100.00-0.00);	
+            double mean_conversionF_I = mean_conv_factor_I.val[0]/(MaxHeight -0.00);
 			
 			double mean_conversionF = sqrt((mean_conversionF_J*mean_conversionF_J) + (mean_conversionF_I*mean_conversionF_I));
 			
@@ -304,7 +493,7 @@ int main(int argc,  char* argv[])
 			cout << "Standard deviation I Conversion Factor\t" << stDev_conversionF_I << endl << endl;
 			
 			cout << "Total Conversion Factor from pixels to meters\t" << mean_conversionF << endl;
-			
+			// END CONVERSION FACTOR COMPUTATION ****************************************
 			
 			myfile << endl << "Master orthorectification parameters" <<endl;
 			myfile << master_key << endl;
@@ -315,19 +504,19 @@ int main(int argc,  char* argv[])
 			myfile.close();			
 						
 /*			
-		cv::Mat parallax = cv::Mat::zeros(good_matches.size(), 1, CV_64F);
-		for(size_t i = 0; i < good_matches.size(); i++)
-		{
-			parallax.at<double>(i,0) = keypoints1[good_matches[i].queryIdx].pt.y - keypoints2[good_matches[i].trainIdx].pt.y; 	
-		}		
-		cv::Scalar mean_parallax, stDev_parallax;
-		cv::meanStdDev(parallax, mean_parallax, stDev_parallax);
+            cv::Mat parallax = cv::Mat::zeros(good_matches.size(), 1, CV_64F);
+            for(size_t i = 0; i < good_matches.size(); i++)
+            {
+                parallax.at<double>(i,0) = keypoints1[good_matches[i].queryIdx].pt.y - keypoints2[good_matches[i].trainIdx].pt.y;
+            }
+            cv::Scalar mean_parallax, stDev_parallax;
+            cv::meanStdDev(parallax, mean_parallax, stDev_parallax);
 		
-		double dev_y = stDev_parallax.val[0]; 	
-		double mean_diff_y = mean_parallax.val[0]; 
+            double dev_y = stDev_parallax.val[0];
+            double mean_diff_y = mean_parallax.val[0];
 	
-		cout << "dev_y = " << dev_y << endl
-	         << "mean_diff_y = " << mean_diff_y << endl;			
+            cout << "dev_y = " << dev_y << endl
+                 << "mean_diff_y = " << mean_diff_y << endl;
 */				
 				
 			// From Disparity to DSM
