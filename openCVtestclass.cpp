@@ -44,23 +44,28 @@ openCVtestclass::openCVtestclass()
 	
 }
 
-openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr<ossimImageData> slave)
+openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> backward, ossimRefPtr<ossimImageData> nadir, ossimRefPtr<ossimImageData> forward)
 {
 	// Create the OpenCV images
-	master_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
-	slave_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
+	backward_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
+	nadir_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
+	forward_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
 	
-	memcpy(master_mat.ptr(), (void*) master->getUshortBuf(), 2*master->getWidth()*master->getHeight());
-	memcpy(slave_mat.ptr(), (void*) slave->getUshortBuf(), 2*slave->getWidth()*slave->getHeight());
-
+	memcpy(backward_mat.ptr(), (void*) backward->getUshortBuf(), 2*backward->getWidth()*backward->getHeight());
+	memcpy(nadir_mat.ptr(), (void*) nadir->getUshortBuf(), 2*nadir->getWidth()*nadir->getHeight());
+	memcpy(forward_mat.ptr(), (void*) forward->getUshortBuf(), 2*forward->getWidth()*forward->getHeight());	
+	
 	cout << "OSSIM->OpenCV image conversion done" << endl;
 	
 	// Rotation for along-track images
-	cv::transpose(master_mat, master_mat);
-	cv::flip(master_mat, master_mat, 1);
+	cv::transpose(backward_mat, backward_mat);
+	cv::flip(backward_mat, backward_mat, 1);
 	
-	cv::transpose(slave_mat, slave_mat);
-	cv::flip(slave_mat, slave_mat, 1);	
+	cv::transpose(nadir_mat, nadir_mat);
+	cv::flip(nadir_mat, nadir_mat, 1);	
+	
+	cv::transpose(forward_mat, forward_mat);
+	cv::flip(forward_mat, forward_mat, 1);		
 }
 
 
