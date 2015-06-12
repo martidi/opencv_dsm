@@ -129,6 +129,14 @@ int main(int argc,  char* argv[])
 		}
 		
 		cout << "Orthoimages resolution = " << tempString1 <<" meters"<< endl << endl;
+		
+			double lat_min;
+			double lon_min;
+			double lat_max;
+     		double lon_max;     
+        
+            double MinHeight;
+            double MaxHeight;
         
 		if( ap.read("--cut-bbox-ll", stringParam1, stringParam2, stringParam3, stringParam4) )
 		{
@@ -146,11 +154,17 @@ int main(int argc,  char* argv[])
 			backward_key.addPair( CUT_MIN_LON_KW, tempString2 );
 			backward_key.addPair( CUT_MAX_LAT_KW, tempString3 );
 			backward_key.addPair( CUT_MAX_LON_KW, tempString4 );
+			
+			lat_min = atof(tempString1.c_str());
+			lon_min = atof(tempString2.c_str());
+			lat_max = atof(tempString3.c_str());
+     		lon_max = atof(tempString4.c_str());
+			
      						     								
-			cout << "Tile extent:" << "\tLat_min = "<< tempString1 << endl   
-								<<"\t\tLon_min = " << tempString2 << endl
-								<<"\t\tLat_max = " << tempString3 << endl
-								<<"\t\tLon_max = " << tempString4 << endl;
+ 			cout << "Tile extent:" << "\tLat_min = "<< lat_min << endl   
+								<<"\t\tLon_min = " << lon_min << endl
+								<<"\t\tLat_max = " << lat_max << endl
+								<<"\t\tLon_max = " << lon_max << endl << endl; 
 		}
 		// End of arg parsing
 		ap.reportRemainingOptionsAsUnrecognized();
@@ -191,83 +205,7 @@ int main(int argc,  char* argv[])
         cout << endl << "FORWARD DIRECTORY:" << " " << ap[1] << endl;
         cout << "NADIR DIRECTORY:"  << " " << ap[2] << endl;	
         cout << "BACKWARD DIRECTORY:"  << " " << ap[3] << endl << endl;        
-	
-/*	
-   string tempString;
-   ossimArgumentParser::ossimParameter stringParam(tempString);
-   ossimArgumentParser argumentParser(&argc, argv);
-   ossimInit::instance()->addOptions(argumentParser);
-   ossimInit::instance()->initialize(argumentParser);
-
-   if(traceDebug())
-   {
-      ossimNotify(ossimNotifyLevel_DEBUG) << "entered main" << std::endl;
-   }
-   
-   argumentParser.getApplicationUsage()->setApplicationName(argumentParser.getApplicationName());
-   argumentParser.getApplicationUsage()->setDescription(argumentParser.getApplicationName()+" takes a spec file as input and produces a product");
-   argumentParser.getApplicationUsage()->setCommandLineUsage(argumentParser.getApplicationName()+" [options] <spec_file>");
-   argumentParser.getApplicationUsage()->addCommandLineOption("-t or --thumbnail", "thumbnail resolution");
-   argumentParser.getApplicationUsage()->addCommandLineOption("-h or --help","Display this information");
- 
-
-   if(argumentParser.read("-h") ||
-      argumentParser.read("--help")||
-      argumentParser.argc() <2)
-   {
-      argumentParser.getApplicationUsage()->write(std::cout);
-      exit(0);
-   }
-
-   ossimRefPtr<ossimIgen> igen = new ossimIgen;
-   double start=0, stop=0;
-   
-   ossimMpi::instance()->initialize(&argc, &argv);
-   start = ossimMpi::instance()->getTime();
-
-   ossimKeywordlist kwl;
-   kwl.setExpandEnvVarsFlag(true);
-   
-   while(argumentParser.read("-t", stringParam)   ||
-         argumentParser.read("--thumbnail", stringParam));
-   
-   if(ossimMpi::instance()->getRank() > 0)
-   {
-      // since this is not the master process
-      // then it will set the keyword list form the master
-      // so set this to empty
-      //
-      igen->initialize(ossimKeywordlist());
-   }
-   else if(argumentParser.argc() > 1)
-   {
-      if(kwl.addFile(argumentParser.argv()[1]))
-      {
-         if(tempString != "")
-         {
-            kwl.add("igen.thumbnail",
-                    "true",
-                    true);
-            kwl.add("igen.thumbnail_res",
-                    tempString.c_str(),
-                    true);
-         }
-         else
-         {
-            kwl.add("igen.thumbnail",
-                    "false",
-                    true);
-         }
-         kwl.add("igen.thumbnail_res",
-                 tempString.c_str(),
-                 true);
-
-         igen->initialize(kwl);
-      }
-   }
-
-*/		
-		
+				
 	    cout << "Start forward orthorectification" << endl;
 		ortho(forward_key); 
 	
