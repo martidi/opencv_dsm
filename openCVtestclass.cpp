@@ -47,9 +47,9 @@ openCVtestclass::openCVtestclass()
 openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> backward, ossimRefPtr<ossimImageData> nadir, ossimRefPtr<ossimImageData> forward)
 {
 	// Create the OpenCV images
-	backward_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
-	nadir_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
-	forward_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
+	backward_mat.create(cv::Size(backward->getWidth(), backward->getHeight()), CV_16UC1);
+	nadir_mat.create(cv::Size(nadir->getWidth(), nadir->getHeight()), CV_16UC1);
+	forward_mat.create(cv::Size(forward->getWidth(), forward->getHeight()), CV_16UC1);
 	
 	memcpy(backward_mat.ptr(), (void*) backward->getUshortBuf(), 2*backward->getWidth()*backward->getHeight());
 	memcpy(nadir_mat.ptr(), (void*) nadir->getUshortBuf(), 2*nadir->getWidth()*nadir->getHeight());
@@ -68,7 +68,7 @@ openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> backward, ossimRefP
 	cv::flip(forward_mat, forward_mat, 1);		
 }
 
-
+/*
 bool openCVtestclass::execute()
 {			
 	// ****************************
@@ -99,8 +99,9 @@ bool openCVtestclass::execute()
 	out_disp = dense_matcher->execute(master_mat_8U, slave_mat_warp); 
 		
 	return true;
-}
+}*/
 
+/*
 bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
 	cv::transpose(out_disp, out_disp);
@@ -129,7 +130,7 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 			out_16bit_disp.at<double>(i,j) += hgtAboveMSL;
 		}
 	}
-/*
+//
 	// Conversion from OpenCV to OSSIM images   
 	
 	//ossimRefPtr<ossimImageData> disp_ossim = disp_ossim_handler->getSize();
@@ -155,7 +156,7 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	//disp_ossim = disp_ossim->getDoubleBuf();
 	
 	cout << "OpenCV->OSSIM image conversion done_3" << endl;
-*/ 	
+ 	
 	cv::Mat intDSM; 
 	// Conversion from float to integer to write and show
 	out_16bit_disp.convertTo(intDSM, CV_16U);
@@ -171,8 +172,9 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	cv::waitKey(0);	
 	
 	return true;
-}
+}*/
 
+/*
 bool openCVtestclass::writeDisparity(double conv_factor)
 {
 	cv::transpose(out_disp, out_disp);
@@ -183,18 +185,12 @@ bool openCVtestclass::writeDisparity(double conv_factor)
 	
 	return true;
 }
-
-
+*/
+/*
 cv::Mat openCVtestclass::wallis(cv::Mat image)
 {
 	cout <<"Filtering images..."<< endl;
-	//cv::Mat image =  imread(raw_image, CV_LOAD_IMAGE_UNCHANGED );
-	// Check for invalid input	
-    /*if( image.empty() )                      
-    {
-        cout <<  "Could not open or find the image" << endl ;
-        return -1;
-    }*/
+
     
 	int n = image.cols;	
 	int m = image.rows;
@@ -332,8 +328,8 @@ cv::Mat openCVtestclass::wallis(cv::Mat image)
 	cv::imshow("Filtered_image", Filtered_image );
 	
 	cv::waitKey(0);*/	
-	return Filtered_image;				
-}
+	//return Filtered_image;				
+//}
 
 
 /*void openCVtestclass::addArguments(ossimArgumentParser& ap)

@@ -240,11 +240,11 @@ int main(int argc,  char* argv[])
 			
 			// TPs generation 
 			
-			openCVtestclass *test_bwdnad = new openCVtestclass(img_backward, img_nadir) ; 					
-   			test_bwdnad->execute();
+			openCVtestclass *test_bwdnad = new openCVtestclass(img_backward, img_nadir, img_forward) ; 					
+   			//test_bwdnad->execute();
    						
-			openCVtestclass *test_nadfwd = new openCVtestclass(img_nadir, img_forward) ; 					
-   			test_nadfwd->execute();
+		//	openCVtestclass *test_nadfwd = new openCVtestclass(img_nadir, img_forward) ; 					
+   			//test_nadfwd->execute();
    						
 /*  			
 			// Conversion factor (from pixels to meters) computation
@@ -340,7 +340,7 @@ int main(int argc,  char* argv[])
             
 			delete writer;  */
 			delete test_bwdnad;	
-			delete test_nadfwd;			
+			//delete test_nadfwd;			
 		}
 	}     
 	catch (const ossimException& e)
