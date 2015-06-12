@@ -56,11 +56,11 @@ openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr
 	cout << "OSSIM->OpenCV image conversion done" << endl;
 	
 	// Rotation for along-track images
-	cv::transpose(master_mat, master_mat);
+    cv::transpose(master_mat, master_mat);
 	cv::flip(master_mat, master_mat, 1);
 	
 	cv::transpose(slave_mat, slave_mat);
-	cv::flip(slave_mat, slave_mat, 1);	
+    cv::flip(slave_mat, slave_mat, 1);
 }
 
 
@@ -69,8 +69,8 @@ bool openCVtestclass::execute()
 	// ****************************
 	// Activate for Wallis filter	
 	// ****************************			
-	//master_mat = wallis(master_mat);	
-	//slave_mat = wallis(slave_mat);
+    //master_mat = wallis(master_mat);
+    //slave_mat = wallis(slave_mat);
 	//		  	
    	// ****************************
 	double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
@@ -113,9 +113,9 @@ bool openCVtestclass::execute()
 
 bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
-	// Rotation for along-track images	
-	cv::transpose(out_disp, out_disp);
-	cv::flip(out_disp, out_disp, 0);
+    // for along-track images
+    cv::transpose(out_disp, out_disp);
+    cv::flip(out_disp, out_disp, 0);
     
 	cv::Mat out_16bit_disp = cv::Mat::zeros (out_disp.size(),CV_64F);
 	out_disp.convertTo(out_disp, CV_64F);
@@ -131,7 +131,8 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 			ossimDpt image_pt(j,i);
 			ossimGpt world_pt;     
 			master_geom->localToWorld(image_pt, world_pt);
-			ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
+            ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
+            //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
 			if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold/abs(mean_conversionF))		
 			//if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold*abs(mean_conversionF))					
 			{ 
@@ -140,6 +141,9 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 			out_16bit_disp.at<double>(i,j) += hgtAboveMSL;
 		}
 	}
+
+
+    //cout << out_16bit_disp << endl;
 /*
 	// Conversion from OpenCV to OSSIM images   
 	
@@ -187,9 +191,9 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 bool openCVtestclass::writeDisparity(double conv_factor)
 {
 	// Rotation for along-track images
-	cv::transpose(out_disp, out_disp);
-	cv::flip(out_disp, out_disp, 0);
-    
+    cv::transpose(out_disp, out_disp);
+    cv::flip(out_disp, out_disp, 0);
+
 	out_disp = (out_disp/16.0) * conv_factor;
 	cv::imwrite("mDisparity.jpg", out_disp);
 	
@@ -265,7 +269,7 @@ cv::Mat openCVtestclass::wallis(cv::Mat image)
 	// it has a much stronger influence on noise than sf
 	// lower values produce very little contrast and detail
 	// values closer to 1 produce a highly contrasted image with greater detail 
-	double c = 0.8; 
+    double c = 0.8;
 	
 	// sf is the target value of the LOCAL STANDARD DEVIATION in a i,j window [50.0-80.0]
 	// the value of sf should decrease with decreasing window dimensions(i,j) to avoid increase of noise
@@ -277,11 +281,11 @@ cv::Mat openCVtestclass::wallis(cv::Mat image)
 	// to keep primary image gray mean b has to be small
 	// 0 will keep the original pixel values
 	// 1 will generate an output image equal to the wallis filter specified
-	double b = 0.9;
+    double b = 1;
 	
 	// mf is the target value of the LOCAL MEAN in a i,j window [127.0-140.0]
 	// an higher value will brighten the image
-	double mf = 127.0;
+    double mf = 127.0;
 	
 	int px = 0, py = 0;
 	

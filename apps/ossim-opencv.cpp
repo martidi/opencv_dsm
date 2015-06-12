@@ -160,11 +160,12 @@ int main(int argc,  char* argv[])
 
              //ossimGpt world_point(lat_min, lon_min, 0.00);
 
-            std::vector<ossim_float64> HeightAboveMSL;
+            //**********MIN and MAX HEIGHT COMPUTATION************************
+ /*           std::vector<ossim_float64> HeightAboveMSL;
 
-            for(double lat = lat_min; lat < lat_max; lat += 0.0001)
+            for(double lat = lat_min; lat < lat_max; lat += 0.001)
             {
-                for(double lon = lon_min; lon < lon_max; lon += 0.0001)
+                for(double lon = lon_min; lon < lon_max; lon += 0.001)
                 {
                     ossimGpt world_point(lat, lon, 0.00);
 
@@ -181,7 +182,7 @@ int main(int argc,  char* argv[])
             MaxHeight = *max_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
             cout << "Min height for this tile is " << std::setprecision(6) << MinHeight << " m" << endl;
             cout << "Max height for this tile is " << std::setprecision(6) << MaxHeight << " m" << endl;
-
+*/
 
 /*
             //Calcolo max e min
@@ -389,10 +390,10 @@ int main(int argc,  char* argv[])
 	
 		
 	    cout << "Start master orthorectification" << endl;
-		//ortho(master_key); 
+        ortho(master_key);
 	
 		cout << "Start slave orthorectification" << endl;
-		//ortho(slave_key);
+        ortho(slave_key);
 			
 		// Elevation manager instance
 		ossimElevManager* elev = ossimElevManager::instance();		
@@ -421,7 +422,7 @@ int main(int argc,  char* argv[])
 			ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();    
 			ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry(); 
           
-			//Conversion factor computed on tile and not over all the image		       
+            // Conversion factor computed on tile and not over all the image
 			double Dlon = (lon_max - lon_min)/2.0;
 			double Dlat = (lat_max - lat_min)/2.0;
 						
@@ -437,19 +438,29 @@ int main(int argc,  char* argv[])
 				
 			cv::Mat conv_factor_J = cv::Mat::zeros(3,3, CV_64F);				
 			cv::Mat conv_factor_I = cv::Mat::zeros(3,3, CV_64F);	
-											
+
+            ossimGpt central_object_point(46.0490, 11.1053);
+            ossimDpt central_image_point(0.,0.);
+            ossimGpt point_object(0., 0.);
+
+            raw_master_geom->worldToLocal(central_object_point, central_image_point);
+            cout << central_image_point << endl; //coordinate immagine corrispondenti al punto centrale
+
+            raw_master_geom->localToWorld(central_image_point, 1400, point_object);
+            cout << point_object << endl;  // coordinate oggetto corrispondenti al punto centrale proiettato a 1400 m
+
 			for (int i=0 ; i<3 ; i++) //LAT
 			{
 				for (int j=0 ; j<3 ; j++) //LON
 				{
-                    ossimGpt punto_terra(lat_max-i*Dlat,lon_min+j*Dlon,0.00);
-                    ossimGpt punto_terra_up(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight);
+                    ossimGpt punto_terra(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight -50);
+                    ossimGpt punto_terra_up(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight + 50);
 					
 					ossimDpt punto_img(0.,0.);
 					ossimDpt punto_img_up(0.,0.);
 				
 					raw_master_geom->worldToLocal(punto_terra,punto_img);        //con qst trasf ottengo punto_img della master      
-					raw_master_geom->worldToLocal(punto_terra_up,punto_img_up);   
+                    raw_master_geom->worldToLocal(punto_terra_up,punto_img_up);
 
 					myfile << "MASTER IMAGE" << "\t" << "Ground point" << punto_terra << "\t" << "Image point" << punto_img << "\t" << "Ground point up" << punto_terra_up << "\t" << "Image point up" << punto_img_up << "\t";    
 					
@@ -479,12 +490,12 @@ int main(int argc,  char* argv[])
 			cv::meanStdDev(conv_factor_I, mean_conv_factor_I, stDev_conv_factor_I);			
 
 			double stDev_conversionF_J = stDev_conv_factor_J.val[0];
-            double mean_conversionF_J = mean_conv_factor_J.val[0]/(MaxHeight -0.00);
+            double mean_conversionF_J = mean_conv_factor_J.val[0]/(MaxHeight -MinHeight + 100);
 	
 			double stDev_conversionF_I = stDev_conv_factor_I.val[0];
-            double mean_conversionF_I = mean_conv_factor_I.val[0]/(MaxHeight -0.00);
+            double mean_conversionF_I = mean_conv_factor_I.val[0]/(MaxHeight -MinHeight + 100);
 			
-			double mean_conversionF = sqrt((mean_conversionF_J*mean_conversionF_J) + (mean_conversionF_I*mean_conversionF_I));
+            double mean_conversionF = (sqrt((mean_conv_factor_J.val[0]*mean_conv_factor_J.val[0]) + (mean_conv_factor_I.val[0]*mean_conv_factor_I.val[0]))/(MaxHeight -MinHeight + 100));
 			
 			cout << "J Conversion Factor from pixels to meters\t" << mean_conversionF_J << endl;
 			cout << "Standard deviation J Conversion Factor\t" << stDev_conversionF_J << endl << endl;
