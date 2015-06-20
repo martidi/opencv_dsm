@@ -120,6 +120,7 @@ int main(int argc,  char* argv[])
 		ossimArgumentParser::ossimParameter stringParam3(tempString3);
 		ossimArgumentParser::ossimParameter stringParam4(tempString4);
     
+    
 		if(ap.read("--meters", stringParam1) )
 		{
 			master_key.addPair(METERS_KW, tempString1 );
