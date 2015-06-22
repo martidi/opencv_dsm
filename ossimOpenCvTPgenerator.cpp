@@ -41,164 +41,191 @@ ossimOpenCvTPgenerator::ossimOpenCvTPgenerator()
 
 ossimOpenCvTPgenerator::ossimOpenCvTPgenerator(cv::Mat master, cv::Mat slave)
 {
-	master_mat = master;
-	slave_mat = slave;
+    master_mat = master;
+    slave_mat = slave;
 }
 
 cv::Mat ossimOpenCvTPgenerator::estRT(std::vector<cv::Point2f> master, std::vector<cv::Point2f> slave)
 {
-	size_t m = master.size();
-	
-	if ( master.size() != slave.size() ) 
-	{
-		throw 0;
-	}
-    
-	// Computing barycentric coordinates
-	
-	cv::Scalar mean_master_x , mean_master_y, mean_slave_x, mean_slave_y;
-	cv::Scalar stDev_master_x, stDev_master_y, stDev_slave_x, stDev_slave_y;
-	
-	cv::Mat components_matrix = cv::Mat::zeros(m,4, CV_64F);
-	for(size_t i = 0; i < m; i++)
-	{
-		components_matrix.at<double>(i,0) = master[i].x;
-		components_matrix.at<double>(i,1) = master[i].y;
-		components_matrix.at<double>(i,2) = slave[i].x;
-		components_matrix.at<double>(i,3) = slave[i].y;	
-	}
-	cv::meanStdDev(components_matrix.col(0), mean_master_x, stDev_master_x);				
-	cv::meanStdDev(components_matrix.col(1), mean_master_y, stDev_master_y); 
-	cv::meanStdDev(components_matrix.col(2), mean_slave_x, stDev_slave_x); 
-	cv::meanStdDev(components_matrix.col(3), mean_slave_y, stDev_slave_y); 
-		
-	master_x = mean_master_x.val[0];
-	master_y = mean_master_y.val[0];
-	slave_x = mean_slave_x.val[0];
-	slave_y	= mean_slave_y.val[0];		
-	
-	
-	cout << "mean_x_master = " << master_x << endl
-		 << "mean_y_master = " << master_y << endl
-		 << "mean_x_slave = "  << slave_x  << endl
-		 << "mean_y_slave = "  << slave_y  << endl << endl; 
+    size_t m = master.size();
 
-			
-	std::vector<cv::Point2f> bar_master, bar_slave;
+    if ( master.size() != slave.size() )
+    {
+        throw 0;
+    }
 
-	for (size_t i = 0; i < m; i++)
-	{
-		cv::Point2f pt1;
-		cv::Point2f pt2;
+    // Computing barycentric coordinates
 
-		pt1.x = master[i].x - master_x;
-		pt1.y = master[i].y - master_y;
+    cv::Scalar mean_master_x , mean_master_y, mean_slave_x, mean_slave_y, mean_shift_x, mean_shift_y;
+    cv::Scalar stDev_master_x, stDev_master_y, stDev_slave_x, stDev_slave_y, stDev_shift_x, stDev_shift_y;
 
-		pt2.x = slave[i].x - slave_x;
-		pt2.y = slave[i].y - slave_y;
-        
+    cv::Mat components_matrix = cv::Mat::zeros(m,6, CV_64F);
+    for(size_t i = 0; i < m; i++)
+    {
+        components_matrix.at<double>(i,0) = master[i].x;
+        components_matrix.at<double>(i,1) = master[i].y;
+        components_matrix.at<double>(i,2) = slave[i].x;
+        components_matrix.at<double>(i,3) = slave[i].y;
+        components_matrix.at<double>(i,4) = master[i].x - slave[i].x;
+        components_matrix.at<double>(i,5) = master[i].y - slave[i].y;
+    }
+    cv::meanStdDev(components_matrix.col(0), mean_master_x, stDev_master_x);
+    cv::meanStdDev(components_matrix.col(1), mean_master_y, stDev_master_y);
+    cv::meanStdDev(components_matrix.col(2), mean_slave_x, stDev_slave_x);
+    cv::meanStdDev(components_matrix.col(3), mean_slave_y, stDev_slave_y);
+    cv::meanStdDev(components_matrix.col(4), mean_shift_x, stDev_shift_x);
+    cv::meanStdDev(components_matrix.col(5), mean_shift_y, stDev_shift_y);
+
+    master_x = mean_master_x.val[0];
+    master_y = mean_master_y.val[0];
+    slave_x = mean_slave_x.val[0];
+    slave_y	= mean_slave_y.val[0];
+
+
+    double StDevShiftX = stDev_shift_x.val[0];
+    double StDevShiftY = stDev_shift_y.val[0];
+
+
+    cout << "Mean_x_master = " << master_x << endl
+         << "Mean_y_master = " << master_y << endl
+         << "Mean_x_slave = "  << slave_x  << endl
+         << "Mean_y_slave = "  << slave_y  << endl
+         << "Shift in x = "	<< master_x - slave_x << "\tpixel" << endl
+         << "Shift in y = "	<< master_y - slave_y << "\tpixel" <<endl << endl
+         << "St.dev. shift x = " <<	StDevShiftX << endl
+         << "St.dev. shift y = " <<	StDevShiftY << endl << endl;
+
+/*
+    // Control for image type ***non credo vada qua***
+    if(abs(master_x - slave_x) > (abs(master_y - slave_y)))
+        {
+            cout << "Image type: ALONG-TRACK" << endl;
+            cout << abs(master_x - slave_x) << endl;
+        }
+    else
+        {
+            cout << "Image type: ACROSS-TRACK" << endl;
+            cout << abs(master_y - slave_y) << endl;
+        }
+*/
+
+    std::vector<cv::Point2f> bar_master, bar_slave;
+
+    for (size_t i = 0; i < m; i++)
+    {
+        cv::Point2f pt1;
+        cv::Point2f pt2;
+
+        pt1.x = master[i].x - master_x;
+        pt1.y = master[i].y - master_y;
+
+        //pt2.x = slave[i].x - master_x;
+        //pt2.y = slave[i].y - master_y;
+
+        pt2.x = slave[i].x - slave_x;
+        pt2.y = slave[i].y - slave_y;
+
         //cout << pt1.x << "\t" << pt1.y << "\t" << pt2.x << "\t" << pt2.y<< "\t" << pt1.y-pt2.y<< endl;
 
         bar_master.push_back(pt1);
         bar_slave.push_back(pt2);
-	}
-	
-	/// ***rigorous model start***
-	cv::Mat x_approx = cv::Mat::zeros (2+m,1,6);
-	cv::Mat result = cv::Mat::zeros (2+m, 1, 6);
-	cv::Mat A = cv::Mat::zeros(2*m,2+m,6);
-	cv::Mat B = cv::Mat::zeros(2*m,1,6);
-    
-	cv::Mat trX;
-	double disp_median = master_x-slave_x;
-	
-	for (int j= 0; j <1; j++)
-	{
-		for (size_t i=0; i < m ; i++)
-		{
-			A.at<double>(2*i,0) = bar_slave[i].y;
-			A.at<double>(2*i,1) = 0.0;
-			A.at<double>(2*i,2+i) = 1.0;
-			
-			A.at<double>(2*i+1,0) = -bar_slave[i].x- disp_median;
-			A.at<double>(2*i+1,1) = 1.0;
-			A.at<double>(2*i+1,2+i) = 0.0;
-			
-			B.at<double>(2*i,0)   = bar_master[i].x - cos(x_approx.at<double>(0,0))*(bar_slave[i].x  +disp_median+ x_approx.at<double>(2+i,0)) 
-													 - sin(x_approx.at<double>(0,0))*bar_slave[i].y;
- 			B.at<double>(2*i+1,0) = bar_master[i].y + sin(x_approx.at<double>(0,0))*(bar_slave[i].x  +disp_median+ x_approx.at<double>(2+i,0)) 
-													 - cos(x_approx.at<double>(0,0))*bar_slave[i].y - x_approx.at<double>(1,0);
-		}
-	
-		cv::solve(A, B, result, cv::DECOMP_SVD);
-		x_approx = x_approx+result;
-		
-		cv::Mat trX;
-		cv::transpose(result, trX);
+    }
 
-		//cout << "Result matrix "<< endl;
-		//cout << trX << endl << endl;
-	
-		cv::transpose(x_approx, trX);
+    /// ***rigorous model start***
+    cv::Mat x_approx = cv::Mat::zeros (2+m,1,6);
+    cv::Mat result = cv::Mat::zeros (2+m, 1, 6);
+    cv::Mat A = cv::Mat::zeros(2*m,2+m,6);
+    cv::Mat B = cv::Mat::zeros(2*m,1,6);
 
-		//cout << "X approx matrix iteration " << j << endl;
-		//cout << trX << endl << endl;
-	}
-		
-	//cout << "Difference " << endl;	
-	//cout << A*x_approx-B << endl;
-	
-	//cout << A << endl;
-	//cout << B << endl;
-	
-	trX = A*x_approx-B;
-	
-	/*for(size_t i=0; i < m ; i++)
-	{
-		cout << master[i].y <<"\t" << trX.at<double>(2*i+1,0) <<endl;
-	}*/
-	
-	// rotation is applied in the TPs barycenter	
-	cv::Point2f pt(slave_x , slave_y);
-	cv::Mat r = cv::getRotationMatrix2D(pt, -x_approx.at<double>(0,0)*180.0/3.141516, 1.0);
- 	r.at<double>(1,2) += x_approx.at<double>(1,0) - master_y + slave_y;  
- 	    
-	/// ***rigorous model end*** 	
- 		
-	/// ***linear model start***
-	/*cv::Mat result = cv::Mat::zeros (2, 1, 6);
-	cv::Mat A = cv::Mat::zeros(m,2,6);
-	cv::Mat B = cv::Mat::zeros(m,1,6);
-    
+    cv::Mat trX;
+    double disp_median = master_x-slave_x;
+
+    for (int j= 0; j <3; j++)
+    {
+        for (size_t i=0; i < m ; i++)
+        {
+            A.at<double>(2*i,0) = bar_slave[i].y;
+            A.at<double>(2*i,1) = 0.0;
+            A.at<double>(2*i,2+i) = 1.0;
+
+            A.at<double>(2*i+1,0) = -bar_slave[i].x- disp_median;
+            A.at<double>(2*i+1,1) = 1.0;
+            A.at<double>(2*i+1,2+i) = 0.0;
+
+            B.at<double>(2*i,0)   = bar_master[i].x - cos(x_approx.at<double>(0,0))*(bar_slave[i].x  +disp_median+ x_approx.at<double>(2+i,0))
+                                                     - sin(x_approx.at<double>(0,0))*bar_slave[i].y;
+            B.at<double>(2*i+1,0) = bar_master[i].y + sin(x_approx.at<double>(0,0))*(bar_slave[i].x  +disp_median+ x_approx.at<double>(2+i,0))
+                                                     - cos(x_approx.at<double>(0,0))*bar_slave[i].y - x_approx.at<double>(1,0);
+        }
+
+        cv::solve(A, B, result, cv::DECOMP_SVD);
+        x_approx = x_approx+result;
+
+        cv::Mat trX;
+        cv::transpose(result, trX);
+        //cout << "Matrice risultati\n" << x_approx << endl;
+        //cout << "Result matrix "<< endl;
+        //cout << trX << endl << endl;
+
+        cv::transpose(x_approx, trX);
+
+        //cout << "X approx matrix iteration " << j << endl;
+        //cout << trX << endl << endl;
+    }
+
+    //cout << "Difference " << endl;
+    //cout << A*x_approx-B << endl;
+
+    //cout << A << endl;
+    //cout << B << endl;
+
+    trX = A*x_approx-B;
+
+    /*for(size_t i=0; i < m ; i++)
+    {
+        cout << master[i].y <<"\t" << trX.at<double>(2*i+1,0) <<endl;
+    }*/
+
+    // rotation is applied in the TPs barycenter
+    //cv::Point2f pt(master_x , master_y);
+    cv::Point2f pt(slave_x , slave_y);
+    cv::Mat r = cv::getRotationMatrix2D(pt, -x_approx.at<double>(0,0)*180.0/3.141516, 1.0);
+    r.at<double>(1,2) += x_approx.at<double>(1,0) - master_y + slave_y;
+
+    /// ***rigorous model end***
+
+    /// ***linear model start***
+    /*cv::Mat result = cv::Mat::zeros (2, 1, 6);
+    cv::Mat A = cv::Mat::zeros(m,2,6);
+    cv::Mat B = cv::Mat::zeros(m,1,6);
+
     for (size_t i=0; i<m ; i++)
-		{
-			A.at<double>(i,0) = bar_slave[i].y;
-			A.at<double>(i,1) = 1.0;
-			
-			B.at<double>(i,0) = bar_master[i].y;
-		}	
-	
-	cv::solve(A, B, result, cv::DECOMP_SVD);
-	cv::Mat trX;
-	cv::transpose(result, trX);
+        {
+            A.at<double>(i,0) = bar_slave[i].y;
+            A.at<double>(i,1) = 1.0;
 
-	cout << "Result matrix "<< endl;
-	cout << trX << endl << endl;
+            B.at<double>(i,0) = bar_master[i].y;
+        }
 
-	cout << "Difference " << endl;	
-	cout << A*result-B << endl;
-	
-	cv::Mat r = cv::Mat::zeros (2, 3, 6);
-	r.at<double>(0,0) = 1.0;
-	r.at<double>(0,1) = 0.0;
-	r.at<double>(0,2) = 0.0;
-	r.at<double>(1,0) = 0.0;
-	r.at<double>(1,1) = result.at<double>(0,0);
-	r.at<double>(1,2) = result.at<double>(1,0) - master_y + slave_y;*/
- 	     
-	/// ***linear model end***	
-		
-	return r;
+    cv::solve(A, B, result, cv::DECOMP_SVD);
+    cv::Mat trX;
+    cv::transpose(result, trX);
+    cout << "Result matrix "<< endl;
+    cout << trX << endl << endl;
+    cout << "Difference " << endl;
+    cout << A*result-B << endl;
+
+    cv::Mat r = cv::Mat::zeros (2, 3, 6);
+    r.at<double>(0,0) = 1.0;
+    r.at<double>(0,1) = 0.0;
+    r.at<double>(0,2) = 0.0;
+    r.at<double>(1,0) = 0.0;
+    r.at<double>(1,1) = result.at<double>(0,0);
+    r.at<double>(1,2) = result.at<double>(1,0) - master_y + slave_y;*/
+
+    /// ***linear model end***
+    //cout << "Matrice r" << r << endl;
+    return r;
 }
 
 void ossimOpenCvTPgenerator::run()
@@ -209,7 +236,7 @@ void ossimOpenCvTPgenerator::run()
 	cv::namedWindow( "slave_img", CV_WINDOW_NORMAL );
 	cv::imshow("slave_img", slave_mat);
    
-	cv::waitKey(0);
+    //cv::waitKey(0);
    
 	TPgen();  
 	TPdraw();
@@ -226,9 +253,9 @@ void ossimOpenCvTPgenerator::TPdraw()
 	cv::Mat img_matches;
 	cv::drawMatches(filt_master, keypoints1, filt_slave, keypoints2,
                good_matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
-               vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS );
+               vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
 	
-	cv::resize(img_matches, img_matches, cv::Size(), 1.0/8.0, 1.0/8.0, cv::INTER_AREA);
+    cv::resize(img_matches, img_matches, cv::Size(), 1.0/1.0, 1.0/1.0, cv::INTER_AREA);
 
 	cv::namedWindow("TP matched", CV_WINDOW_NORMAL );
 	cv::imshow("TP matched", img_matches );	
@@ -239,9 +266,11 @@ void ossimOpenCvTPgenerator::TPdraw()
 void ossimOpenCvTPgenerator::TPgen()
 {
    	// Computing detector
-	cv::OrbFeatureDetector detector(10000);
+    cv::OrbFeatureDetector detector(30000); //, 2.0f,8, 151, 0, 2, cv::ORB::HARRIS_SCORE, 151 ); // edgeThreshold = 150, patchSize = 150);
 	detector.detect(master_mat, keypoints1);
 	detector.detect(slave_mat, keypoints2);
+
+    cerr << "Numero di features trovate =" << keypoints1.size() << " master " << keypoints2.size() << " slave " << endl;
 	
 	// Computing descriptors
 	cv::BriefDescriptorExtractor extractor;
@@ -254,6 +283,8 @@ void ossimOpenCvTPgenerator::TPgen()
 	vector<cv::DMatch> matches;
 	matcher.match(descriptors1, descriptors2, matches);	
 
+    cerr << matches.size();
+
 	// Calculation of max and min distances between keypoints 
 	double max_dist = matches[0].distance; double min_dist = matches[0].distance;
 
@@ -264,8 +295,8 @@ void ossimOpenCvTPgenerator::TPgen()
 		if( dist > max_dist ) max_dist = dist;
 	}
 	
-	//cout << "Min dist between keypoints = " << min_dist << endl;
-	//cout << "Max dist between keypoints = " << max_dist << endl;
+    cout << "Min dist between keypoints = " << min_dist << endl;
+    cout << "Max dist between keypoints = " << max_dist << endl;
 		
 	// Selection of the better 1% descriptors 
 	int N_TOT = descriptors1.rows;
@@ -324,7 +355,7 @@ void ossimOpenCvTPgenerator::TPgen()
 		}
 	}
 	
-	//cout << "% points found = " << (double)good_matches.size()/(double)matches.size() << endl;
+    cout << "% points found = " << (double)good_matches.size()/(double)matches.size() << endl;
 	cout << endl << "Points found before the 3 sigma test = " << (double)good_matches.size() <<endl << endl; 
 	
 	// 3 sigma test

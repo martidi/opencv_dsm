@@ -44,92 +44,142 @@ openCVtestclass::openCVtestclass()
 	
 }
 
-openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> backward, ossimRefPtr<ossimImageData> nadir, ossimRefPtr<ossimImageData> forward)
+openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr<ossimImageData> slave)
+{
+/*	// Create the OpenCV images
+	master_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
+	slave_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
+	
+	memcpy(master_mat.ptr(), (void*) master->getUshortBuf(), 2*master->getWidth()*master->getHeight());
+	memcpy(slave_mat.ptr(), (void*) slave->getUshortBuf(), 2*slave->getWidth()*slave->getHeight());
+
+	cout << "OSSIM->OpenCV image conversion done" << endl;
+	
+	// Rotation for along-track images
+    cv::transpose(master_mat, master_mat);
+	cv::flip(master_mat, master_mat, 1);
+	
+	cv::transpose(slave_mat, slave_mat);
+    cv::flip(slave_mat, slave_mat, 1);*/
+}
+
+
+openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> forward, ossimRefPtr<ossimImageData> nadir, ossimRefPtr<ossimImageData> backward)
 {
 	// Create the OpenCV images
-	backward_mat.create(cv::Size(backward->getWidth(), backward->getHeight()), CV_16UC1);
+
+    forward_mat.create(cv::Size(forward->getWidth(), forward->getHeight()), CV_16UC1);
 	nadir_mat.create(cv::Size(nadir->getWidth(), nadir->getHeight()), CV_16UC1);
-	forward_mat.create(cv::Size(forward->getWidth(), forward->getHeight()), CV_16UC1);
-	
-	memcpy(backward_mat.ptr(), (void*) backward->getUshortBuf(), 2*backward->getWidth()*backward->getHeight());
-	memcpy(nadir_mat.ptr(), (void*) nadir->getUshortBuf(), 2*nadir->getWidth()*nadir->getHeight());
-	memcpy(forward_mat.ptr(), (void*) forward->getUshortBuf(), 2*forward->getWidth()*forward->getHeight());	
+	backward_mat.create(cv::Size(backward->getWidth(), backward->getHeight()), CV_16UC1);
+
+
+    images.push_back(nadir_mat);
+    images.push_back(forward_mat);
+    images.push_back(backward_mat);
+
+
+    memcpy(images[0].ptr(), (void*) nadir->getUshortBuf(), 2*nadir->getWidth()*nadir->getHeight());
+    memcpy(images[1].ptr(), (void*) forward->getUshortBuf(), 2*forward->getWidth()*forward->getHeight());
+    memcpy(images[2].ptr(), (void*) backward->getUshortBuf(), 2*backward->getWidth()*backward->getHeight());
+
 	
 	cout << "OSSIM->OpenCV image conversion done" << endl;
 	
 	// Rotation for along-track images
-	cv::transpose(backward_mat, backward_mat);
-	cv::flip(backward_mat, backward_mat, 1);
-	
-	cv::transpose(nadir_mat, nadir_mat);
-	cv::flip(nadir_mat, nadir_mat, 1);	
-	
-	cv::transpose(forward_mat, forward_mat);
-	cv::flip(forward_mat, forward_mat, 1);		
+    for(size_t i = 0; i < images.size(); i++)
+        {
+        cv::transpose(images[i], images[i]);
+        cv::flip(images[i], images[i], 1);
+        }
 }
 
-/*
+
 bool openCVtestclass::execute()
 {			
 	// ****************************
 	// Activate for Wallis filter	
 	// ****************************			
-	//master_mat = wallis(master_mat);	
-	//slave_mat = wallis(slave_mat);		  	
-   	
-	double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
-	cv::Mat master_mat_8U;
-	cv::Mat slave_mat_8U;  
-      
-   	minMaxLoc( master_mat, &minVal_master, &maxVal_master );
-   	minMaxLoc( slave_mat, &minVal_slave, &maxVal_slave );
-	master_mat.convertTo( master_mat_8U, CV_8UC1, 255.0/(maxVal_master - minVal_master), -minVal_master*255.0/(maxVal_master - minVal_master));
-	slave_mat.convertTo( slave_mat_8U, CV_8UC1, 255.0/(maxVal_slave - minVal_slave), -minVal_slave*255.0/(maxVal_slave - minVal_slave)); 
-	
-	ossimOpenCvTPgenerator* TPfinder = new ossimOpenCvTPgenerator(master_mat_8U, slave_mat_8U);
-	TPfinder->run();
-	
-	cv::Mat slave_mat_warp = TPfinder->warp(slave_mat);
-	    	
-	ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
-		
-	//master_mat.convertTo(master_mat, CV_16U);
-	//slave_mat_warp.convertTo(slave_mat_warp, CV_16U);
-	
-	out_disp = dense_matcher->execute(master_mat_8U, slave_mat_warp); 
-		
+    //for(size_t i = 0; i < images.size(); i++)
+    //{
+    //    images[i] = wallis(images[i]);
+    //}
+
+
+    vector<cv::Mat> images_8U;
+
+    for(size_t i = 0; i < images.size(); i++)
+    {
+        //cv::Mat pointer;
+        double minVal_images= 0, maxVal_images= 0;
+
+        images_8U.push_back(images[i]);
+        minMaxLoc( images[i], &minVal_images, &maxVal_images );
+        images[i].convertTo( images_8U[i], CV_8UC1, 255.0/(maxVal_images - minVal_images), -minVal_images*255.0/(maxVal_images - minVal_images));
+
+        cv::namedWindow("Input image", CV_WINDOW_NORMAL);
+        cv::imshow("Input image", images_8U[i]);
+        cv::waitKey(0);
+
+    }
+
+    for(size_t i = 1; i < images.size(); i++)
+    {
+
+        ossimOpenCvTPgenerator* TPfinder = new ossimOpenCvTPgenerator(images_8U[0], images_8U[i]);
+        TPfinder->run();
+
+        cv::Mat slave_mat_warp = TPfinder->warp(images[i]);
+
+        ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
+
+        // to check the time necessary for Disp Map gen
+        ossimNotify(ossimNotifyLevel_NOTICE) << "elapsed time in seconds: " << std::setiosflags(ios::fixed) << std::setprecision(3)
+        << ossimTimer::instance()->time_s() << endl << endl;
+
+        disparity_maps.push_back(dense_matcher->execute(images_8U[0], slave_mat_warp));
+
+        ossimNotify(ossimNotifyLevel_NOTICE) << "elapsed time in seconds: " << std::setiosflags(ios::fixed) << std::setprecision(3)
+        << ossimTimer::instance()->time_s() << endl << endl;
+
+        null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
+    }
+
+  //  writeDisparity(1.0);
+
 	return true;
-}*/
+}
 
 /*
 bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
-	cv::transpose(out_disp, out_disp);
-	cv::flip(out_disp, out_disp, 0);
-    
-	cv::Mat out_16bit_disp = cv::Mat::zeros (out_disp.size(),CV_64F);
-	out_disp.convertTo(out_disp, CV_64F);
-	out_16bit_disp = (out_disp/16.0) / mean_conversionF;
-	//out_16bit_disp = (out_disp/16.0) * mean_conversionF;
-	cout <<  "fattore di conv" << mean_conversionF << endl;
-	cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
+    // for along-track images
+    cv::transpose(out_disp, out_disp);
+    cv::flip(out_disp, out_disp, 0);
 
-	for(int i=0; i< out_16bit_disp.rows; i++)
-	{
-		for(int j=0; j< out_16bit_disp.cols; j++)
-		{
-			ossimDpt image_pt(j,i);
-			ossimGpt world_pt;     
-			master_geom->localToWorld(image_pt, world_pt);
-			ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
-			if(out_16bit_disp.at<double>(i,j) <= -7.5/mean_conversionF)
-			//if(out_16bit_disp.at<double>(i,j) <= -7.5*mean_conversionF)
-			{ 
-				out_16bit_disp.at<double>(i,j) = 0.0;
-			}
-			out_16bit_disp.at<double>(i,j) += hgtAboveMSL;
-		}
-	}
+    cv::Mat out_16bit_disp = cv::Mat::zeros (out_disp.size(),CV_64F);
+    out_disp.convertTo(out_disp, CV_64F);
+    //cout <<  "fattore di conv" << mean_conversionF << endl;
+    out_16bit_disp = (out_disp/16.0) / mean_conversionF;
+    //out_16bit_disp = (out_disp/16.0) * mean_conversionF;
+    cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
+    cout << "null_disp_threshold"<< null_disp_threshold<< endl;
+    for(int i=0; i< out_16bit_disp.rows; i++)
+    {
+        for(int j=0; j< out_16bit_disp.cols; j++)
+        {
+            ossimDpt image_pt(j,i);
+            ossimGpt world_pt;
+            master_geom->localToWorld(image_pt, world_pt);
+            ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
+            //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
+            if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold/abs(mean_conversionF))
+            //if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold*abs(mean_conversionF))
+            {
+                out_16bit_disp.at<double>(i,j) = 0.0;
+            }
+            out_16bit_disp.at<double>(i,j) += hgtAboveMSL;
+        }
+    }
 //
 	// Conversion from OpenCV to OSSIM images   
 	
@@ -172,26 +222,38 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	cv::waitKey(0);	
 	
 	return true;
-}*/
+}
+*/
 
 /*
 bool openCVtestclass::writeDisparity(double conv_factor)
 {
-	cv::transpose(out_disp, out_disp);
-	cv::flip(out_disp, out_disp, 0);
-    
-	out_disp = (out_disp/16.0) * conv_factor;
-	cv::imwrite("mDisparity.jpg", out_disp);
-	
+    for(int i = 0; i < disparity_maps.size(); i++)
+    {
+        cv::transpose(disparity_maps[i], disparity_maps[i]);
+        cv::flip(disparity_maps[i], disparity_maps[i], 0);
+
+       // disparity_maps[i] = (disparity_maps[i]/16.0) * conv_factor;
+        disparity_maps[i] = (disparity_maps[i]/16.0) * 1;
+
+
+        ossimString name = "SGM Disparity_";
+       name.append(i);
+        name.append(".tif");
+
+        cv::imwrite(name.string(), disparity_maps[i]);
+
+
+    }
 	return true;
 }
 */
-/*
+
+
 cv::Mat openCVtestclass::wallis(cv::Mat image)
 {
 	cout <<"Filtering images..."<< endl;
-
-    
+   
 	int n = image.cols;	
 	int m = image.rows;
 	
@@ -321,31 +383,14 @@ cv::Mat openCVtestclass::wallis(cv::Mat image)
 	image.convertTo( image, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));  	
 	
 	// showing the result
-	/*cv::namedWindow("Normal_image", CV_WINDOW_NORMAL);
+	cv::namedWindow("Normal_image", CV_WINDOW_NORMAL);
 	cv::imshow("Normal_image", image );	
 		
 	cv::namedWindow("Filtered_image", CV_WINDOW_NORMAL);
 	cv::imshow("Filtered_image", Filtered_image );
 	
-	cv::waitKey(0);*/	
-	//return Filtered_image;				
-//}
+	cv::waitKey(0);	
+    return Filtered_image;
+}
 
 
-/*void openCVtestclass::addArguments(ossimArgumentParser& ap)
-{
-   ossimString usageString = ap.getApplicationName();
-   usageString += " [option]... [input-option]... <input-file(s)> <output-file>\nNote at least one input is required either from one of the input options, e.g. --input-dem <my-dem.hgt> or adding to command line in front of the output file in which case the code will try to ascertain what type of input it is.\n\nAvailable traces:\n-T \"ossimChipperUtil:debug\"   - General debug trace to standard out.\n-T \"ossimChipperUtil:log\"     - Writes a log file to output-file.log.\n-T \"ossimChipperUtil:options\" - Writes the options to output-file-options.kwl.";
-
-   ossimApplicationUsage* au = ap.getApplicationUsage();
-   
-   au->setCommandLineUsage(usageString);
-    
-   au->setDescription(ap.getApplicationName()+" Utility application for generating elevation products from dem data.");
-   
-   au->addCommandLineOption("--azimuth", "<azimuth>\nhillshade option - Light source azimuth angle for bump shade.\nRange: 0 to 360, Default = 180.0");
-
-   au->addCommandLineOption( "-b or --bands <n,n...>", "Use the specified bands in given order: e.g. \"3,2,1\" will select bands 3, 2 and 1 of the input image.\nNote: it is 1 based" );
-
-   au->addCommandLineOption("--central-meridian","<central_meridian_in_decimal_degrees>\nNote if set this will be used for the central meridian of the projection.  This can be used to lock the utm zone.");
-}*/

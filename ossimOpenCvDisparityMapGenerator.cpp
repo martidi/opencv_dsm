@@ -58,39 +58,36 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	*/	
 		
 			
-	// Disparity Map generation
-	int ndisparities = 16*2; //Maximum disparity minus minimum disparity //con fattore di conversione 1 metti 16*2*2
-	int SADWindowSize = 9;   //Matched block size >=1
+    ndisparities = 32; //Maximum disparity minus minimum disparity
+    minimumDisp = -8;
+    SADWindowSize = 5; //Matched block size
 
-	cv::StereoSGBM sgbm;
+    // Disparity Map generation
+    int cn = master_mat.channels();
+    cv::StereoSGBM sgbm;
 
-	sgbm.preFilterCap = 63;
-	sgbm.SADWindowSize = SADWindowSize > 0 ? SADWindowSize : 3;
+    sgbm.preFilterCap = 63;
+    sgbm.SADWindowSize = SADWindowSize > 0 ? SADWindowSize : 3;
+    sgbm.P1 = 8*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
+    sgbm.P2 = 40*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
+    sgbm.minDisparity = minimumDisp; // Minimum possible disparity value  //con fattore di conversione 1 metti -16*2
+    sgbm.numberOfDisparities = ndisparities;
+    sgbm.uniquenessRatio = 5;
+    sgbm.speckleWindowSize = 100;
+    sgbm.speckleRange = 1;
+    sgbm.disp12MaxDiff = 1; // Maximum allowed difference (in integer pixel units) in the left-right disparity check
+    //sgbm.fullDP = true; //activate for consider 8 directions (Hirschmuller algorithm) instead of 5;
 
-	int cn = master_mat.channels();
-
-	sgbm.P1 = 8*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
-	sgbm.P2 = 40*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
-	sgbm.minDisparity = -8*2; // Minimum possible disparity value  //con fattore di conversione 1 metti -16*2
-	sgbm.numberOfDisparities = ndisparities;
-	sgbm.uniquenessRatio = 5;
-	sgbm.speckleWindowSize = 100;
-	sgbm.speckleRange = 1;
-	sgbm.disp12MaxDiff = 1; // Maximum allowed difference (in integer pixel units) in the left-right disparity check
-	//sgbm.fullDP = true; //activate for consider 8 directions (Hirschmuller algorithm) instead of 5;
-	cout << "a" << endl;
-	double minVal, maxVal;
-	cv::Mat array_disp;
-	cv::Mat array_disp_8U;   
-	sgbm(master_mat, slave_mat, array_disp);
-	cout << "b" << endl;
-	minMaxLoc( array_disp, &minVal, &maxVal );
-	cout << "c" << endl;
-	array_disp.convertTo( array_disp_8U, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));  
+    double minVal, maxVal;
+    cv::Mat array_disp;
+    cv::Mat array_disp_8U;
+    sgbm(master_mat, slave_mat, array_disp);
+    minMaxLoc( array_disp, &minVal, &maxVal );
+    array_disp.convertTo( array_disp_8U, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
     cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
-	cv::namedWindow( "SGM Disparity", CV_WINDOW_NORMAL );
-	cv::imshow( "SGM Disparity", array_disp_8U);
-	cv::imwrite( "SGM Disparity.tif", array_disp_8U);
+    cv::namedWindow( "SGM Disparity", CV_WINDOW_NORMAL );
+    cv::imshow( "SGM Disparity", array_disp_8U);
+    //cv::imwrite( "SGM Disparity.tif", array_disp_8U);
 
 
 	//******************************************************

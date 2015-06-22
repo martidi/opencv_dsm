@@ -19,6 +19,10 @@ class ossimOpenCvDisparityMapGenerator
 public:
 	ossimOpenCvDisparityMapGenerator();
 	cv::Mat execute(cv::Mat master_mat, cv::Mat slave_mat);   
+
+    int ndisparities; //Maximum disparity minus minimum disparity
+    int SADWindowSize; //Matched block size
+    int minimumDisp;
 };
 
 #endif /* #ifndef ossimOpenCvDisparityMapGenerator_HEADER */               

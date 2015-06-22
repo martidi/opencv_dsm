@@ -165,7 +165,29 @@ int main(int argc,  char* argv[])
 								<<"\t\tLon_min = " << lon_min << endl
 								<<"\t\tLat_max = " << lat_max << endl
 								<<"\t\tLon_max = " << lon_max << endl << endl; 
+
+            //**********MIN and MAX HEIGHT COMPUTATION************************
+           std::vector<ossim_float64> HeightAboveMSL;
+            for(double lat = lat_min; lat < lat_max; lat += 0.001)
+            {
+                for(double lon = lon_min; lon < lon_max; lon += 0.001)
+                {
+                    ossimGpt world_point(lat, lon, 0.00);
+                    ossim_float64 hgtAboveMsl = ossimElevManager::instance()->getHeightAboveMSL(world_point);
+                    //ossim_float64 hgtAboveEllipsoid = ossimElevManager::instance()->getHeightAboveEllipsoid(world_point);
+                    //ossim_float64 geoidOffset = ossimGeoidManager::instance()->offsetFromEllipsoid(world_point);
+                    //ossim_float64 mslOffset = 0.0;
+                    HeightAboveMSL.push_back(hgtAboveMsl);
+                }
+            }
+            MinHeight = *min_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
+            MaxHeight = *max_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
+            cout << "Min height for this tile is " << std::setprecision(6) << MinHeight << " m" << endl;
+            cout << "Max height for this tile is " << std::setprecision(6) << MaxHeight << " m" << endl;
+
 		}
+
+
 		// End of arg parsing
 		ap.reportRemainingOptionsAsUnrecognized();
 		if (ap.errors())
@@ -207,13 +229,13 @@ int main(int argc,  char* argv[])
         cout << "BACKWARD DIRECTORY:"  << " " << ap[3] << endl << endl;        
 				
 	    cout << "Start forward orthorectification" << endl;
-		ortho(forward_key); 
+        //ortho(forward_key);
 	
 		cout << "Start nadir orthorectification" << endl;
-		ortho(nadir_key);
+        //ortho(nadir_key);
 		
 		cout << "Start backward orthorectification" << endl;
-		ortho(backward_key);
+        //ortho(backward_key);
 				
 		// Elevation manager instance
 		ossimElevManager* elev = ossimElevManager::instance();		
@@ -238,10 +260,9 @@ int main(int argc,  char* argv[])
 			ossimRefPtr<ossimImageData> img_nadir = nadir_handler->getTile(bounds_nadir, 0); 
 			ossimRefPtr<ossimImageData> img_backward = backward_handler->getTile(bounds_backward, 0); 
 			
-			// TPs generation 
-			
-			openCVtestclass *test_bwdnad = new openCVtestclass(img_backward, img_nadir, img_forward) ; 					
-   			//test_bwdnad->execute();
+			// TPs generation 			
+            openCVtestclass *test_bwdnad = new openCVtestclass(img_forward, img_nadir, img_backward) ;
+            test_bwdnad->execute();
    						
 		//	openCVtestclass *test_nadfwd = new openCVtestclass(img_nadir, img_forward) ; 					
    			//test_nadfwd->execute();
