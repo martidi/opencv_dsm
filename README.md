@@ -1,7 +1,7 @@
 opencv_dsm
 ==========
 
-Photogrammetric image processing: DSM generation tool for OSSIM
+OSSIM tool for DSM generation using tri-stereo and SAR imagery
 
 ===============
 
