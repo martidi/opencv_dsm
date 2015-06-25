@@ -440,15 +440,28 @@ int main(int argc,  char* argv[])
 			cv::Mat conv_factor_J = cv::Mat::zeros(3,3, CV_64F);				
 			cv::Mat conv_factor_I = cv::Mat::zeros(3,3, CV_64F);	
 
-            ossimGpt central_object_point(46.0490, 11.1053);
-            ossimDpt central_image_point(0.,0.);
-            ossimGpt point_object(0., 0.);
+          //  for (int i=0 ; i<3 ; i++) //LAT
+        //	{
+            //	for (int j=0 ; j<3 ; j++) //LON
+            //	{
+
+                    ossimGpt central_object_point(46.0490, 11.1053);
+                    ossimDpt central_image_point(0.,0.);
+                    ossimGpt point_object(0., 0.);
+                    //ossimDpt image_point(0., 0.);
+
+
+
 
             raw_master_geom->worldToLocal(central_object_point, central_image_point);
             cout << central_image_point << endl; //coordinate immagine corrispondenti al punto centrale
 
             raw_master_geom->localToWorld(central_image_point, 1400, point_object);
             cout << point_object << endl;  // coordinate oggetto corrispondenti al punto centrale proiettato a 1400 m
+
+          //  raw_master_geom->worldToLocal(point_object, image_point);
+           // cout << image_point << endl; //coordinate immagine corrispondenti al punto centrale
+
 
 			for (int i=0 ; i<3 ; i++) //LAT
 			{
