@@ -5,7 +5,7 @@ OSSIM tool for DSM generation using tri-stereo and SAR imagery
 
 ===============
 
-This is the repository for OSSIM GSoc 2015: it contains the code for the development of an OSSIM plug-In for Digital Surface Models (DSMs) generation from tri-stereo images.
+This is the repository for OSSIM GSoC 2015: it contains the code for the development of an OSSIM plug-In for Digital Surface Models (DSMs) generation from tri-stereo images.
 
 For more information about the project see
 https://www.google-melange.com/gsoc/proposal/review/student/google/gsoc2015/martidi/5717271485874176
