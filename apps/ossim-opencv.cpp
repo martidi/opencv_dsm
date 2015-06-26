@@ -70,17 +70,17 @@ bool ortho (ossimKeywordlist kwl)
 {
 	// Make the generator
 	ossimRefPtr<ossimChipperUtil> chipper = new ossimChipperUtil;
-	chipper->initialize(kwl);
 
-	try
-	{      
-		// ossimChipperUtil::execute can throw an exception
+    try
+    {
+        chipper->initialize(kwl);
+            // ossimChipperUtil::execute can throw an exception
 		chipper->execute();
 		ossimNotify(ossimNotifyLevel_NOTICE)
 		<< "elapsed time in seconds: "
 		<< std::setiosflags(ios::fixed)
 		<< std::setprecision(3)
-		<< ossimTimer::instance()->time_s() << endl << endl;
+        << ossimTimer::instance()->time_s() << endl << endl;
 	}
 	catch (const ossimException& e)
 	{
@@ -159,10 +159,9 @@ int main(int argc,  char* argv[])
 								<<"\t\tLat_max = " << lat_max << endl
 								<<"\t\tLon_max = " << lon_max << endl << endl; 
 
-             //ossimGpt world_point(lat_min, lon_min, 0.00);
 
             //**********MIN and MAX HEIGHT COMPUTATION************************
- /*           std::vector<ossim_float64> HeightAboveMSL;
+            std::vector<ossim_float64> HeightAboveMSL;
 
             for(double lat = lat_min; lat < lat_max; lat += 0.001)
             {
@@ -183,7 +182,7 @@ int main(int argc,  char* argv[])
             MaxHeight = *max_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
             cout << "Min height for this tile is " << std::setprecision(6) << MinHeight << " m" << endl;
             cout << "Max height for this tile is " << std::setprecision(6) << MaxHeight << " m" << endl;
-*/
+
 
 /*
             //Calcolo max e min
@@ -440,28 +439,27 @@ int main(int argc,  char* argv[])
 			cv::Mat conv_factor_J = cv::Mat::zeros(3,3, CV_64F);				
 			cv::Mat conv_factor_I = cv::Mat::zeros(3,3, CV_64F);	
 
-          //  for (int i=0 ; i<3 ; i++) //LAT
-        //	{
-            //	for (int j=0 ; j<3 ; j++) //LON
-            //	{
-
-                    ossimGpt central_object_point(46.0490, 11.1053);
-                    ossimDpt central_image_point(0.,0.);
-                    ossimGpt point_object(0., 0.);
+            for (int i=0 ; i<3 ; i++) //LAT
+            {
+                for (int j=0 ; j<3 ; j++) //LON
+                {
+                    ossimGpt worldPt (lat_max-i*Dlat,lon_min+j*Dlon);
+                    ossimDpt localPt (0.,0.);
+                    ossimGpt worldPtUp(0., 0.);
+                    //ossimGpt central_object_point(46.0490, 11.1053);
+                    //ossimDpt central_image_point(0.,0.);
                     //ossimDpt image_point(0., 0.);
+                    cout << worldPt  << endl;
+                    raw_master_geom->worldToLocal(worldPt, localPt);
+                   // cout << localPt << endl; //coordinate immagine corrispondenti al punto centrale
 
+                    raw_master_geom->localToWorld(localPt, 1400, worldPtUp);
+                    cout << worldPtUp << endl;  // coordinate oggetto corrispondenti al punto centrale proiettato a 1400 m
 
-
-
-            raw_master_geom->worldToLocal(central_object_point, central_image_point);
-            cout << central_image_point << endl; //coordinate immagine corrispondenti al punto centrale
-
-            raw_master_geom->localToWorld(central_image_point, 1400, point_object);
-            cout << point_object << endl;  // coordinate oggetto corrispondenti al punto centrale proiettato a 1400 m
-
-          //  raw_master_geom->worldToLocal(point_object, image_point);
-           // cout << image_point << endl; //coordinate immagine corrispondenti al punto centrale
-
+                //  raw_master_geom->worldToLocal(point_object, image_point);
+                //  cout << image_point << endl; //coordinate immagine corrispondenti al punto centrale
+                }
+            }
 
 			for (int i=0 ; i<3 ; i++) //LAT
 			{
