@@ -149,39 +149,73 @@ bool openCVtestclass::execute()
 	return true;
 }
 
-/*
+
 bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
-    // for along-track images
-    cv::transpose(out_disp, out_disp);
-    cv::flip(out_disp, out_disp, 0);
+    vector<cv::Mat> disparity_maps_16bit;
 
-    cv::Mat out_16bit_disp = cv::Mat::zeros (out_disp.size(),CV_64F);
-    out_disp.convertTo(out_disp, CV_64F);
-    //cout <<  "fattore di conv" << mean_conversionF << endl;
-    out_16bit_disp = (out_disp/16.0) / mean_conversionF;
-    //out_16bit_disp = (out_disp/16.0) * mean_conversionF;
+    disparity_maps_16bit.resize(disparity_maps.size());
+
+    cout << disparity_maps.size() << endl;
+    for (unsigned int i = 0; i < disparity_maps.size(); ++i)
+    {
+        cv::transpose(disparity_maps[i], disparity_maps[i]);
+        cv::flip(disparity_maps[i], disparity_maps[i], 0);
+
+        disparity_maps[i].convertTo(disparity_maps[i], CV_64F);
+        disparity_maps_16bit[i] = (disparity_maps[i]/16.0) / mean_conversionF;
+
+        // A questo punto ho 2 mappe di disparità "metriche"
+        // Devo fonderle
+    }
+
+    cout << disparity_maps_16bit[0].size() << endl;
+    cout << disparity_maps_16bit[1].size() << endl;
+
+    cv::Mat temp = disparity_maps_16bit[0];
+
+    cv::Mat fusedDisp = cv::Mat::zeros(temp.rows, temp.cols, CV_64F);
+
+    for (unsigned int i = 0; i < disparity_maps_16bit.size() - 2; ++i)
+    {
+        for (int k=0; k< disparity_maps_16bit[i].rows; k++) // per tutte le righe e le colonne della mappa di disparità
+        {
+            for(int j=0; j< disparity_maps_16bit[i].cols; j++)
+            {
+            // controlla che non ci siano nan
+            // controlla che non ci sia troppa differenza tra i due valori in punti corrispondenti
+            // e poi fai la media
+
+                fusedDisp = (disparity_maps_16bit[i] + disparity_maps_16bit[i+1])/disparity_maps.size();
+            }
+         }
+    }
+    // sommo la disparità metrica al dsm coarse
+
     cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
     cout << "null_disp_threshold"<< null_disp_threshold<< endl;
-    for(int i=0; i< out_16bit_disp.rows; i++)
+
+    cout << fusedDisp.rows << endl;
+    cout << fusedDisp.cols << endl;
+    for(int i=0; i< fusedDisp.rows; i++)
     {
-        for(int j=0; j< out_16bit_disp.cols; j++)
+        for(int j=0; j< fusedDisp.cols; j++)
         {
             ossimDpt image_pt(j,i);
             ossimGpt world_pt;
             master_geom->localToWorld(image_pt, world_pt);
             ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
             //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
-            if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold/abs(mean_conversionF))
-            //if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold*abs(mean_conversionF))
+            if(fusedDisp.at<double>(i,j) <= null_disp_threshold/abs(mean_conversionF))
+            //if(fusedDisp.at<double>(i,j) <= null_disp_threshold*abs(mean_conversionF))
             {
-                out_16bit_disp.at<double>(i,j) = 0.0;
+                fusedDisp.at<double>(i,j) = 0.0;
             }
-            out_16bit_disp.at<double>(i,j) += hgtAboveMSL;
+            fusedDisp.at<double>(i,j) += hgtAboveMSL;
         }
     }
-//
-	// Conversion from OpenCV to OSSIM images   
+    cerr << "a" << endl;
+/*	// Conversion from OpenCV to OSSIM images
 	
 	//ossimRefPtr<ossimImageData> disp_ossim = disp_ossim_handler->getSize();
 	cout << "OpenCV->OSSIM image conversion done_1" << endl;	
@@ -206,10 +240,10 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	//disp_ossim = disp_ossim->getDoubleBuf();
 	
 	cout << "OpenCV->OSSIM image conversion done_3" << endl;
- 	
+ */
 	cv::Mat intDSM; 
 	// Conversion from float to integer to write and show
-	out_16bit_disp.convertTo(intDSM, CV_16U);
+    fusedDisp.convertTo(intDSM, CV_16U);
 	
 	cv::imwrite("Temp_DSM.tif", intDSM);
 		
@@ -223,7 +257,7 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	
 	return true;
 }
-*/
+
 
 /*
 bool openCVtestclass::writeDisparity(double conv_factor)
@@ -246,8 +280,7 @@ bool openCVtestclass::writeDisparity(double conv_factor)
 
     }
 	return true;
-}
-*/
+}*/
 
 
 cv::Mat openCVtestclass::wallis(cv::Mat image)
@@ -327,7 +360,7 @@ cv::Mat openCVtestclass::wallis(cv::Mat image)
 	
 	// mf is the target value of the LOCAL MEAN in a i,j window [127.0-140.0]
 	// an higher value wil brighten the image
-	double mf = 127.0;
+    double mf = 140.0; //era 127.0
 	
 	int px = 0, py = 0;
 	

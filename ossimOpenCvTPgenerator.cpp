@@ -266,11 +266,17 @@ void ossimOpenCvTPgenerator::TPdraw()
 void ossimOpenCvTPgenerator::TPgen()
 {
    	// Computing detector
-    cv::OrbFeatureDetector detector(30000); //, 2.0f,8, 151, 0, 2, cv::ORB::HARRIS_SCORE, 151 ); // edgeThreshold = 150, patchSize = 150);
-	detector.detect(master_mat, keypoints1);
-	detector.detect(slave_mat, keypoints2);
 
-    cerr << "Numero di features trovate =" << keypoints1.size() << " master " << keypoints2.size() << " slave " << endl;
+    cv::OrbFeatureDetector detector(30000);//, 2.0f,8, 151, 0, 2, cv::ORB::HARRIS_SCORE, 151 ); // edgeThreshold = 150, patchSize = 150);
+    detector.detect(master_mat, keypoints1);
+    detector.detect(slave_mat, keypoints2);
+    //cv::Ptr<cv::FeatureDetector> m_detector;
+    //cv::Ptr<cv::OrbFeatureDetector> detector = m_detector;
+    //m_detector = new cv::GridAdaptedFeatureDetector (detector, 1000, 5, 5 );
+    //detector->detect(master_mat, keypoints1);
+    //detector->detect(slave_mat, keypoints2);
+
+    cerr << "Numero di features trovate = " << keypoints1.size() << " master " << keypoints2.size() << " slave " << endl;
 	
 	// Computing descriptors
 	cv::BriefDescriptorExtractor extractor;

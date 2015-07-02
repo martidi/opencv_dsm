@@ -180,11 +180,11 @@ int main(int argc,  char* argv[])
                     HeightAboveMSL.push_back(hgtAboveMsl);
                 }
             }
+
             MinHeight = *min_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
             MaxHeight = *max_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
             cout << "Min height for this tile is " << std::setprecision(6) << MinHeight << " m" << endl;
             cout << "Max height for this tile is " << std::setprecision(6) << MaxHeight << " m" << endl;
-
 		}
 
 
@@ -261,17 +261,14 @@ int main(int argc,  char* argv[])
 			ossimRefPtr<ossimImageData> img_backward = backward_handler->getTile(bounds_backward, 0); 
 			
 			// TPs generation 			
-            openCVtestclass *test_bwdnad = new openCVtestclass(img_forward, img_nadir, img_backward) ;
-            test_bwdnad->execute();
-   						
-		//	openCVtestclass *test_nadfwd = new openCVtestclass(img_nadir, img_forward) ; 					
-   			//test_nadfwd->execute();
-   						
-/*  			
+            openCVtestclass *tripletCv = new openCVtestclass(img_forward, img_nadir, img_backward) ;
+            tripletCv->execute();
+
 			// CONVERSION FACTOR (from pixels to meters) COMPUTATION *************
-			ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();    
-			ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry(); 
-          
+            ossimRefPtr<ossimImageGeometry> raw_forward_geom = raw_forward_handler->getImageGeometry();
+            ossimRefPtr<ossimImageGeometry> raw_nadir_geom = raw_nadir_handler->getImageGeometry();
+            ossimRefPtr<ossimImageGeometry> raw_backward_geom = raw_backward_handler->getImageGeometry();
+
             // Conversion factor computed on tile and not over all the image
 			double Dlon = (lon_max - lon_min)/2.0;
 			double Dlat = (lat_max - lat_min)/2.0;
@@ -281,88 +278,136 @@ int main(int argc,  char* argv[])
 			string log(logfile);	
 			log.erase(log.end()-4, log.end()-0 );
 			log = log + "_logfile.txt";			
-			
+
 			// Creating and writing the log file
 			ofstream myfile;
 			myfile.open (log.c_str());
 				
-			cv::Mat conv_factor_J = cv::Mat::zeros(3,3, CV_64F);				
-			cv::Mat conv_factor_I = cv::Mat::zeros(3,3, CV_64F);	
+
+
+
+            //********* TEST FOR EPIPOLAR VERSORS********
 
             ossimGpt central_object_point(46.0490, 11.1053);
             ossimDpt central_image_point(0.,0.);
             ossimGpt point_object(0., 0.);
 
-            raw_master_geom->worldToLocal(central_object_point, central_image_point);
+            raw_nadir_geom->worldToLocal(central_object_point, central_image_point);
             cout << central_image_point << endl; //coordinate immagine corrispondenti al punto centrale
 
-            raw_master_geom->localToWorld(central_image_point, 1400, point_object);
+
+
+            raw_nadir_geom->localToWorld(central_image_point, 1400, point_object);
             cout << point_object << endl;  // coordinate oggetto corrispondenti al punto centrale proiettato a 1400 m
+
+
+
+
+
+            //********************************************
+
+            cv::Mat conv_factor_J_NadFwd = cv::Mat::zeros(3,3, CV_64F);
+            cv::Mat conv_factor_I_NadFwd = cv::Mat::zeros(3,3, CV_64F);
+            cv::Mat conv_factor_J_NadBwd = cv::Mat::zeros(3,3, CV_64F);
+            cv::Mat conv_factor_I_NadBwd = cv::Mat::zeros(3,3, CV_64F);
 
 			for (int i=0 ; i<3 ; i++) //LAT
 			{
-				for (int j=0 ; j<3 ; j++) //LON
+                for (int j=0 ; j<3 ; j++) //LON
 				{
-                    ossimGpt punto_terra(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight -50);
-                    ossimGpt punto_terra_up(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight + 50);
+                    ossimGpt groundPoint(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight -50);
+                    ossimGpt groundPointUp(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight + 50);
 					
-					ossimDpt punto_img(0.,0.);
-					ossimDpt punto_img_up(0.,0.);
+                    ossimDpt imagePoint(0.,0.);
+                    ossimDpt imagePointUp(0.,0.);
 				
-					raw_master_geom->worldToLocal(punto_terra,punto_img);        //con qst trasf ottengo punto_img della master      
-                    raw_master_geom->worldToLocal(punto_terra_up,punto_img_up);
+                    raw_nadir_geom->worldToLocal(groundPoint,imagePoint);        //con qst trasf ottengo imagePoint della nadir
+                    raw_nadir_geom->worldToLocal(groundPointUp,imagePointUp);
 
-					myfile << "MASTER IMAGE" << "\t" << "Ground point" << punto_terra << "\t" << "Image point" << punto_img << "\t" << "Ground point up" << punto_terra_up << "\t" << "Image point up" << punto_img_up << "\t";    
+                    myfile << "NADIR IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t";
 					
-					double DeltaI_Master = punto_img_up.x - punto_img.x;
-					double DeltaJ_Master = punto_img_up.y - punto_img.y;
+                    double DeltaI_nad = imagePointUp.x - imagePoint.x;
+                    double DeltaJ_nad = imagePointUp.y - imagePoint.y;
 					    
-					raw_slave_geom->worldToLocal(punto_terra,punto_img);       
-					raw_slave_geom->worldToLocal(punto_terra_up,punto_img_up);    
+                    raw_forward_geom->worldToLocal(groundPoint,imagePoint);
+                    raw_forward_geom->worldToLocal(groundPointUp,imagePointUp);
 
-					myfile << "SLAVE IMAGE" << "\t" << "Ground point" << punto_terra << "\t" << "Image point" << punto_img << "\t" << "Ground point up" << punto_terra_up << "\t" << "Image point up" << punto_img_up << "\t" << endl;    
+                    myfile << "FORWARD IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t" << endl;
 					
-					double DeltaI_Slave = punto_img_up.x - punto_img.x;
-					double DeltaJ_Slave = punto_img_up.y - punto_img.y;
-					
-					conv_factor_J.at<double>(i,j) = DeltaJ_Slave - DeltaJ_Master; // conv_factor for ACROSS-track imgs
-					conv_factor_I.at<double>(i,j) = DeltaI_Slave - DeltaI_Master; // conv_factor for ALONG-track imgs 
+                    double DeltaI_fwd = imagePointUp.x - imagePoint.x;
+                    double DeltaJ_fwd = imagePointUp.y - imagePoint.y;
+
+                    raw_backward_geom->worldToLocal(groundPoint,imagePoint);
+                    raw_backward_geom->worldToLocal(groundPointUp,imagePointUp);
+
+                    myfile << "BACKWARD IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t" << endl;
+
+                    double DeltaI_bwd = imagePointUp.x - imagePoint.x;
+                    double DeltaJ_bwd = imagePointUp.y - imagePoint.y;
+
+                    conv_factor_J_NadFwd.at<double>(i,j) = DeltaJ_fwd - DeltaJ_nad; // conv_factor for ACROSS-track imgs
+                    conv_factor_I_NadFwd.at<double>(i,j) = DeltaI_fwd - DeltaI_nad; // conv_factor for ALONG-track imgs
+                    conv_factor_J_NadBwd.at<double>(i,j) = DeltaJ_fwd - DeltaJ_bwd;
+                    conv_factor_I_NadBwd.at<double>(i,j) = DeltaI_fwd - DeltaI_bwd;
 				}			
 			}
-			
-			//cout << conv_factor_J << endl;
-			//cout << conv_factor_I << endl;	
-									
-			cv::Scalar mean_conv_factor_J, stDev_conv_factor_J;
-			cv::meanStdDev(conv_factor_J, mean_conv_factor_J, stDev_conv_factor_J);
-			
-			cv::Scalar mean_conv_factor_I, stDev_conv_factor_I;
-			cv::meanStdDev(conv_factor_I, mean_conv_factor_I, stDev_conv_factor_I);			
 
-			double stDev_conversionF_J = stDev_conv_factor_J.val[0];
-            double mean_conversionF_J = mean_conv_factor_J.val[0]/(MaxHeight -MinHeight + 100);
-	
-			double stDev_conversionF_I = stDev_conv_factor_I.val[0];
-            double mean_conversionF_I = mean_conv_factor_I.val[0]/(MaxHeight -MinHeight + 100);
-			
-            double mean_conversionF = (sqrt((mean_conv_factor_J.val[0]*mean_conv_factor_J.val[0]) + (mean_conv_factor_I.val[0]*mean_conv_factor_I.val[0]))/(MaxHeight -MinHeight + 100));
-			
-			cout << "J Conversion Factor from pixels to meters\t" << mean_conversionF_J << endl;
-			cout << "Standard deviation J Conversion Factor\t" << stDev_conversionF_J << endl << endl;
+            cv::Scalar mean_conv_factor_J_NadFwd, stDev_conv_factor_J_NadFwd;
+            cv::meanStdDev(conv_factor_J_NadFwd, mean_conv_factor_J_NadFwd, stDev_conv_factor_J_NadFwd);
+            cv::Scalar mean_conv_factor_I_NadFwd, stDev_conv_factor_I_NadFwd;
+            cv::meanStdDev(conv_factor_I_NadFwd, mean_conv_factor_I_NadFwd, stDev_conv_factor_I_NadFwd);
 
-			cout << "I Conversion Factor from pixels to meters\t" << mean_conversionF_I << endl;
-			cout << "Standard deviation I Conversion Factor\t" << stDev_conversionF_I << endl << endl;
+            double stDev_conversionF_J_NadFwd = stDev_conv_factor_J_NadFwd.val[0];
+            double mean_conversionF_J_NadFwd = mean_conv_factor_J_NadFwd.val[0]/(MaxHeight -MinHeight + 100);
+            double stDev_conversionF_I_NadFwd = stDev_conv_factor_I_NadFwd.val[0];
+            double mean_conversionF_I_NadFwd = mean_conv_factor_I_NadFwd.val[0]/(MaxHeight -MinHeight + 100);
+            double mean_conversionF_NadFwd = (sqrt((mean_conv_factor_J_NadFwd.val[0]*mean_conv_factor_J_NadFwd.val[0]) + (mean_conv_factor_I_NadFwd.val[0]*mean_conv_factor_I_NadFwd.val[0]))/(MaxHeight -MinHeight + 100));
+
+            cv::Scalar mean_conv_factor_J_NadBwd, stDev_conv_factor_J_NadBwd;
+            cv::meanStdDev(conv_factor_J_NadBwd, mean_conv_factor_J_NadBwd, stDev_conv_factor_J_NadBwd);
+            cv::Scalar mean_conv_factor_I_NadBwd, stDev_conv_factor_I_NadBwd;
+            cv::meanStdDev(conv_factor_I_NadBwd, mean_conv_factor_I_NadBwd, stDev_conv_factor_I_NadBwd);
+
+            double stDev_conversionF_J_NadBwd = stDev_conv_factor_J_NadBwd.val[0];
+            double mean_conversionF_J_NadBwd = mean_conv_factor_J_NadBwd.val[0]/(MaxHeight -MinHeight + 100);
+            double stDev_conversionF_I_NadBwd = stDev_conv_factor_I_NadBwd.val[0];
+            double mean_conversionF_I_NadBwd = mean_conv_factor_I_NadBwd.val[0]/(MaxHeight -MinHeight + 100);
+            double mean_conversionF_NadBwd = (sqrt((mean_conv_factor_J_NadBwd.val[0]*mean_conv_factor_J_NadBwd.val[0]) + (mean_conv_factor_I_NadBwd.val[0]*mean_conv_factor_I_NadBwd.val[0]))/(MaxHeight -MinHeight + 100));
+
 			
-			cout << "Total Conversion Factor from pixels to meters\t" << mean_conversionF << endl;
-			// END CONVERSION FACTOR COMPUTATION ****************************************
+            cout << "J Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF_J_NadFwd << endl;
+            cout << "Standard deviation J Conversion Factor for NAD-FWD\t" << stDev_conversionF_J_NadFwd << endl << endl;
+            cout << "I Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF_I_NadFwd << endl;
+            cout << "Standard deviation I Conversion Factor for NAD-FWD\t" << stDev_conversionF_I_NadFwd << endl << endl;
 			
-			myfile << endl << "Master orthorectification parameters" <<endl;
-			myfile << master_key << endl;
-			myfile << "Slave orthorectification parameters" <<endl;
-			myfile << slave_key << endl;
-			myfile <<"Conversion Factor from pixels to meters\t" << mean_conversionF_J <<endl;
-			myfile <<"Standard deviation Conversion Factor\t" << stDev_conversionF_J <<endl; 
-			myfile.close();			
+            cout << "Total Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF_NadFwd << endl <<endl;
+
+            cout << "J Conversion Factor from pixels to meters NAD-BWD\t" << mean_conversionF_J_NadBwd << endl;
+            cout << "Standard deviation J Conversion Factor NAD-BWD\t" << stDev_conversionF_J_NadBwd << endl << endl;
+            cout << "I Conversion Factor from pixels to meters NAD-BWD\t" << mean_conversionF_I_NadBwd << endl;
+            cout << "Standard deviation I Conversion Factor NAD-BWD\t" << stDev_conversionF_I_NadBwd << endl << endl;
+
+            cout << "Total Conversion Factor from pixels to meters NAD-BWD\t" << mean_conversionF_NadBwd << endl;
+
+            // END CONVERSION FACTOR COMPUTATION ****************************************
+
+            myfile << endl << "Nadir orthorectification parameters" <<endl;
+            myfile << nadir_key << endl;
+            myfile << "Forward orthorectification parameters" <<endl;
+            myfile << forward_key << endl;
+            myfile << "Backward orthorectification parameters" <<endl;
+            myfile << backward_key << endl;
+            myfile <<"Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF_J_NadFwd <<endl;
+            myfile <<"Standard deviation Conversion Factor for NAD-FWD\t" << stDev_conversionF_J_NadFwd <<endl;
+            myfile <<"Conversion Factor from pixels to meters for NAD-BWD\t" << mean_conversionF_J_NadBwd <<endl;
+            myfile <<"Standard deviation Conversion Factor for NAD-BWD\t" << stDev_conversionF_J_NadBwd <<endl;
+            myfile.close();
+
+
+
+
+
+
 						
 /*			
             cv::Mat parallax = cv::Mat::zeros(good_matches.size(), 1, CV_64F);
@@ -378,22 +423,26 @@ int main(int argc,  char* argv[])
 	
             cout << "dev_y = " << dev_y << endl
                  << "mean_diff_y = " << mean_diff_y << endl;
-*/				
-/*				
+*/
+
+
+
+
 			// From Disparity to DSM
-			ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();			
-			test->computeDSM(mean_conversionF, elev, master_geom);
+            ossimImageGeometry* nadir_geom = nadir_handler->getImageGeometry().get();
+            tripletCv->computeDSM(mean_conversionF_NadFwd, elev, nadir_geom); //non è corretto mettere mean_conversionF_NadFwd
+                                                                              // dovrei mettere anche mean_conversionF_NadBwd
 						
 			// Geocoded DSM generation
 			ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("Temp_DSM.tif"));
-			handler_disp->setImageGeometry(master_geom);       
+            handler_disp->setImageGeometry(nadir_geom);
 			ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(ossimFilename(ap[5]));
 			writer->connectMyInputTo(0, handler_disp);
 			writer->execute();
             
-			delete writer; */
-			delete test_bwdnad;	
-			//delete test_nadfwd;			
+        /*	delete writer; */
+            delete tripletCv;
+
 		}
 	}     
 	catch (const ossimException& e)
