@@ -390,10 +390,10 @@ int main(int argc,  char* argv[])
 	
 		
 	    cout << "Start master orthorectification" << endl;
-        ortho(master_key);
+        //ortho(master_key);
 	
 		cout << "Start slave orthorectification" << endl;
-        ortho(slave_key);
+        //ortho(slave_key);
 			
 		// Elevation manager instance
 		ossimElevManager* elev = ossimElevManager::instance();		
@@ -439,19 +439,21 @@ int main(int argc,  char* argv[])
 			cv::Mat conv_factor_J = cv::Mat::zeros(3,3, CV_64F);				
 			cv::Mat conv_factor_I = cv::Mat::zeros(3,3, CV_64F);	
 
-            for (int i=0 ; i<3 ; i++) //LAT
-            {
-                for (int j=0 ; j<3 ; j++) //LON
+            //for (int i=0 ; i<3 ; i++) //LAT
+            //{
+                for (int j=1 ; j<4 ; j++) //LON
                 {
-                    ossimGpt worldPt (lat_max-i*Dlat,lon_min+j*Dlon);
-                    ossimDpt localPt (0.,0.);
+                    ossimDpt localPt (10000, j+(j-1)*10000);
+                    ossimGpt worldPt (0.,0.);
                     ossimGpt worldPtUp(0., 0.);
+
                     //ossimGpt central_object_point(46.0490, 11.1053);
                     //ossimDpt central_image_point(0.,0.);
                     //ossimDpt image_point(0., 0.);
+                    cout << localPt  << endl;
+                    raw_master_geom->localToWorld(localPt, worldPt);
                     cout << worldPt  << endl;
-                    raw_master_geom->worldToLocal(worldPt, localPt);
-                   // cout << localPt << endl; //coordinate immagine corrispondenti al punto centrale
+                    //cout << localPt << endl; //coordinate immagine corrispondenti al punto centrale
 
                     raw_master_geom->localToWorld(localPt, 1400, worldPtUp);
                     cout << worldPtUp << endl;  // coordinate oggetto corrispondenti al punto centrale proiettato a 1400 m
@@ -459,7 +461,7 @@ int main(int argc,  char* argv[])
                 //  raw_master_geom->worldToLocal(point_object, image_point);
                 //  cout << image_point << endl; //coordinate immagine corrispondenti al punto centrale
                 }
-            }
+            //}
 
 			for (int i=0 ; i<3 ; i++) //LAT
 			{
