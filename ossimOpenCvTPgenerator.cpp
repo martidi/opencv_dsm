@@ -267,14 +267,16 @@ void ossimOpenCvTPgenerator::TPgen()
 {
    	// Computing detector
 
-    cv::OrbFeatureDetector detector(30000);//, 2.0f,8, 151, 0, 2, cv::ORB::HARRIS_SCORE, 151 ); // edgeThreshold = 150, patchSize = 150);
-    detector.detect(master_mat, keypoints1);
-    detector.detect(slave_mat, keypoints2);
-    //cv::Ptr<cv::FeatureDetector> m_detector;
-    //cv::Ptr<cv::OrbFeatureDetector> detector = m_detector;
-    //m_detector = new cv::GridAdaptedFeatureDetector (detector, 1000, 5, 5 );
-    //detector->detect(master_mat, keypoints1);
-    //detector->detect(slave_mat, keypoints2);
+    //cv::OrbFeatureDetector detector(30000);//, 2.0f,8, 151, 0, 2, cv::ORB::HARRIS_SCORE, 151 ); // edgeThreshold = 150, patchSize = 150);
+    //detector.detect(master_mat, keypoints1);
+    //detector.detect(slave_mat, keypoints2);
+
+    cv::Ptr<cv::FeatureDetector> m_detector;
+    cv::Ptr<cv::OrbFeatureDetector> detector = cv::FeatureDetector::create("ORB");
+    m_detector = new cv::GridAdaptedFeatureDetector (detector, 1000, 5, 5 );
+
+    m_detector->detect(master_mat, keypoints1);
+    m_detector->detect(slave_mat, keypoints2);
 
     cerr << "Numero di features trovate = " << keypoints1.size() << " master " << keypoints2.size() << " slave " << endl;
 	
@@ -311,7 +313,7 @@ void ossimOpenCvTPgenerator::TPgen()
 	double good_dist = (max_dist+min_dist)/2.0;
 	double per = 100;
 	 
-	while (fabs(per-0.01) > 0.001 && N_ITER <= 200)
+    while (fabs(per-0.95) > 0.001 && N_ITER <= 200)
 	{		
 		for( int i = 0; i < descriptors1.rows; i++ )
 		{
@@ -320,7 +322,7 @@ void ossimOpenCvTPgenerator::TPgen()
 		
 		per = (double)N_GOOD/(double)N_TOT;
 		
-		if(per >= 0.01)
+        if(per >= 0.85)
 		{
 			max_dist = good_dist;
 		}
