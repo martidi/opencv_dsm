@@ -73,7 +73,8 @@ bool openCVtestclass::execute()
     //slave_mat = wallis(slave_mat);
 	//		  	
    	// ****************************
-	double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
+
+    double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
 	cv::Mat master_mat_8U;
 	cv::Mat slave_mat_8U;  
       

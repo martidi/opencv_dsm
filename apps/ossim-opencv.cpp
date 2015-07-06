@@ -36,7 +36,8 @@
 
 #include <ossim/elevation/ossimElevManager.h>
 #include <ossim/elevation/ossimSrtmHandler.h>
-
+#include <ossim/projection/ossimUtmProjection.h>
+#include <ossim/projection/ossimUtmpt.h>
 #include "ossimOpenCvTPgenerator.h"
 #include "openCVtestclass.h"
 #include "ossimOpenCvDisparityMapGenerator.h"
@@ -441,22 +442,25 @@ int main(int argc,  char* argv[])
 
             //for (int i=0 ; i<3 ; i++) //LAT
             //{
-                for (int j=1 ; j<4 ; j++) //LON
-                {
+            int index = 0;
+                // VERSOR COMPUTATION
+                for (int j=1 ; j<4 ; j++)
+                {                  
                     ossimDpt localPt (10000, j+(j-1)*10000);
                     ossimGpt worldPt (0.,0.);
                     ossimGpt worldPtUp(0., 0.);
 
-                    //ossimGpt central_object_point(46.0490, 11.1053);
-                    //ossimDpt central_image_point(0.,0.);
-                    //ossimDpt image_point(0., 0.);
-                    cout << localPt  << endl;
-                    raw_master_geom->localToWorld(localPt, worldPt);
-                    cout << worldPt  << endl;
-                    //cout << localPt << endl; //coordinate immagine corrispondenti al punto centrale
+                    raw_master_geom->localToWorld(localPt, 0, worldPt);                    
+                    cout << localPt  << endl;   // local coordinates for this cycle
+                    cout << worldPt  << endl;   // ground coordinates @ 0 m
 
                     raw_master_geom->localToWorld(localPt, 1400, worldPtUp);
-                    cout << worldPtUp << endl;  // coordinate oggetto corrispondenti al punto centrale proiettato a 1400 m
+                    cout << worldPtUp << endl;  // ground coordinates @ 1400 m
+
+                    ossimUtmpt UTMgenPt(worldPt);
+                    ossimUtmpt UTMgenPtUP(worldPtUp);
+                    cout << index++ << "\t" << "punto terra a quota 0 m EST:\t" << UTMgenPt.easting() << endl << "\tNORD:\t" << UTMgenPt.northing() <<endl << endl;
+                    cout << "\t" << "punto terra a quota 1400 m EST:\t" << UTMgenPtUP.easting() << endl << "\tNORD:\t" << UTMgenPtUP.northing() <<endl << endl;
 
                 //  raw_master_geom->worldToLocal(point_object, image_point);
                 //  cout << image_point << endl; //coordinate immagine corrispondenti al punto centrale
