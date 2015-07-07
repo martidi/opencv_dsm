@@ -182,11 +182,18 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
         {
             for(int j=0; j< disparity_maps_16bit[i].cols; j++)
             {
-            // controlla che non ci siano nan
-            // controlla che non ci sia troppa differenza tra i due valori in punti corrispondenti
-            // e poi fai la media
+                // controlla che non ci siano nan
+               // if()
+               // {
 
-                fusedDisp = (disparity_maps_16bit[i] + disparity_maps_16bit[i+1])/disparity_maps.size();
+               // }
+                // controlla che non ci sia troppa differenza tra i due valori in punti corrispondenti
+               // if(abs(disparity_maps_16bit[i].at<double>(i,j) - disparity_maps_16bit[i+1].at<double>(i,j)) > 100)
+               // {
+
+               // }
+            // altrimenti fai la media
+            fusedDisp = (disparity_maps_16bit[i] + disparity_maps_16bit[i+1])/disparity_maps.size();
             }
          }
     }
