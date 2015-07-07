@@ -446,7 +446,8 @@ int main(int argc,  char* argv[])
                 // VERSOR COMPUTATION
                 for (int j=1 ; j<4 ; j++)
                 {                  
-                    ossimDpt localPt (10000, j+(j-1)*10000);
+                    ossimDpt localPt (10000, j+(j-1)*10000); //Trento GeoEye
+                    //ossimDpt localPt (11000, j+(j-1)*8300); // Argenta
                     ossimGpt worldPt (0.,0.);
                     ossimGpt worldPtUp(0., 0.);
 
