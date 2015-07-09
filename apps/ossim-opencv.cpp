@@ -229,13 +229,13 @@ int main(int argc,  char* argv[])
         cout << "BACKWARD DIRECTORY:"  << " " << ap[3] << endl << endl;        
 				
 	    cout << "Start forward orthorectification" << endl;
-        //ortho(forward_key);
+        ortho(forward_key);
 	
 		cout << "Start nadir orthorectification" << endl;
-        //ortho(nadir_key);
+        ortho(nadir_key);
 		
 		cout << "Start backward orthorectification" << endl;
-        //ortho(backward_key);
+        ortho(backward_key);
 				
 		// Elevation manager instance
 		ossimElevManager* elev = ossimElevManager::instance();		
@@ -436,7 +436,7 @@ int main(int argc,  char* argv[])
 			// Geocoded DSM generation
 			ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("Temp_DSM.tif"));
             handler_disp->setImageGeometry(nadir_geom);
-			ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(ossimFilename(ap[5]));
+            ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(ossimFilename(ap[7]));
 			writer->connectMyInputTo(0, handler_disp);
 			writer->execute();
             
