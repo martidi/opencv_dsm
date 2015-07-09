@@ -440,7 +440,7 @@ int main(int argc,  char* argv[])
 			writer->connectMyInputTo(0, handler_disp);
 			writer->execute();
             
-        /*	delete writer; */
+            delete writer;
             delete tripletCv;
 
 		}
