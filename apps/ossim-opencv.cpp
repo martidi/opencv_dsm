@@ -38,6 +38,7 @@
 #include <ossim/elevation/ossimSrtmHandler.h>
 #include <ossim/projection/ossimUtmProjection.h>
 #include <ossim/projection/ossimUtmpt.h>
+#include <ossim/base/ossimEcefPoint.h>
 #include "ossimOpenCvTPgenerator.h"
 #include "openCVtestclass.h"
 #include "ossimOpenCvDisparityMapGenerator.h"
@@ -443,30 +444,267 @@ int main(int argc,  char* argv[])
             //for (int i=0 ; i<3 ; i++) //LAT
             //{
             int index = 0;
+            std::vector<double> xVectorMaster;
+            std::vector<double> yVectorMaster;
+            std::vector<double> zVectorMaster;
+            std::vector<double> xVectorSlave;
+            std::vector<double> yVectorSlave;
+            std::vector<double> zVectorSlave;
+
                 // VERSOR COMPUTATION
                 for (int j=1 ; j<4 ; j++)
                 {                  
                     ossimDpt localPt (10000, j+(j-1)*10000); //Trento GeoEye
                     //ossimDpt localPt (11000, j+(j-1)*8300); // Argenta
-                    ossimGpt worldPt (0.,0.);
-                    ossimGpt worldPtUp(0., 0.);
+                    ossimGpt worldPtMaster (0.,0.);
+                    ossimGpt worldPtUpMaster(0., 0.);
+                    ossimGpt worldPtSlave(0.,0.);
+                    ossimGpt worldPtUpSlave(0., 0.);
 
-                    raw_master_geom->localToWorld(localPt, 0, worldPt);                    
+                    raw_master_geom->localToWorld(localPt, 0, worldPtMaster);
+                    cout << "MASTER\t" << endl << endl;
                     cout << localPt  << endl;   // local coordinates for this cycle
-                    cout << worldPt  << endl;   // ground coordinates @ 0 m
+                    cout << worldPtMaster  << endl;   // ground coordinates @ 0 m
+                    raw_master_geom->localToWorld(localPt, 1400, worldPtUpMaster);
+                    cout << worldPtUpMaster << endl;  // ground coordinates @ 1400 m
 
-                    raw_master_geom->localToWorld(localPt, 1400, worldPtUp);
-                    cout << worldPtUp << endl;  // ground coordinates @ 1400 m
+                    raw_slave_geom->localToWorld(localPt, 0, worldPtSlave);
+                    cout << "SLAVE\t" << endl << endl;
+                    cout << localPt  << endl;   // local coordinates for this cycle
+                    cout << worldPtSlave  << endl;   // ground coordinates @ 0 m
+                    raw_slave_geom->localToWorld(localPt, 1400, worldPtUpSlave);
+                    cout << worldPtUpSlave << endl;  // ground coordinates @ 1400 m
 
-                    ossimUtmpt UTMgenPt(worldPt);
-                    ossimUtmpt UTMgenPtUP(worldPtUp);
-                    cout << index++ << "\t" << "punto terra a quota 0 m EST:\t" << UTMgenPt.easting() << endl << "\tNORD:\t" << UTMgenPt.northing() <<endl << endl;
-                    cout << "\t" << "punto terra a quota 1400 m EST:\t" << UTMgenPtUP.easting() << endl << "\tNORD:\t" << UTMgenPtUP.northing() <<endl << endl;
+                    ossimEcefPoint ECEFgenMaster(worldPtMaster);
+                    ossimEcefPoint ECEFgenUPMaster(worldPtUpMaster);
+                    ossimEcefPoint ECEFgenSlave(worldPtSlave);
+                    ossimEcefPoint ECEFgenUPSlave(worldPtUpSlave);
+
+                    double xDiffsquareMaster = (ECEFgenMaster.x() - ECEFgenUPMaster.x())*(ECEFgenMaster.x() - ECEFgenUPMaster.x());
+                    double yDiffsquareMaster = (ECEFgenMaster.y() - ECEFgenUPMaster.y())*(ECEFgenMaster.y() - ECEFgenUPMaster.y());
+                    double zDiffsquareMaster = (ECEFgenMaster.z() - ECEFgenUPMaster.z())*(ECEFgenMaster.z() - ECEFgenUPMaster.z());
+
+                    double normMaster = sqrt(xDiffsquareMaster + yDiffsquareMaster + zDiffsquareMaster);
+
+                    double xVersorCompMaster = (ECEFgenMaster.x() - ECEFgenUPMaster.x())/(normMaster);
+                    double yVersorCompMaster = (ECEFgenMaster.y() - ECEFgenUPMaster.y())/(normMaster);
+                    double zVersorCompMaster = (ECEFgenMaster.z() - ECEFgenUPMaster.z())/(normMaster);
+
+                    xVectorMaster.push_back(xVersorCompMaster);
+                    yVectorMaster.push_back(yVersorCompMaster);
+                    zVectorMaster.push_back(zVersorCompMaster);
+
+                    cout << "Point" << index++ << "\t" << endl;
+                    cout << "x component master:\t" << xVersorCompMaster << endl << endl;
+                    cout << "y component master:\t" << yVersorCompMaster << endl << endl;
+                    cout << "z component master:\t" << zVersorCompMaster << endl << endl;
+
+                    double xDiffsquareSlave = (ECEFgenSlave.x() - ECEFgenUPSlave.x())*(ECEFgenSlave.x() - ECEFgenUPSlave.x());
+                    double yDiffsquareSlave = (ECEFgenSlave.y() - ECEFgenUPSlave.y())*(ECEFgenSlave.y() - ECEFgenUPSlave.y());
+                    double zDiffsquareSlave = (ECEFgenSlave.z() - ECEFgenUPSlave.z())*(ECEFgenSlave.z() - ECEFgenUPSlave.z());
+
+                    double normSlave = sqrt(xDiffsquareSlave + yDiffsquareSlave + zDiffsquareSlave);
+
+                    double xVersorCompSlave = (ECEFgenSlave.x() - ECEFgenUPSlave.x())/(normSlave);
+                    double yVersorCompSlave = (ECEFgenSlave.y() - ECEFgenUPSlave.y())/(normSlave);
+                    double zVersorCompSlave = (ECEFgenSlave.z() - ECEFgenUPSlave.z())/(normSlave);
+
+                    xVectorSlave.push_back(xVersorCompSlave);
+                    yVectorSlave.push_back(yVersorCompSlave);
+                    zVectorSlave.push_back(zVersorCompSlave);
+
+                    cout << "x component slave:\t" << xVersorCompSlave << endl << endl;
+                    cout << "y component slave:\t" << yVersorCompSlave << endl << endl;
+                    cout << "z component slave:\t" << zVersorCompSlave << endl << endl;
+
+                    //cout << index++ << "\t" << "punto terra a quota 0 m x:\t" << ECEFgen.x() << endl << "\ty:\t" << ECEFgen.y() << "\tz:\t" << ECEFgen.z() << endl << endl;
+                    //cout << "\t" << "punto terra a quota 1400 m x:\t" << ECEFgenUP.x() << endl << "\ty:\t" << ECEFgenUP.y() << "\tz:\t" << ECEFgenUP.z() << endl << endl;
+                    //ossimUtmpt UTMgenPt(worldPt);
+                    //ossimUtmpt UTMgenPtUP(worldPtUp);
+                    //cout << index++ << "\t" << "punto terra a quota 0 m EST:\t" << UTMgenPt.easting() << endl << "\tNORD:\t" << UTMgenPt.northing() <<endl << endl;
+                    //cout << "\t" << "punto terra a quota 1400 m EST:\t" << UTMgenPtUP.easting() << endl << "\tNORD:\t" << UTMgenPtUP.northing() <<endl << endl;
 
                 //  raw_master_geom->worldToLocal(point_object, image_point);
                 //  cout << image_point << endl; //coordinate immagine corrispondenti al punto centrale
                 }
             //}
+            double sum = 0;
+            for (vector<double>::iterator j = xVectorMaster.begin(); j!=xVectorMaster.end(); j++)
+                sum += *j;
+            double xVersorMeanMaster = sum/(xVectorMaster.size());
+
+            sum = 0;
+            for (vector<double>::iterator j = yVectorMaster.begin(); j!=yVectorMaster.end(); j++)
+                sum += *j;
+            double yVersorMeanMaster = sum/(yVectorMaster.size());
+
+            sum = 0;
+            for (vector<double>::iterator j = zVectorMaster.begin(); j!=zVectorMaster.end(); j++)
+                sum += *j;
+            double zVersorMeanMaster = sum/(zVectorMaster.size());
+
+            cout << xVersorMeanMaster  << "\t" << yVersorMeanMaster << "\t" << zVersorMeanMaster << "\t" << endl;
+
+            sum = 0;
+            for (vector<double>::iterator j = xVectorSlave.begin(); j!=xVectorSlave.end(); j++)
+                sum += *j;
+            double xVersorMeanSlave = sum/(xVectorSlave.size());
+
+            sum = 0;
+            for (vector<double>::iterator j = yVectorSlave.begin(); j!=yVectorSlave.end(); j++)
+                sum += *j;
+            double yVersorMeanSlave = sum/(yVectorSlave.size());
+
+            sum = 0;
+            for (vector<double>::iterator j = zVectorSlave.begin(); j!=zVectorSlave.end(); j++)
+                sum += *j;
+            double zVersorMeanSlave = sum/(zVectorSlave.size());
+
+            cout << xVersorMeanSlave << "\t" << yVersorMeanSlave  << "\t" << zVersorMeanSlave  << "\t" << endl;
+
+            double xComponentMean = (xVersorMeanMaster + xVersorMeanSlave) /2.0;
+            double yComponentMean = (yVersorMeanMaster + yVersorMeanSlave) /2.0;
+            double zComponentMean = (zVersorMeanMaster + zVersorMeanSlave) /2.0;
+
+            cout << "X, Y and Z components of the mean versor\t" << endl;
+            cout << xComponentMean << "\t" << yComponentMean  << "\t" << zComponentMean  << "\t" << endl;
+
+            ossimGpt meanGroundPt((lat_max + lat_min)/2.0, (lon_max + lon_min)/2.0 , (MaxHeight - MinHeight)/2.0);
+            ossimEcefPoint ECEFmeanGroundPt(meanGroundPt);
+
+            cout << "coordinate geografiche a terra del punto medio:\t" << meanGroundPt << endl;
+            cout << "coordinate ECEF a terra del punto medio:\t" << ECEFmeanGroundPt << endl;
+
+            // INCLINED PLANE FOR QUASI-EPIPOLAR IMAGES
+         //   std::vector<double> x = ECEFmeanGroundPt.x();
+         //   std::vector<double> y = ECEFmeanGroundPt.y();
+         //   std::vector<double> z = ECEFmeanGroundPt.z();
+            double d = -xComponentMean*ECEFmeanGroundPt.x() - yComponentMean*ECEFmeanGroundPt.y() - zComponentMean*ECEFmeanGroundPt.z();
+
+            std::vector<double> xPt ;
+            std::vector<double> yPt ;
+            std::vector<double> zPt ;
+
+            cout << "d:\t" << d << endl;
+
+            // coordinate x e y dell'angolo in basso a sx
+            double frstComp = ECEFmeanGroundPt.x() - 5000;
+            double scndComp = ECEFmeanGroundPt.y() - 5000;
+
+            cout << frstComp << "\tx dell'angolo in basso a sx" << endl;
+            cout << scndComp << "\ty dell'angolo in basso a sx" << endl;
+
+            for (int i=0; i<3 ; i++)
+            {
+                for (int j=0; j<3; j++)
+                {
+                   double yComp = scndComp + (j*5000);
+                   yPt.push_back(yComp);
+                }
+                double xComp = frstComp + (i*5000);
+            xPt.push_back(xComp);
+            }
+
+            cout << xPt[0] << "\t" << xPt[1] << "\t" << xPt[2] << endl << endl;
+            cout << yPt[0] << "\t" << yPt[1] << "\t" << yPt[2] << endl << endl;
+
+            // z computation
+            std::vector<double> trdCompPt ;
+
+            for (int i=0; i<3 ; i++)
+            {
+                for (int j=0; j<3; j++)
+                {
+                        double zComp = (-d - xComponentMean*xPt[i] - yComponentMean*yPt[j]) / zComponentMean;
+                        trdCompPt.push_back(zComp);
+                }
+            }
+
+            cout << trdCompPt[0] << "\t" << trdCompPt[1] << "\t" << trdCompPt[2] << "\t" <<
+                    trdCompPt[3] << "\t" << trdCompPt[4] << "\t" << trdCompPt[5] << "\t" <<
+                    trdCompPt[6] << "\t" << trdCompPt[7] << "\t" << trdCompPt[8] << endl;
+
+            vector<ossimEcefPoint> GriddedPt;
+
+            for (int i=0; i<3 ; i++)
+            {
+                for (int j=0; j<3; j++)
+                {
+                        ossimEcefPoint Pt(xPt[i], yPt[j], trdCompPt[i*3+j]);
+                        GriddedPt.push_back(Pt);
+                }
+            }
+
+            cout << "Point1\t" << GriddedPt[0] << "\t" << "Point2\t" <<GriddedPt[1] << "\t" << "Point3\t" << GriddedPt[2] << "\t" <<
+                  "Point4\t" <<  GriddedPt[3] << "\t" << "Point5\t" << GriddedPt[4] << "\t" << "Point6\t" << GriddedPt[5] << "\t" <<
+                  "Point7\t" <<  GriddedPt[6] << "\t" << "Point8\t" << GriddedPt[7] << "\t" << "Point9\t" << GriddedPt[8] << endl;
+
+
+/*
+            double trdCompPt1 = (-d - xComponentMean*xPt[0] - yComponentMean*yPt[0]) / zComponentMean;
+            double trdCompPt2 = (-d - xComponentMean*xPt[0] - yComponentMean*yPt[1]) / zComponentMean;
+            double trdCompPt3 = (-d - xComponentMean*xPt[0] - yComponentMean*yPt[2]) / zComponentMean;
+            double trdCompPt4 = (-d - xComponentMean*xPt[1] - yComponentMean*yPt[0]) / zComponentMean;
+            double trdCompPt5 = (-d - xComponentMean*xPt[1] - yComponentMean*yPt[1]) / zComponentMean;
+            double trdCompPt6 = (-d - xComponentMean*xPt[1] - yComponentMean*yPt[2]) / zComponentMean;
+            double trdCompPt7 = (-d - xComponentMean*xPt[2] - yComponentMean*yPt[0]) / zComponentMean;
+            double trdCompPt8 = (-d - xComponentMean*xPt[2] - yComponentMean*yPt[1]) / zComponentMean;
+            double trdCompPt9 = (-d - xComponentMean*xPt[2] - yComponentMean*yPt[2]) / zComponentMean;
+
+            cout << trdCompPt1 << "\t" << trdCompPt2 << "\t" << trdCompPt3 << "\t" <<
+                    trdCompPt4 << "\t" << trdCompPt5 << "\t" << trdCompPt6 << "\t" <<
+                    trdCompPt7 << "\t" << trdCompPt8 << "\t" << trdCompPt9 << endl;
+
+            ossimEcefPoint Pt1(xPt[0], yPt[0], trdCompPt1);
+            ossimEcefPoint Pt2(xPt[0], yPt[1], trdCompPt2);
+            ossimEcefPoint Pt3(xPt[0], yPt[2], trdCompPt3);
+            ossimEcefPoint Pt4(xPt[1], yPt[0], trdCompPt4);
+            ossimEcefPoint Pt5(xPt[1], yPt[1], trdCompPt5);
+            ossimEcefPoint Pt6(xPt[1], yPt[2], trdCompPt6);
+            ossimEcefPoint Pt7(xPt[2], yPt[0], trdCompPt7);
+            ossimEcefPoint Pt8(xPt[2], yPt[1], trdCompPt8);
+            ossimEcefPoint Pt9(xPt[2], yPt[2], trdCompPt9);
+
+            cout << "Point1\t" << Pt1 << endl;
+            cout << "Point2\t" << Pt2 << endl;
+            cout << "Point3\t" << Pt3 << endl;
+            cout << "Point4\t" << Pt4 << endl;
+            cout << "Point5\t" << Pt5 << endl;
+            cout << "Point6\t" << Pt6 << endl;
+            cout << "Point7\t" << Pt7 << endl;
+            cout << "Point8\t" << Pt8 << endl;
+            cout << "Point9\t" << Pt9 << endl;
+*/
+
+
+/*
+            // From Disparity to DSM
+            ossimImageGeometry* point_geom = master_handler->getImageGeometry().get();
+            test->computeDSM(mean_conversionF, elev, point_geom);
+
+            // Geocoded DSM generation
+            ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("Temp_DSM.tif"));
+            handler_disp->setImageGeometry(point_geom);
+            ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(ossimFilename(ap[5]));
+            writer->connectMyInputTo(0, handler_disp);
+            writer->execute();
+
+*/
+
+
+
+
+
+          //  for (int i=0; i<3; i++)
+          //  {
+            //    double trdComp = (-d - xComponentMean*xPt[i] - yComponentMean*yPt[i]) / zComponentMean;
+              //  zPt.push_back(trdComp);
+          //  }
+
+           // cout << zPt[0] << "\t" << zPt[1] << "\t" << zPt[2] <<endl << endl;
+
+            //double ECEFzComponent = (-d - xComponentMean*x - yComponentMean*y) / zComponentMean;
+            //cout << ECEFzComponent << endl;
 
 			for (int i=0 ; i<3 ; i++) //LAT
 			{
