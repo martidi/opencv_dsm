@@ -182,20 +182,27 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
         {
             for(int j=0; j< disparity_maps_16bit[i].cols; j++)
             {
-                // controlla che non ci siano nan
-               // if()
-               // {
+                //controlla che non ci siano nan
+              //if(disparity_maps_16bit[i].at<double>(k,j) != disparity_maps_16bit[i].at<double>(k,j)) //because NaN is not equal to itself
+                if (!isnan(disparity_maps_16bit[i].at<double>(k,j)))
+                {
+                    fusedDisp = disparity_maps_16bit[i+1].at<double>(k,j);
+                }
 
-               // }
-                // controlla che non ci sia troppa differenza tra i due valori in punti corrispondenti
-               // if(abs(disparity_maps_16bit[i].at<double>(i,j) - disparity_maps_16bit[i+1].at<double>(i,j)) > 100)
-               // {
+                if(disparity_maps_16bit[i+1].at<double>(k,j) != disparity_maps_16bit[i+1].at<double>(k,j))
+                {
+                    fusedDisp = disparity_maps_16bit[i].at<double>(k,j);
+                }
 
-               // }
+                //controlla che non ci sia troppa differenza tra i due valori in punti corrispondenti
+                //if(abs(disparity_maps_16bit[i].at<double>(k,j) - disparity_maps_16bit[i+1].at<double>(k,j)) > 100)
+                //{
+                    //fusedDisp =
+                //}
             // altrimenti fai la media
             fusedDisp = (disparity_maps_16bit[i] + disparity_maps_16bit[i+1])/disparity_maps.size();
             }
-         }
+        }
     }
     // sommo la disparità metrica al dsm coarse
 
