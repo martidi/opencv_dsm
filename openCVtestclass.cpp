@@ -101,7 +101,7 @@ bool openCVtestclass::execute()
 	// ****************************			
     //for(size_t i = 0; i < images.size(); i++)
     //{
-    //    images[i] = wallis(images[i]);
+      //  images[i] = wallis(images[i]);
     //}
 
 
@@ -172,45 +172,44 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
     cout << disparity_maps_16bit[0].size() << endl;
     cout << disparity_maps_16bit[1].size() << endl;
 
-    cv::Mat temp = disparity_maps_16bit[0];
+    //cv::Mat temp = disparity_maps_16bit[0];
 
-    cv::Mat fusedDisp = cv::Mat::zeros(temp.rows, temp.cols, CV_64F);
-
-    for (unsigned int i = 0; i < disparity_maps_16bit.size() - 2; ++i)
-    {
-        for (int k=0; k< disparity_maps_16bit[i].rows; k++) // per tutte le righe e le colonne della mappa di disparità
-        {
-            for(int j=0; j< disparity_maps_16bit[i].cols; j++)
-            {
-                //controlla che non ci siano nan
-              //if(disparity_maps_16bit[i].at<double>(k,j) != disparity_maps_16bit[i].at<double>(k,j)) //because NaN is not equal to itself
-                if (!isnan(disparity_maps_16bit[i].at<double>(k,j)))
-                {
-                    fusedDisp = disparity_maps_16bit[i+1].at<double>(k,j);
-                }
-
-                if(disparity_maps_16bit[i+1].at<double>(k,j) != disparity_maps_16bit[i+1].at<double>(k,j))
-                {
-                    fusedDisp = disparity_maps_16bit[i].at<double>(k,j);
-                }
-
-                //controlla che non ci sia troppa differenza tra i due valori in punti corrispondenti
-                //if(abs(disparity_maps_16bit[i].at<double>(k,j) - disparity_maps_16bit[i+1].at<double>(k,j)) > 100)
-                //{
-                    //fusedDisp =
-                //}
-            // altrimenti fai la media
-            fusedDisp = (disparity_maps_16bit[i] + disparity_maps_16bit[i+1])/disparity_maps.size();
-            }
-        }
-    }
-    // sommo la disparità metrica al dsm coarse
+    cv::Mat fusedDisp = cv::Mat::zeros(disparity_maps_16bit[0].rows, disparity_maps_16bit[0].cols, CV_64F);
 
     cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
     cout << "null_disp_threshold"<< null_disp_threshold<< endl;
 
     cout << fusedDisp.rows << endl;
     cout << fusedDisp.cols << endl;
+
+    for (int i=0; i< disparity_maps_16bit[0].rows; i++) // per tutte le righe e le colonne della mappa di disparità
+    {
+        for(int j=0; j< disparity_maps_16bit[0].cols; j++)
+        {
+            int num=0.0;
+
+            for (unsigned int k = 0; k < disparity_maps_16bit.size(); k++)
+            {
+                if(disparity_maps_16bit[k].at<double>(i,j) > null_disp_threshold/abs(mean_conversionF))
+                {
+                    fusedDisp.at<double>(i,j) += disparity_maps_16bit[k].at<double>(i,j);
+                    num++;
+                }
+            }
+
+            fusedDisp.at<double>(i,j)  = fusedDisp.at<double>(i,j) /num;
+
+            ossimDpt image_pt(j,i);
+            ossimGpt world_pt;
+            master_geom->localToWorld(image_pt, world_pt);
+            ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
+
+            fusedDisp.at<double>(i,j) += hgtAboveMSL;
+         }
+  }
+    // sommo la disparità metrica al dsm coarse
+/*
+
     for(int i=0; i< fusedDisp.rows; i++)
     {
         for(int j=0; j< fusedDisp.cols; j++)
@@ -229,6 +228,7 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
         }
     }
     cerr << "a" << endl;
+    */
 /*	// Conversion from OpenCV to OSSIM images
 	
 	//ossimRefPtr<ossimImageData> disp_ossim = disp_ossim_handler->getSize();

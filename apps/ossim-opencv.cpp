@@ -435,8 +435,8 @@ int main(int argc,  char* argv[])
 						
 			// Geocoded DSM generation
 			ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("Temp_DSM.tif"));
-            handler_disp->setImageGeometry(nadir_geom);
-            ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(ossimFilename(ap[7]));
+			handler_disp->setImageGeometry(nadir_geom);
+			ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(ossimFilename(ap[7]));
 			writer->connectMyInputTo(0, handler_disp);
 			writer->execute();
             

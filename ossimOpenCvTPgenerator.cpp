@@ -273,7 +273,7 @@ void ossimOpenCvTPgenerator::TPgen()
 
     cv::Ptr<cv::FeatureDetector> m_detector;
     cv::Ptr<cv::OrbFeatureDetector> detector = cv::FeatureDetector::create("ORB");
-    m_detector = new cv::GridAdaptedFeatureDetector (detector, 1000, 5, 5 );
+    m_detector = new cv::GridAdaptedFeatureDetector (detector, 500, 5, 5 );
 
     m_detector->detect(master_mat, keypoints1);
     m_detector->detect(slave_mat, keypoints2);
@@ -313,7 +313,7 @@ void ossimOpenCvTPgenerator::TPgen()
 	double good_dist = (max_dist+min_dist)/2.0;
 	double per = 100;
 	 
-    while (fabs(per-0.90) > 0.001 && N_ITER <= 200)
+    while (fabs(per-0.80) > 0.001 && N_ITER <= 200)
 	{		
 		for( int i = 0; i < descriptors1.rows; i++ )
 		{
@@ -322,7 +322,7 @@ void ossimOpenCvTPgenerator::TPgen()
 		
 		per = (double)N_GOOD/(double)N_TOT;
 		
-        if(per >= 0.90)
+        if(per >= 0.80)
 		{
 			max_dist = good_dist;
 		}
