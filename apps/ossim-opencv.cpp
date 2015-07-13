@@ -576,9 +576,9 @@ int main(int argc,  char* argv[])
             cout << "coordinate ECEF a terra del punto medio:\t" << ECEFmeanGroundPt << endl;
 
             // INCLINED PLANE FOR QUASI-EPIPOLAR IMAGES
-         //   std::vector<double> x = ECEFmeanGroundPt.x();
-         //   std::vector<double> y = ECEFmeanGroundPt.y();
-         //   std::vector<double> z = ECEFmeanGroundPt.z();
+            // std::vector<double> x = ECEFmeanGroundPt.x();
+            // std::vector<double> y = ECEFmeanGroundPt.y();
+            // std::vector<double> z = ECEFmeanGroundPt.z();
             double d = -xComponentMean*ECEFmeanGroundPt.x() - yComponentMean*ECEFmeanGroundPt.y() - zComponentMean*ECEFmeanGroundPt.z();
 
             std::vector<double> xPt ;
