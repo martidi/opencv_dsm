@@ -491,7 +491,7 @@ return;
     double good_dist = (max_dist + min_dist) /2.0;
 	double per = 100;
 	 
-    while (fabs(per-0.95) > 0.001 && N_ITER <= 200)
+    while (fabs(per-0.98) > 0.001 && N_ITER <= 200)
 	{		
 		for( int i = 0; i < descriptors1.rows; i++ )
 		{
@@ -500,7 +500,7 @@ return;
 		
 		per = (double)N_GOOD/(double)N_TOT;
 		
-        if(per >= 0.95) //if(per >= 0.01)
+        if(per >= 0.98) //if(per >= 0.01)
 		{
 			max_dist = good_dist;
 		}
@@ -529,7 +529,7 @@ return;
             double px = keypoints1[i].pt.x - keypoints2[matches[i].trainIdx].pt.x;
             double py = keypoints1[i].pt.y - keypoints2[matches[i].trainIdx].pt.y;
 			
-			if(fabs(py) <  500)
+            if(fabs(py) <  500)
 			{
                 good_matches.push_back(matches[i]);
 
