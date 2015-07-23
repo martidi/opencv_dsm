@@ -440,9 +440,11 @@ int main(int argc,  char* argv[])
 			writer->connectMyInputTo(0, handler_disp);
 			writer->execute();
             
-            delete writer;
+            writer->close();
+            writer = 0;
             delete tripletCv;
 
+            cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your triplet!\n" << endl;
 		}
 	}     
 	catch (const ossimException& e)

@@ -199,36 +199,43 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 
             fusedDisp.at<double>(i,j)  = fusedDisp.at<double>(i,j) /num;
 
-            ossimDpt image_pt(j,i);
-            ossimGpt world_pt;
-            master_geom->localToWorld(image_pt, world_pt);
-            ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
-
-            fusedDisp.at<double>(i,j) += hgtAboveMSL;
-         }
-  }
-    // sommo la disparità metrica al dsm coarse
-/*
-
-    for(int i=0; i< fusedDisp.rows; i++)
-    {
-        for(int j=0; j< fusedDisp.cols; j++)
-        {
+            // sommo la disparità metrica al dsm coarse
             ossimDpt image_pt(j,i);
             ossimGpt world_pt;
             master_geom->localToWorld(image_pt, world_pt);
             ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
             //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
-            if(fusedDisp.at<double>(i,j) <= null_disp_threshold/abs(mean_conversionF))
-            //if(fusedDisp.at<double>(i,j) <= null_disp_threshold*abs(mean_conversionF))
-            {
-                fusedDisp.at<double>(i,j) = 0.0;
-            }
             fusedDisp.at<double>(i,j) += hgtAboveMSL;
         }
+   }
+
+/*
+            double minVal, maxVal;
+            minMaxLoc( fusedDisp, &minVal, &maxVal );
+            fusedDisp.convertTo( fusedDisp, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
+            cv::namedWindow( "Fused Disparity", CV_WINDOW_NORMAL );
+            cv::imshow( "Fused Disparity", fusedDisp);
+
+    for (int i=0; i< disparity_maps_16bit[0].rows; i++) // per tutte le righe e le colonne della mappa di disparità
+    {
+        for(int j=0; j< disparity_maps_16bit[0].cols; j++)
+        {
+            // sommo la disparità metrica al dsm coarse
+            ossimDpt image_pt(j,i);
+            ossimGpt world_pt;
+            master_geom->localToWorld(image_pt, world_pt);
+            ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
+            //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
+            fusedDisp.at<double>(i,j) += hgtAboveMSL;
+         }
     }
-    cerr << "a" << endl;
-    */
+*/
+
+
+
+
+
+
 /*	// Conversion from OpenCV to OSSIM images
 	
 	//ossimRefPtr<ossimImageData> disp_ossim = disp_ossim_handler->getSize();
@@ -255,13 +262,13 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	
 	cout << "OpenCV->OSSIM image conversion done_3" << endl;
  */
-	cv::Mat intDSM; 
+
+    cv::Mat intDSM;
 	// Conversion from float to integer to write and show
     fusedDisp.convertTo(intDSM, CV_16U);
-	
 	cv::imwrite("Temp_DSM.tif", intDSM);
 		
-	double minVal, maxVal;
+    double minVal, maxVal;
 	minMaxLoc(intDSM, &minVal, &maxVal);
 	intDSM.convertTo(intDSM, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));   
 	
