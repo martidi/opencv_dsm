@@ -232,11 +232,11 @@ cv::Mat ossimOpenCvTPgenerator::estRT(std::vector<cv::Point2f> master, std::vect
 
 void ossimOpenCvTPgenerator::run()
 {
-	cv::namedWindow( "master_img", CV_WINDOW_NORMAL );
-	cv::imshow("master_img", master_mat);
+    //cv::namedWindow( "master_img", CV_WINDOW_NORMAL );
+    //cv::imshow("master_img", master_mat);
    
-	cv::namedWindow( "slave_img", CV_WINDOW_NORMAL );
-	cv::imshow("slave_img", slave_mat);
+    //cv::namedWindow( "slave_img", CV_WINDOW_NORMAL );
+    //cv::imshow("slave_img", slave_mat);
    
 	//cv::waitKey(0);
    
@@ -529,7 +529,7 @@ return;
             double px = keypoints1[i].pt.x - keypoints2[matches[i].trainIdx].pt.x;
             double py = keypoints1[i].pt.y - keypoints2[matches[i].trainIdx].pt.y;
 			
-            if(fabs(py) <  500)
+            if(fabs(py) <  10)
 			{
                 good_matches.push_back(matches[i]);
 
@@ -649,12 +649,12 @@ cv::Mat ossimOpenCvTPgenerator::warp(cv::Mat slave_16bit)
 	cv::warpAffine(slave_mat, warp_dst, rot_matrix, warp_dst.size());
 	cv::warpAffine(slave_16bit, warp_dst_16bit, rot_matrix, warp_dst.size());
     
-	cv::namedWindow("Master image", CV_WINDOW_NORMAL);
-	cv::imshow("Master image", master_mat );
+    //cv::namedWindow("Master image", CV_WINDOW_NORMAL);
+    //cv::imshow("Master image", master_mat );
 	cv::imwrite("Master_8bit.tif",  master_mat);
 
-	cv::namedWindow("Warped image", CV_WINDOW_NORMAL);
-	cv::imshow("Warped image", warp_dst );
+    //cv::namedWindow("Warped image", CV_WINDOW_NORMAL);
+    //cv::imshow("Warped image", warp_dst );
 	cv::imwrite("Slave_8bit.tif",  warp_dst);
 	
 	//cv::waitKey(0);

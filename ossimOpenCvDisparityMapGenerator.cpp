@@ -68,7 +68,7 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	sgbm.preFilterCap = 63;
 	sgbm.SADWindowSize = SADWindowSize > 0 ? SADWindowSize : 3;
 	sgbm.P1 = 8*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
-	sgbm.P2 = 40*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
+    sgbm.P2 = 40*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
 	sgbm.minDisparity = minimumDisp; // Minimum possible disparity value  //con fattore di conversione 1 metti -16*2
 	sgbm.numberOfDisparities = ndisparities;
 	sgbm.uniquenessRatio = 5;

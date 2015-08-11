@@ -46,10 +46,11 @@ openCVtestclass::openCVtestclass()
 
 openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr<ossimImageData> slave)
 {
-	// Create the OpenCV images
+    cerr << "b" << endl;
+    // Create the OpenCV images
 	master_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
 	slave_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
-	
+    cerr << "c" << endl;
 	memcpy(master_mat.ptr(), (void*) master->getUshortBuf(), 2*master->getWidth()*master->getHeight());
 	memcpy(slave_mat.ptr(), (void*) slave->getUshortBuf(), 2*slave->getWidth()*slave->getHeight());
 
@@ -77,12 +78,12 @@ bool openCVtestclass::execute()
     double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
 	cv::Mat master_mat_8U;
 	cv::Mat slave_mat_8U;  
-      
+    cerr << "a" << endl;
    	minMaxLoc( master_mat, &minVal_master, &maxVal_master );
    	minMaxLoc( slave_mat, &minVal_slave, &maxVal_slave );
 	master_mat.convertTo( master_mat_8U, CV_8UC1, 255.0/(maxVal_master - minVal_master), -minVal_master*255.0/(maxVal_master - minVal_master));
 	slave_mat.convertTo( slave_mat_8U, CV_8UC1, 255.0/(maxVal_slave - minVal_slave), -minVal_slave*255.0/(maxVal_slave - minVal_slave)); 
-	
+
 	ossimOpenCvTPgenerator* TPfinder = new ossimOpenCvTPgenerator(master_mat_8U, slave_mat_8U);
 	TPfinder->run();
 	
@@ -176,7 +177,7 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	// Conversion from float to integer to write and show
 	out_16bit_disp.convertTo(intDSM, CV_16U);
 	
-	cv::imwrite("Temp_DSM.tif", intDSM);
+    cv::imwrite("Temp_DSM.tif", intDSM);
 		
 	double minVal, maxVal;
 	minMaxLoc(intDSM, &minVal, &maxVal);
