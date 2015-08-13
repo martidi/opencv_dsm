@@ -232,11 +232,11 @@ cv::Mat ossimOpenCvTPgenerator::estRT(std::vector<cv::Point2f> master, std::vect
 
 void ossimOpenCvTPgenerator::run()
 {
-    //cv::namedWindow( "master_img", CV_WINDOW_NORMAL );
-    //cv::imshow("master_img", master_mat);
+    cv::namedWindow( "master_img", CV_WINDOW_NORMAL );
+    cv::imshow("master_img", master_mat);
    
-    //cv::namedWindow( "slave_img", CV_WINDOW_NORMAL );
-    //cv::imshow("slave_img", slave_mat);
+    cv::namedWindow( "slave_img", CV_WINDOW_NORMAL );
+    cv::imshow("slave_img", slave_mat);
    
 	//cv::waitKey(0);
    

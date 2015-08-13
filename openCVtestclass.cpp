@@ -46,11 +46,11 @@ openCVtestclass::openCVtestclass()
 
 openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr<ossimImageData> slave)
 {
-    cerr << "b" << endl;
+
     // Create the OpenCV images
 	master_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
 	slave_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
-    cerr << "c" << endl;
+
 	memcpy(master_mat.ptr(), (void*) master->getUshortBuf(), 2*master->getWidth()*master->getHeight());
 	memcpy(slave_mat.ptr(), (void*) slave->getUshortBuf(), 2*slave->getWidth()*slave->getHeight());
 
@@ -78,7 +78,7 @@ bool openCVtestclass::execute()
     double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
 	cv::Mat master_mat_8U;
 	cv::Mat slave_mat_8U;  
-    cerr << "a" << endl;
+
    	minMaxLoc( master_mat, &minVal_master, &maxVal_master );
    	minMaxLoc( slave_mat, &minVal_slave, &maxVal_slave );
 	master_mat.convertTo( master_mat_8U, CV_8UC1, 255.0/(maxVal_master - minVal_master), -minVal_master*255.0/(maxVal_master - minVal_master));
@@ -122,7 +122,7 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	cv::Mat out_16bit_disp = cv::Mat::zeros (out_disp.size(),CV_64F);
 	out_disp.convertTo(out_disp, CV_64F);
 	//cout <<  "fattore di conv" << mean_conversionF << endl;
-	out_16bit_disp = (out_disp/16.0) / mean_conversionF;
+    out_16bit_disp = ((out_disp/16.0)) / mean_conversionF;
 	//out_16bit_disp = (out_disp/16.0) * mean_conversionF;	
 	cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
 	cout << "null_disp_threshold"<< null_disp_threshold<< endl;
