@@ -119,14 +119,31 @@ int main(int argc,  char* argv[])
 				
 		ossimKeywordlist master_key;
 		ossimKeywordlist slave_key;
-		
+
+        master_key.addPair("image1.file", ap[1]);
+        slave_key.addPair("image1.file", ap[2]);
+
 		//Default keyword for orthorectification
 		master_key.addPair(OP_KW, "ortho");
 		slave_key.addPair( OP_KW, "ortho");
 		
         master_key.addPair(RESAMPLER_FILTER_KW, "box");
         slave_key.addPair( RESAMPLER_FILTER_KW, "box");
-		
+
+        if(ap.argc() < 5) //ap.argv[0] is the application name
+        {
+            ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
+            std::string errMsg = "Few arguments...";
+            cout << endl << "Usage: ossim-dsm-app <input_left_image> <input_right_image> <output_temp_directory> <output_dsm_name> [options] <n° steps for pyramidal" << endl;
+            cout << "Options:" << endl;
+            cout << "--cut-bbox-ll <min_lat> <min_lon> <max_lat> <max_lon> \t Specify a bounding box with the minimum"   << endl;
+            cout << "\t\t\t\t\t\t\tlatitude/longitude and max latitude/longitude" << endl;
+            cout << "\t\t\t\t\t\t\tin decimal degrees." << endl;
+            cout << "--meters <meters> \t\t\t\t\t Specify a size (in meters) for a resampling"   << endl<< endl;
+            throw ossimException(errMsg);
+        }
+
+
 		// Parsing
 		std::string tempString1,tempString2,tempString3,tempString4;
 		ossimArgumentParser::ossimParameter stringParam1(tempString1);
@@ -184,9 +201,9 @@ int main(int argc,  char* argv[])
             //**********MIN and MAX HEIGHT COMPUTATION************************
             std::vector<ossim_float64> HeightAboveMSL;
 
-            for(double lat = lat_min; abs(lat) < abs(lat_max); lat += 0.001)
+            for(double lat = lat_min; lat < lat_max; lat += 0.001)
             {
-                for(double lon = lon_min; abs(lon) < abs(lon_max); lon += 0.001)
+                for(double lon = lon_min; lon < lon_max; lon += 0.001)
                 {
                     ossimGpt world_point(lat, lon, 0.00);
 
@@ -223,7 +240,7 @@ int main(int argc,  char* argv[])
         ossimElevManager* elev = ossimElevManager::instance();
 
         ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[1]));
-        ossimImageHandler* raw_slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]));
+        ossimImageHandler* raw_slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]));        
 
         ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();
         ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry();
@@ -314,8 +331,6 @@ int main(int argc,  char* argv[])
 
         double iter = (nsteps-1);
 
-        //bool pyramidal (ossimKeywordlist kwl)
-        //{
         for(int i = (nsteps-1) ; i >= 0  ; i--)
         {
             iter;
@@ -323,26 +338,9 @@ int main(int argc,  char* argv[])
             std::ostringstream strs;
             strs << iter;
             std::string nLev = strs.str();
-            if(ap.argc() >= 5) //ap.argv[0] is the application name
-            {
-                master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
-                slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
 
-                master_key.addPair("image1.file", ap[1]);
-                slave_key.addPair("image1.file", ap[2]);
-            }
-            else
-            {
-                ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
-                std::string errMsg = "Few arguments...";
-                cout << endl << "Usage: ossim-dsm-app <input_left_image> <input_right_image> <output_ortho_left_image> <output_ortho_right_image> [options] <output_DSM>" << endl;
-                cout << "Options:" << endl;
-                cout << "--cut-bbox-ll <min_lat> <min_lon> <max_lat> <max_lon> \t Specify a bounding box with the minimum"   << endl;
-                cout << "\t\t\t\t\t\t\tlatitude/longitude and max latitude/longitude" << endl;
-                cout << "\t\t\t\t\t\t\tin decimal degrees." << endl;
-                cout << "--meters <meters> \t\t\t\t\t Specify a size (in meters) for a resampling"   << endl<< endl;
-                throw ossimException(errMsg);
-            }
+            master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
+            slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
 
             double orthoRes = finalRes*pow (2, iter);
             cout << finalRes << "risFinale" << endl;
@@ -365,28 +363,50 @@ int main(int argc,  char* argv[])
             ossimImageHandler* master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[3]) + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
             ossimImageHandler* slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[3]) + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
 
+
+            // ********* SAR test**********
+            /*
+            ossimEquationCombiner* eq = new ossimEquationCombiner();
+            eq->connectMyInputTo(master_handler);
+            cout << "bands" << eq->getNumberOfInputBands() << endl;
+            eq->setEquation("sqrt(band(in[0],0)*band(in[0],0) + band(in[0],1)*band(in[0],1))");
+
+            ossimImageRenderer* rend = new ossimImageRenderer;
+            rend->connectMyInputTo(eq);
+            cout << rend->getNumberOfOutputBands() << endl;
+
+            ossimEquationCombiner* eq2 = new ossimEquationCombiner();
+            eq2->connectMyInputTo(slave_handler);
+            cout << "bands" << eq2->getNumberOfInputBands() << endl;
+            eq2->setEquation("sqrt(band(in[0],0)*band(in[0],0) + band(in[0],1)*band(in[0],1))");
+            ossimImageRenderer* rend2 = new ossimImageRenderer;
+            rend2->connectMyInputTo(eq2);
+
+           ossimRefPtr<ossimTiffWriter> tif_writer =  new ossimTiffWriter();
+           tif_writer->setGeotiffFlag(true);
+
+           ossimFilename outfile ("output.tif");
+           tif_writer->setFilename(outfile);
+           if (tif_writer.valid())
+           {
+              tif_writer->connectMyInputTo(0, rend->getOutput());
+              tif_writer->execute();
+           }
+
+           cout << "Output written to <"<<outfile<<">"<<endl;
+           tif_writer->close();
+           tif_writer = 0;
+            */
+            // *****************************
+
             if(master_handler && slave_handler && raw_master_handler && raw_slave_handler) // enter if exist both master and slave
             {
                 // Load ortho images
                 ossimIrect bounds_master = master_handler->getBoundingRect(0);
                 ossimIrect bounds_slave = slave_handler->getBoundingRect(0);
+
                 ossimRefPtr<ossimImageData> img_master = master_handler->getTile(bounds_master, 0);
                 ossimRefPtr<ossimImageData> img_slave = slave_handler->getTile(bounds_slave, 0);
-
-
-                // ********* SAR test**********
-                /*
-                ossimEquationCombiner* eq = new ossimEquationCombiner();
-                eq->connectMyInputTo(master_handler);
-                cout << "bands" << eq->getNumberOfInputBands() << endl;
-                eq->setEquation("sqrt(band(in[0],0)*band(in[0],0) + band(in[0],1)*band(in[0],1))");
-
-                ossimImageRenderer* rend = new ossimImageRenderer;
-                rend->connectMyInputTo(eq);
-                cout << "bands" << rend->getNumberOfInputBands() << endl << endl;
-                */
-                // *****************************
-
 
                 // TPs generation
                 openCVtestclass *test = new openCVtestclass(img_master, img_slave) ;
@@ -405,7 +425,13 @@ int main(int argc,  char* argv[])
                 cout << "size" << master_geom->getImageSize() << endl;
                 handler_disp->saveImageGeometry();
 
-                ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(ossimFilename(ossimFilename(ap[3]) + ossimString("elevation/") + ossimFilename(ap[4])+ossimString(".TIF")));
+                ossimFilename pathDSM;
+                if (i == 0)
+                    pathDSM = ossimFilename(ap[3]) + ossimFilename(ap[4])+ossimString(".TIF");
+                else
+                    pathDSM = ossimFilename(ap[3]) + ossimString("elevation/") + ossimFilename(ap[4])+ossimString(".TIF");
+
+                ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
                 writer->connectMyInputTo(0, handler_disp);
                 writer->execute();
 
