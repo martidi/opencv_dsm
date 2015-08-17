@@ -336,8 +336,8 @@ int main(int argc,  char* argv[])
             strs << iter;
             std::string nLev = strs.str();
 
-            master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
-            slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
+            master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
+            slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
 
             double orthoRes = finalRes*pow (2, iter);
             cout << finalRes << "risFinale" << endl;
@@ -357,8 +357,8 @@ int main(int argc,  char* argv[])
             ortho(slave_key);
 
             // ImageHandlers & ImageGeometry instance
-            ossimImageHandler* master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[3]) + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
-            ossimImageHandler* slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[3]) + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
+            ossimImageHandler* master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
+            ossimImageHandler* slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
 
 
             // ********* SAR test**********
@@ -409,7 +409,7 @@ int main(int argc,  char* argv[])
                 openCVtestclass *test = new openCVtestclass(img_master, img_slave) ;
                 test->execute();
 
-                remove(ossimFilename(ossimFilename(ap[3]) + ossimString("elevation/") + ossimFilename(ap[4])+ossimString(".TIF")));
+                remove(ossimFilename(ossimFilename(ap[3]) + ossimString("temp_elevation/") + ossimFilename(ap[4])+ossimString(".TIF")));
 
                 // From Disparity to DSM
                 ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
@@ -424,9 +424,9 @@ int main(int argc,  char* argv[])
 
                 ossimFilename pathDSM;
                 if (i == 0)
-                    pathDSM = ossimFilename(ap[3]) + ossimFilename(ap[4])+ossimString(".TIF");
+                    pathDSM = ossimFilename(ap[3]) + ossimString("DSM/") + ossimFilename(ap[4]) + ossimString(".TIF");
                 else
-                    pathDSM = ossimFilename(ap[3]) + ossimString("elevation/") + ossimFilename(ap[4])+ossimString(".TIF");
+                    pathDSM = ossimFilename(ap[3]) + ossimString("temp_elevation/") + ossimFilename(ap[4])+ossimString(".TIF");
 
                 ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
                 writer->connectMyInputTo(0, handler_disp);
