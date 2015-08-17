@@ -227,9 +227,6 @@ int main(int argc,  char* argv[])
 			throw ossimException(errMsg);
 		}
 		
-        //ossimString  key = "";
-		
-
 		
 		//END PARSER****************************
 	        
@@ -270,27 +267,27 @@ int main(int argc,  char* argv[])
         {
             for (int j=0 ; j<3 ; j++) //LON
             {
-                ossimGpt punto_terra(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight -50);
-                ossimGpt punto_terra_up(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight + 50);
+                ossimGpt groundPoint(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight -50);
+                ossimGpt groundPointUp(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight + 50);
 
-                ossimDpt punto_img(0.,0.);
-                ossimDpt punto_img_up(0.,0.);
+                ossimDpt imagePoint(0.,0.);
+                ossimDpt imagePointUp(0.,0.);
 
-                raw_master_geom->worldToLocal(punto_terra,punto_img);        // to obtain master punto_img
-                raw_master_geom->worldToLocal(punto_terra_up,punto_img_up);
+                raw_master_geom->worldToLocal(groundPoint,imagePoint);        // to obtain master imagePoint
+                raw_master_geom->worldToLocal(groundPointUp,imagePointUp);
 
-                myfile << "MASTER IMAGE" << "\t" << "Ground point" << punto_terra << "\t" << "Image point" << punto_img << "\t" << "Ground point up" << punto_terra_up << "\t" << "Image point up" << punto_img_up << "\t";
+                myfile << "MASTER IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t";
 
-                double DeltaI_Master = punto_img_up.x - punto_img.x;
-                double DeltaJ_Master = punto_img_up.y - punto_img.y;
+                double DeltaI_Master = imagePointUp.x - imagePoint.x;
+                double DeltaJ_Master = imagePointUp.y - imagePoint.y;
 
-                raw_slave_geom->worldToLocal(punto_terra,punto_img);
-                raw_slave_geom->worldToLocal(punto_terra_up,punto_img_up);
+                raw_slave_geom->worldToLocal(groundPoint,imagePoint);
+                raw_slave_geom->worldToLocal(groundPointUp,imagePointUp);
 
-                myfile << "SLAVE IMAGE" << "\t" << "Ground point" << punto_terra << "\t" << "Image point" << punto_img << "\t" << "Ground point up" << punto_terra_up << "\t" << "Image point up" << punto_img_up << "\t" << endl;
+                myfile << "SLAVE IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t" << endl;
 
-                double DeltaI_Slave = punto_img_up.x - punto_img.x;
-                double DeltaJ_Slave = punto_img_up.y - punto_img.y;
+                double DeltaI_Slave = imagePointUp.x - imagePoint.x;
+                double DeltaJ_Slave = imagePointUp.y - imagePoint.y;
 
                 conv_factor_J.at<double>(i,j) = DeltaJ_Slave - DeltaJ_Master;
                 conv_factor_I.at<double>(i,j) = DeltaI_Slave - DeltaI_Master;
