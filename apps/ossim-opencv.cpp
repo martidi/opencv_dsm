@@ -128,13 +128,13 @@ int main(int argc,  char* argv[])
 		slave_key.addPair( OP_KW, "ortho");
 		
         master_key.addPair(RESAMPLER_FILTER_KW, "box");
-        slave_key.addPair( RESAMPLER_FILTER_KW, "box");
+        slave_key.addPair(RESAMPLER_FILTER_KW, "box");
 
         if(ap.argc() < 5) //ap.argv[0] is the application name
         {
             ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
             std::string errMsg = "Few arguments...";
-            cout << endl << "Usage: ossim-dsm-app <input_left_image> <input_right_image> <output_temp_directory> <output_dsm_name> [options] <n° steps for pyramidal" << endl;
+            cout << endl << "Usage: ossim-dsm-app <input_left_image> <input_right_image> <output_results_directory> <output_dsm_name> [options] <n° steps for pyramidal>" << endl;
             cout << "Options:" << endl;
             cout << "--cut-bbox-ll <min_lat> <min_lon> <max_lat> <max_lon> \t Specify a bounding box with the minimum"   << endl;
             cout << "\t\t\t\t\t\t\tlatitude/longitude and max latitude/longitude" << endl;
