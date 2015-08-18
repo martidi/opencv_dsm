@@ -415,7 +415,7 @@ int main(int argc,  char* argv[])
                 openCVtestclass *tripletCv = new openCVtestclass(img_forward, img_nadir, img_backward) ;
                 tripletCv->execute();
 
-                //remove(ossimFilename(ossimFilename(ap[4]) + ossimString("temp_elevation/") + ossimFilename(ap[5])+ossimString(".TIF")));
+                remove(ossimFilename(ossimFilename(ap[4]) + ossimString("temp_elevation/") + ossimFilename(ap[5])+ossimString(".TIF")));
 
                 // From Disparity to DSM
                 ossimImageGeometry* nadir_geom = nadir_handler->getImageGeometry().get();
