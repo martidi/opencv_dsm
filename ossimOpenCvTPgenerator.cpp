@@ -279,7 +279,7 @@ void ossimOpenCvTPgenerator::TPgen()
     m_detector->detect(master_mat, keypoints1);
     m_detector->detect(slave_mat, keypoints2);
 
-    cerr << "Numero di features trovate = " << keypoints1.size() << " \tmaster " << keypoints2.size() << " \tslave " << endl;
+    cerr << "Features found = " << keypoints1.size() << " \tmaster " << keypoints2.size() << " \tslave " << endl;
 
 	// Computing descriptors
 	cv::BriefDescriptorExtractor extractor;
