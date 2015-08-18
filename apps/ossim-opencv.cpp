@@ -23,6 +23,7 @@
 #include <ossim/base/ossimDpt.h>
 #include <ossim/base/ossimKeywordlist.h>
 #include <ossim/base/ossimKeywordNames.h>
+#include <ossim/base/ossimStdOutProgress.h>
 
 #include <ossim/elevation/ossimElevManager.h>
 
@@ -234,6 +235,8 @@ int main(int argc,  char* argv[])
         // Elevation manager instance
         ossimElevManager* elev = ossimElevManager::instance();
 
+        cout << "numero di elevation    " << elev->getNumberOfElevationDatabases() << endl;
+
         ossimImageHandler* raw_forward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[1]));
         ossimImageHandler* raw_nadir_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]));
         ossimImageHandler* raw_backward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[3]));
@@ -412,7 +415,7 @@ int main(int argc,  char* argv[])
                 openCVtestclass *tripletCv = new openCVtestclass(img_forward, img_nadir, img_backward) ;
                 tripletCv->execute();
 
-                remove(ossimFilename(ossimFilename(ap[4]) + ossimString("temp_elevation/") + ossimFilename(ap[5])+ossimString(".TIF")));
+                //remove(ossimFilename(ossimFilename(ap[4]) + ossimString("temp_elevation/") + ossimFilename(ap[5])+ossimString(".TIF")));
 
                 // From Disparity to DSM
                 ossimImageGeometry* nadir_geom = nadir_handler->getImageGeometry().get();
@@ -434,13 +437,21 @@ int main(int argc,  char* argv[])
 
                 ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
                 writer->connectMyInputTo(0, handler_disp);
+
+                // Add a listener to get percent complete.
+                ossimStdOutProgress prog(0, true);
+                writer->addListener(&prog);
                 writer->execute();
+                writer->removeListener(&prog);
+
 
                 writer->close();
                 writer = 0;
                 delete tripletCv;
 
                 cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your triplet!\n" << endl;
+                double a;
+                cin >> a;
             }
             iter --;
 		}
