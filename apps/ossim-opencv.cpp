@@ -7,7 +7,7 @@
 // Author:  Martina Di Rita
 //
 // Description: This plugIn is able to extract a geocoded Digital Surface Model
-//				using a stereopair.
+//				from a triplet.
 //
 //----------------------------------------------------------------------------
 
@@ -131,10 +131,6 @@ int main(int argc,  char* argv[])
             cout << "--meters <meters> \t\t\t\t\t Specify a size (in meters) for a resampling"   << endl<< endl;
             throw ossimException(errMsg);
         }
-
-
-
-
 		
 		// Parsing
 		std::string tempString1,tempString2,tempString3,tempString4;
@@ -155,6 +151,7 @@ int main(int argc,  char* argv[])
 
         int nsteps;
         ossimArgumentParser::ossimParameter iteration(nsteps);
+
         if(ap.read("--nsteps", iteration))
         {
           //else nsteps = 1;
@@ -165,7 +162,6 @@ int main(int argc,  char* argv[])
         double lon_min;
         double lat_max;
         double lon_max;
-
         double MinHeight;
         double MaxHeight;
         
@@ -198,7 +194,7 @@ int main(int argc,  char* argv[])
 								<<"\t\tLon_max = " << lon_max << endl << endl; 
 
             //**********MIN and MAX HEIGHT COMPUTATION************************
-           std::vector<ossim_float64> HeightAboveMSL;
+            std::vector<ossim_float64> HeightAboveMSL;
             for(double lat = lat_min; lat < lat_max; lat += 0.001)
             {
                 for(double lon = lon_min; lon < lon_max; lon += 0.001)
@@ -224,18 +220,12 @@ int main(int argc,  char* argv[])
 			std::string errMsg = "Unknown option...";
 			throw ossimException(errMsg);
 		}
-		
 
 		//END PARSER****************************
 	        
         cout << endl << "FORWARD DIRECTORY:" << " " << ap[1] << endl;
-        cout << "NADIR DIRECTORY:"  << " " << ap[2] << endl;	
-        cout << "BACKWARD DIRECTORY:"  << " " << ap[3] << endl << endl;        
-
-        // Elevation manager instance
-        ossimElevManager* elev = ossimElevManager::instance();
-
-        cout << "numero di elevation    " << elev->getNumberOfElevationDatabases() << endl;
+        cout << "NADIR DIRECTORY:"  << " " << ap[2] << endl;
+        cout << "BACKWARD DIRECTORY:"  << " " << ap[3] << endl << endl;
 
         ossimImageHandler* raw_forward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[1]));
         ossimImageHandler* raw_nadir_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]));
@@ -368,10 +358,13 @@ int main(int argc,  char* argv[])
             strs << iter;
             std::string nLev = strs.str();
 
+            // Elevation manager instance
+            ossimElevManager* elev = ossimElevManager::instance();
+            cout << "elevation database \t" << elev->getNumberOfElevationDatabases() << endl;
+
             forward_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoForward.TIF"));
             nadir_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoNadir.TIF"));
             backward_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoBackward.TIF"));
-
 
             double orthoRes = finalRes*pow (2, iter);
             cout << finalRes << "risFinale" << endl;
@@ -398,7 +391,6 @@ int main(int argc,  char* argv[])
             ossimImageHandler* forward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoForward.TIF"));
             ossimImageHandler* nadir_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoNadir.TIF"));
             ossimImageHandler* backward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoBackward.TIF"));
-
 
             if(forward_handler && nadir_handler && backward_handler && raw_forward_handler && raw_nadir_handler && raw_backward_handler) // enter if exist both forward, nadir and backward
             {
@@ -434,7 +426,6 @@ int main(int argc,  char* argv[])
                 else
                     pathDSM = ossimFilename(ap[4]) + ossimString("temp_elevation/") + ossimFilename(ap[5])+ossimString(".TIF");
 
-
                 ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
                 writer->connectMyInputTo(0, handler_disp);
 
@@ -449,12 +440,12 @@ int main(int argc,  char* argv[])
                 writer = 0;
                 delete tripletCv;
 
-                cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your triplet!\n" << endl;
-                double a;
+                int a;
                 cin >> a;
             }
             iter --;
 		}
+        cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your triplet!\n" << endl;
 	}     
 	catch (const ossimException& e)
 	{

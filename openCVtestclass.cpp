@@ -72,24 +72,21 @@ openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> forward, ossimRefPt
 	nadir_mat.create(cv::Size(nadir->getWidth(), nadir->getHeight()), CV_16UC1);
 	backward_mat.create(cv::Size(backward->getWidth(), backward->getHeight()), CV_16UC1);
 
-
     images.push_back(nadir_mat);
     images.push_back(forward_mat);
     images.push_back(backward_mat);
 
-
     memcpy(images[0].ptr(), (void*) nadir->getUshortBuf(), 2*nadir->getWidth()*nadir->getHeight());
     memcpy(images[1].ptr(), (void*) forward->getUshortBuf(), 2*forward->getWidth()*forward->getHeight());
     memcpy(images[2].ptr(), (void*) backward->getUshortBuf(), 2*backward->getWidth()*backward->getHeight());
-
 	
 	cout << "OSSIM->OpenCV image conversion done" << endl;
 	
 	// Rotation for along-track images
     for(size_t i = 0; i < images.size(); i++)
         {
-        cv::transpose(images[i], images[i]);
-        cv::flip(images[i], images[i], 1);
+            cv::transpose(images[i], images[i]);
+            cv::flip(images[i], images[i], 1);
         }
 }
 
