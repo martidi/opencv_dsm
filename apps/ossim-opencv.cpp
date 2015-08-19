@@ -7,7 +7,7 @@
 // Author:  Martina Di Rita
 //
 // Description: This plugIn is able to extract a geocoded Digital Surface Model
-//				using a stereopair.
+//				from a stereopair.
 //
 //----------------------------------------------------------------------------
 
@@ -25,6 +25,7 @@
 #include <ossim/base/ossimKeywordlist.h>
 #include <ossim/base/ossimKeywordNames.h>
 #include <ossim/base/ossimStringProperty.h>
+#include <ossim/base/ossimPreferences.h>
 
 #include <ossim/elevation/ossimElevManager.h>
 #include <ossim/elevation/ossimSrtmHandler.h>
@@ -111,7 +112,11 @@ int main(int argc,  char* argv[])
 	// Initialize ossim stuff, factories, plugin, etc.
 	ossimTimer::instance()->setStartTick();
    	ossimArgumentParser ap(&argc, argv);
-	ossimInit::instance()->initialize(ap);
+   // ossimInit::instance()->initialize(ap);
+    ossimInit *pippo = ossimInit::instance();
+
+    pippo->initialize(ap);
+
 	try
 	{ 
 		// PARSER *******************************
@@ -328,9 +333,30 @@ int main(int argc,  char* argv[])
             std::ostringstream strs;
             strs << iter;
             std::string nLev = strs.str();
+/*
+            ossimInit::instance()->~ossimInit();
+            ossimArgumentParser ap2(&argc, argv);
+            ossimInit::instance()->initialize(ap2);
 
             // Elevation manager instance
+            ossimPreferences::instance()->loadPreferences(ossimFilename("/home/martina/OSSIM_LAST/preferences/ossim_prefs.txt"));
+            //ossimInit::thePreferences->loadPreferences(ossimFilename("/home/martina/OSSIM_LAST/preferences/"));
+            ossimInit::instance()->initializeElevation();
+*/
+
+            pippo->~ossimInit();
+            pippo = ossimInit::instance();
+            ossimArgumentParser ap2(&argc, argv);
+            pippo->initialize(ap2);
+            pippo->initializeElevation();
+
+
+
+
             ossimElevManager* elev = ossimElevManager::instance();
+
+
+            cout << "Quota Palazzo   " << elev->getHeightAboveEllipsoid(ossimGpt(46.039865, 11.114437, 0.00)) << endl;
 
             master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
             slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
@@ -402,6 +428,9 @@ int main(int argc,  char* argv[])
 
             }
             iter --;
+
+           // elev->~ossimElevManager();
+            elev = 0;
         }
     cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your stereo-pair!\n" << endl;
     }
