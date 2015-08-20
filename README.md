@@ -19,7 +19,7 @@ In order to compile and install this OSSIM plug-In, please observe the following
 	3. Open a shell in the OSSIM_DEV_HOME/ossim_plugins
 	4. Use the following git commands to download D.A.T.E. plug-In
 		$git init 
-		$git remote add origin https://github.com/martidi/opencv_dsm
+		$git remote add origin https://github.com/martidi/opencv_dsm/tree/triplet
 		$git pull origin master
 	5. Re-compile the OSSIM version enabling the OPENCV plugin option in the configuration file
 	
