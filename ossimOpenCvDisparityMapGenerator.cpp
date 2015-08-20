@@ -6,33 +6,17 @@
 //
 // Author:  Martina Di Rita
 //
-// Description: Class provides Disparity Map extraction
+// Description: Class providing Disparity Map generation
 //
 //----------------------------------------------------------------------------
 
-#include <ossim/base/ossimString.h>
-#include <ossim/base/ossimNotify.h>
-#include <ossim/base/ossimTrace.h>
-#include <ossim/base/ossimIrect.h>
-#include <ossim/base/ossimRefPtr.h>
-#include <ossim/base/ossimConstants.h>
-#include <ossim/elevation/ossimElevManager.h>
-#include <ossim/imaging/ossimImageData.h>
 #include <ossim/imaging/ossimImageSource.h>
-
 #include "ossimOpenCvDisparityMapGenerator.h"
-
-#include <opencv/highgui.h>
-#include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/flann/flann.hpp>
-#include <opencv2/legacy/legacy.hpp>
 // Note: These are purposely commented out to indicate non-use.
 // #include <opencv2/nonfree/nonfree.hpp>
 // #include <opencv2/nonfree/features2d.hpp>
 // Note: These are purposely commented out to indicate non-use.
-
-#include <vector>
 #include <iostream>
 
 ossimOpenCvDisparityMapGenerator::ossimOpenCvDisparityMapGenerator()
@@ -56,8 +40,7 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	cv::namedWindow( "Scaled slave", CV_WINDOW_NORMAL );
 	cv::imshow( "Scaled slave", slave_mat);
 	*/	
-		
-			
+					
     ndisparities = 32; //Maximum disparity minus minimum disparity
     minimumDisp = -8;
     SADWindowSize = 5; //Matched block size
@@ -78,26 +61,25 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
     sgbm.disp12MaxDiff = 1; // Maximum allowed difference (in integer pixel units) in the left-right disparity check
     //sgbm.fullDP = true; //activate for consider 8 directions (Hirschmuller algorithm) instead of 5;
 
-    double minVal, maxVal;
     cv::Mat array_disp;
-    cv::Mat array_disp_8U;
     sgbm(master_mat, slave_mat, array_disp);
+
+    /*
+    double minVal, maxVal;
+    cv::Mat array_disp_8U;
     minMaxLoc( array_disp, &minVal, &maxVal );
     array_disp.convertTo( array_disp_8U, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
     cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
     cv::namedWindow( "SGM Disparity", CV_WINDOW_NORMAL );
     cv::imshow( "SGM Disparity", array_disp_8U);
-    //cv::imwrite( "SGM Disparity.tif", array_disp_8U);
-
+    cv::imwrite( "SGM Disparity.tif", array_disp_8U);
+    */
 
 	//******************************************************
 	// Abilitate for computing disparity on different scales 
 	//****************************************************** 	
 	//array_disp = array_disp/fscale; // to consider the scale factor also in the disparity values (i singoli valori sono alterati)
 	//cv::resize(array_disp, array_disp, cv::Size(), 1.0/fscale, 1.0/fscale, cv::INTER_AREA ); // to resize the disparity map as the initial image
-
-	
-	cv::waitKey(0);
 
 	//Create and write the log file
 	ofstream disparity;
@@ -106,7 +88,6 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	disparity <<"SAD WINDOW SIZE:" << " " << SADWindowSize<< endl;
 	disparity << "MINIMUM DISPARITY VALUE:"<< sgbm.minDisparity << endl;
 	disparity.close();	
-
 		
 	return array_disp;
 }

@@ -6,37 +6,23 @@
 //
 // Author:  Martina Di Rita
 //
-// Description: Class provides OpenCV functions for DSM extraction
+// Description: Class providing OpenCV functions for DSM extraction
 //
 //----------------------------------------------------------------------------
 
-#include <ossim/base/ossimString.h>
-#include <ossim/base/ossimNotify.h>
-#include <ossim/base/ossimTrace.h>
-#include <ossim/base/ossimIrect.h>
-#include <ossim/base/ossimRefPtr.h>
-#include <ossim/base/ossimConstants.h>
 #include <ossim/elevation/ossimElevManager.h>
-#include <ossim/imaging/ossimImageData.h>
 #include <ossim/imaging/ossimImageSource.h>
-
 #include "openCVtestclass.h"
 #include "ossimOpenCvTPgenerator.h"
 #include "ossimOpenCvDisparityMapGenerator.h"
-
-#include <ossim/base/ossimArgumentParser.h>
-#include <ossim/base/ossimApplicationUsage.h>
-
-#include <opencv/highgui.h>
-#include <opencv2/core/core.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv/cv.h"
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/flann/flann.hpp>
-#include <opencv2/legacy/legacy.hpp>
 // Note: These are purposely commented out to indicate non-use.
 // #include <opencv2/nonfree/nonfree.hpp>
 // #include <opencv2/nonfree/features2d.hpp>
 // Note: These are purposely commented out to indicate non-use.
-#include <vector>
 #include <iostream>
 
 openCVtestclass::openCVtestclass()
@@ -101,12 +87,10 @@ bool openCVtestclass::execute()
       //  images[i] = wallis(images[i]);
     //}
 
-
     vector<cv::Mat> images_8U;
 
     for(size_t i = 0; i < images.size(); i++)
     {
-        //cv::Mat pointer;
         double minVal_images= 0, maxVal_images= 0;
 
         images_8U.push_back(images[i]);
@@ -116,87 +100,103 @@ bool openCVtestclass::execute()
         cv::namedWindow("Input image", CV_WINDOW_NORMAL);
         cv::imshow("Input image", images_8U[i]);
         cv::waitKey(0);
-
     }
 
     for(size_t i = 1; i < images.size(); i++)
     {
-
         ossimOpenCvTPgenerator* TPfinder = new ossimOpenCvTPgenerator(images_8U[0], images_8U[i]);
         TPfinder->run();
 
         cv::Mat slave_mat_warp = TPfinder->warp(images[i]);
 
         ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
-
-        // to check the time necessary for Disp Map gen
-        ossimNotify(ossimNotifyLevel_NOTICE) << "elapsed time in seconds: " << std::setiosflags(ios::fixed) << std::setprecision(3)
-        << ossimTimer::instance()->time_s() << endl << endl;
-
         disparity_maps.push_back(dense_matcher->execute(images_8U[0], slave_mat_warp));
-
-        ossimNotify(ossimNotifyLevel_NOTICE) << "elapsed time in seconds: " << std::setiosflags(ios::fixed) << std::setprecision(3)
-        << ossimTimer::instance()->time_s() << endl << endl;
 
         null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
     }
 
   //  writeDisparity(1.0);
-
 	return true;
 }
 
 
-bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
+bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
     vector<cv::Mat> disparity_maps_16bit;
+    vector<cv::Mat> disparity_maps_8bit;
+
+    double minVal, maxVal;
 
     disparity_maps_16bit.resize(disparity_maps.size());
+    disparity_maps_8bit.resize(disparity_maps.size());
 
     cout << disparity_maps.size() << endl;
-    for (unsigned int i = 0; i < disparity_maps.size(); ++i)
+    for (unsigned int k = 0; k < disparity_maps.size(); ++k)
     {
-        cv::transpose(disparity_maps[i], disparity_maps[i]);
-        cv::flip(disparity_maps[i], disparity_maps[i], 0);
+        cv::transpose(disparity_maps[k], disparity_maps[k]);
+        cv::flip(disparity_maps[k], disparity_maps[k], 0);
 
-        disparity_maps[i].convertTo(disparity_maps[i], CV_64F);
-        disparity_maps_16bit[i] = (disparity_maps[i]/16.0) / mean_conversionF;
+        disparity_maps[k].convertTo(disparity_maps[k], CV_64F);
+        disparity_maps_16bit[k] = (disparity_maps[k]/16.0); // / mean_conversionF[k];
 
-        // A questo punto ho 2 mappe di disparità "metriche"
-        // Devo fonderle
+        // A questo punto ho 2 mappe di disparità ruotate e corrette in pix (/16.0) per opencv
+        // Devo fonderle e renderle "metriche"
+
+        minMaxLoc( disparity_maps[k], &minVal, &maxVal );
+        disparity_maps[k].convertTo(disparity_maps_8bit[k], CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
+        cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
+
+        ossimString win_name = "Disparity_Map_";
+        cv::namedWindow( win_name+ossimString(k), CV_WINDOW_NORMAL );
+        cv::imshow( win_name+ossimString(k), disparity_maps_8bit[k]);
     }
 
     cout << disparity_maps_16bit[0].size() << endl;
     cout << disparity_maps_16bit[1].size() << endl;
 
-    //cv::Mat temp = disparity_maps_16bit[0];
+    cv::Mat error_disp = (disparity_maps_16bit[0]/mean_conversionF[0]) - (disparity_maps_16bit[1]/mean_conversionF[1]);
+
+    minMaxLoc(error_disp, &minVal, &maxVal);
+    error_disp.convertTo(error_disp, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
+    cv::namedWindow("Error disp", CV_WINDOW_NORMAL);
+    cv::imshow("Error disp", error_disp);
+    cv::waitKey(0);
 
     cv::Mat fusedDisp = cv::Mat::zeros(disparity_maps_16bit[0].rows, disparity_maps_16bit[0].cols, CV_64F);
 
     cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
-    cout << "null_disp_threshold"<< null_disp_threshold<< endl;
+    cout << "null_disp_threshold\t"<< null_disp_threshold<< endl;
 
-    cout << fusedDisp.rows << endl;
-    cout << fusedDisp.cols << endl;
+    cout << "n° rows\t" << fusedDisp.rows << endl;
+    cout << "n° columns\t" << fusedDisp.cols << endl;
 
-    for (int i=0; i< disparity_maps_16bit[0].rows; i++) // per tutte le righe e le colonne della mappa di disparità
+    for (int i=0; i< disparity_maps_16bit[0].rows; i++) // for every row
     {
-        for(int j=0; j< disparity_maps_16bit[0].cols; j++)
+        for(int j=0; j< disparity_maps_16bit[0].cols; j++) // for every column
         {
             int num=0.0;
 
-            for (unsigned int k = 0; k < disparity_maps_16bit.size(); k++)
+            if(error_disp.at<double>(i,j) < 10)
             {
-                if(disparity_maps_16bit[k].at<double>(i,j) > null_disp_threshold/abs(mean_conversionF))
+                for (unsigned int k = 0; k < disparity_maps_16bit.size(); k++)  // for every disparity map
                 {
-                    fusedDisp.at<double>(i,j) += disparity_maps_16bit[k].at<double>(i,j);
-                    num++;
+                    if(disparity_maps_16bit[k].at<double>(i,j) > null_disp_threshold)
+                    {
+
+                        fusedDisp.at<double>(i,j) += disparity_maps_16bit[k].at<double>(i,j)/mean_conversionF[k]; // "metric" disparity
+                        num++;
+                    }
                 }
+
+                fusedDisp.at<double>(i,j)  = fusedDisp.at<double>(i,j) /num;
+            }
+            else
+            {
+                fusedDisp.at<double>(i,j) = disparity_maps_16bit[1].at<double>(i,j)/mean_conversionF[1];
+
             }
 
-            fusedDisp.at<double>(i,j)  = fusedDisp.at<double>(i,j) /num;
-
-            // sommo la disparità metrica al dsm coarse
+            // sum between "metric" disparity and coarse dsm
             ossimDpt image_pt(j,i);
             ossimGpt world_pt;
             master_geom->localToWorld(image_pt, world_pt);
@@ -205,33 +205,6 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
             fusedDisp.at<double>(i,j) += hgtAboveMSL;
         }
    }
-
-/*
-            double minVal, maxVal;
-            minMaxLoc( fusedDisp, &minVal, &maxVal );
-            fusedDisp.convertTo( fusedDisp, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
-            cv::namedWindow( "Fused Disparity", CV_WINDOW_NORMAL );
-            cv::imshow( "Fused Disparity", fusedDisp);
-
-    for (int i=0; i< disparity_maps_16bit[0].rows; i++) // per tutte le righe e le colonne della mappa di disparità
-    {
-        for(int j=0; j< disparity_maps_16bit[0].cols; j++)
-        {
-            // sommo la disparità metrica al dsm coarse
-            ossimDpt image_pt(j,i);
-            ossimGpt world_pt;
-            master_geom->localToWorld(image_pt, world_pt);
-            ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
-            //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
-            fusedDisp.at<double>(i,j) += hgtAboveMSL;
-         }
-    }
-*/
-
-
-
-
-
 
 /*	// Conversion from OpenCV to OSSIM images
 	
@@ -265,7 +238,7 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
     fusedDisp.convertTo(intDSM, CV_16U);
 	cv::imwrite("Temp_DSM.tif", intDSM);
 		
-    double minVal, maxVal;
+    //double minVal, maxVal;
 	minMaxLoc(intDSM, &minVal, &maxVal);
 	intDSM.convertTo(intDSM, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));   
 	

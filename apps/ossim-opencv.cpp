@@ -12,12 +12,8 @@
 //----------------------------------------------------------------------------
 
 #include <ossim/base/ossimArgumentParser.h>
-#include <ossim/base/ossimApplicationUsage.h>
-#include <ossim/base/ossimConstants.h> 
 #include <ossim/base/ossimException.h>
-#include <ossim/base/ossimNotify.h>
 #include <ossim/base/ossimRefPtr.h>
-#include <ossim/base/ossimTimer.h>
 #include <ossim/base/ossimTrace.h>
 #include <ossim/base/ossimGpt.h>
 #include <ossim/base/ossimDpt.h>
@@ -37,16 +33,7 @@
 
 #include <ossim/util/ossimChipperUtil.h>
 
-#include "ossimOpenCvTPgenerator.h"
 #include "openCVtestclass.h"
-#include "ossimOpenCvDisparityMapGenerator.h"
-
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include <opencv/cv.h>
-
-
 
 #include <iostream>
 #include <sstream>
@@ -306,7 +293,15 @@ int main(int argc,  char* argv[])
         double mean_conversionF_J_NadFwd = mean_conv_factor_J_NadFwd.val[0]/(MaxHeight -MinHeight + 100);
         double stDev_conversionF_I_NadFwd = stDev_conv_factor_I_NadFwd.val[0];
         double mean_conversionF_I_NadFwd = mean_conv_factor_I_NadFwd.val[0]/(MaxHeight -MinHeight + 100);
-        double mean_conversionF_NadFwd = (sqrt((mean_conv_factor_J_NadFwd.val[0]*mean_conv_factor_J_NadFwd.val[0]) + (mean_conv_factor_I_NadFwd.val[0]*mean_conv_factor_I_NadFwd.val[0]))/(MaxHeight -MinHeight + 100));
+        //double mean_conversionF_NadFwd = (sqrt((mean_conv_factor_J_NadFwd.val[0]*mean_conv_factor_J_NadFwd.val[0]) + (mean_conv_factor_I_NadFwd.val[0]*mean_conv_factor_I_NadFwd.val[0]))/(MaxHeight -MinHeight + 100));
+
+        vector<double> mean_conversionF;
+        mean_conversionF.resize(2);
+
+        if (abs(mean_conv_factor_J_NadFwd.val[0]) > abs(mean_conv_factor_I_NadFwd.val[0]))
+                mean_conversionF[0] = mean_conv_factor_J_NadFwd.val[0];
+        else mean_conversionF[0] = mean_conv_factor_I_NadFwd.val[0];
+        mean_conversionF[0] /= (MaxHeight -MinHeight + 100);
 
         cv::Scalar mean_conv_factor_J_NadBwd, stDev_conv_factor_J_NadBwd;
         cv::meanStdDev(conv_factor_J_NadBwd, mean_conv_factor_J_NadBwd, stDev_conv_factor_J_NadBwd);
@@ -317,22 +312,26 @@ int main(int argc,  char* argv[])
         double mean_conversionF_J_NadBwd = mean_conv_factor_J_NadBwd.val[0]/(MaxHeight -MinHeight + 100);
         double stDev_conversionF_I_NadBwd = stDev_conv_factor_I_NadBwd.val[0];
         double mean_conversionF_I_NadBwd = mean_conv_factor_I_NadBwd.val[0]/(MaxHeight -MinHeight + 100);
-        double mean_conversionF_NadBwd = (sqrt((mean_conv_factor_J_NadBwd.val[0]*mean_conv_factor_J_NadBwd.val[0]) + (mean_conv_factor_I_NadBwd.val[0]*mean_conv_factor_I_NadBwd.val[0]))/(MaxHeight -MinHeight + 100));
+        //double mean_conversionF_NadBwd = (sqrt((mean_conv_factor_J_NadBwd.val[0]*mean_conv_factor_J_NadBwd.val[0]) + (mean_conv_factor_I_NadBwd.val[0]*mean_conv_factor_I_NadBwd.val[0]))/(MaxHeight -MinHeight + 100));
 
+        if (abs(mean_conv_factor_J_NadBwd.val[0]) > abs(mean_conv_factor_I_NadBwd.val[0]))
+                mean_conversionF[1] = mean_conv_factor_J_NadBwd.val[0];
+        else mean_conversionF[1] = mean_conv_factor_I_NadBwd.val[0];
+        mean_conversionF[1] /= (MaxHeight -MinHeight + 100);
 
         cout << "J Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF_J_NadFwd << endl;
         cout << "Standard deviation J Conversion Factor for NAD-FWD\t" << stDev_conversionF_J_NadFwd << endl << endl;
         cout << "I Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF_I_NadFwd << endl;
         cout << "Standard deviation I Conversion Factor for NAD-FWD\t" << stDev_conversionF_I_NadFwd << endl << endl;
 
-        cout << "Total Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF_NadFwd << endl <<endl;
+        cout << "Total Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF[0] << endl <<endl;
 
         cout << "J Conversion Factor from pixels to meters NAD-BWD\t" << mean_conversionF_J_NadBwd << endl;
         cout << "Standard deviation J Conversion Factor NAD-BWD\t" << stDev_conversionF_J_NadBwd << endl << endl;
         cout << "I Conversion Factor from pixels to meters NAD-BWD\t" << mean_conversionF_I_NadBwd << endl;
         cout << "Standard deviation I Conversion Factor NAD-BWD\t" << stDev_conversionF_I_NadBwd << endl << endl;
 
-        cout << "Total Conversion Factor from pixels to meters NAD-BWD\t" << mean_conversionF_NadBwd << endl;
+        cout << "Total Conversion Factor from pixels to meters NAD-BWD\t" << mean_conversionF[1] << endl;
 
         // END CONVERSION FACTOR COMPUTATION ****************************************
 
@@ -403,7 +402,7 @@ int main(int argc,  char* argv[])
                 ossimRefPtr<ossimImageData> img_nadir = nadir_handler->getTile(bounds_nadir, 0);
                 ossimRefPtr<ossimImageData> img_backward = backward_handler->getTile(bounds_backward, 0);
 
-                // TPs generation
+                // TPs and disparity map generation
                 openCVtestclass *tripletCv = new openCVtestclass(img_forward, img_nadir, img_backward) ;
                 tripletCv->execute();
 
@@ -412,8 +411,7 @@ int main(int argc,  char* argv[])
                 // From Disparity to DSM
                 ossimImageGeometry* nadir_geom = nadir_handler->getImageGeometry().get();
                 nadir_handler->saveImageGeometry();
-                tripletCv->computeDSM(mean_conversionF_NadFwd, elev, nadir_geom); //non è corretto mettere mean_conversionF_NadFwd
-                                                                                  // dovrei mettere anche mean_conversionF_NadBwd
+                tripletCv->computeDSM(mean_conversionF, elev, nadir_geom);
 
                 // Geocoded DSM generation
                 ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("Temp_DSM.tif"));
@@ -429,19 +427,18 @@ int main(int argc,  char* argv[])
                 ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
                 writer->connectMyInputTo(0, handler_disp);
 
-                // Add a listener to get percent complete.
+                // Add a listener to get percent complete
                 ossimStdOutProgress prog(0, true);
                 writer->addListener(&prog);
                 writer->execute();
                 writer->removeListener(&prog);
 
-
                 writer->close();
                 writer = 0;
                 delete tripletCv;
 
-                int a;
-                cin >> a;
+                //int a;
+                //cin >> a;
             }
             iter --;
 		}

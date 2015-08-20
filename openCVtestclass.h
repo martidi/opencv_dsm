@@ -6,34 +6,26 @@
 //
 // Author:  Martina Di Rita
 //
-// Description: Class provides OpenCV functions for DSM extraction
+// Description: Class providing OpenCV functions for DSM extraction
 //
 //----------------------------------------------------------------------------
 #ifndef openCVtestclass_HEADER
 #define openCVtestclass_HEADER 1
 
-#include <ossim/base/ossimObject.h>
-#include <ossim/base/ossimDpt.h>
-#include <ossim/base/ossimString.h>
-
 #include <opencv/cv.h>
-
-#include <ctime>
-#include <vector>
-#include <iostream>
 
 class openCVtestclass
 {
 public:
 	openCVtestclass();
     openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr<ossimImageData> slave);
-	openCVtestclass(ossimRefPtr<ossimImageData> backward, ossimRefPtr<ossimImageData> nadir, ossimRefPtr<ossimImageData> farward); 
+    openCVtestclass(ossimRefPtr<ossimImageData> forward, ossimRefPtr<ossimImageData> nadir, ossimRefPtr<ossimImageData> backward);
 	
 	bool execute();
 	
 	bool writeDisparity(double mean_conversionF);
 	
-	bool computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom);
+    bool computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom);
 
 	cv::Mat wallis(cv::Mat raw_image);
    
