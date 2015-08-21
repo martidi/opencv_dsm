@@ -6,27 +6,15 @@
 //
 // Author:  Martina Di Rita
 //
-// Description: Class provides Disparity Map extraction
+// Description: Class providing Disparity Map extraction
 //
 //----------------------------------------------------------------------------
 
-#include <ossim/base/ossimString.h>
-#include <ossim/base/ossimNotify.h>
-#include <ossim/base/ossimTrace.h>
-#include <ossim/base/ossimIrect.h>
-#include <ossim/base/ossimRefPtr.h>
-#include <ossim/base/ossimConstants.h>
-#include <ossim/elevation/ossimElevManager.h>
-#include <ossim/imaging/ossimImageData.h>
 #include <ossim/imaging/ossimImageSource.h>
 
 #include "ossimOpenCvDisparityMapGenerator.h"
 
-#include <opencv/highgui.h>
-#include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/flann/flann.hpp>
-#include <opencv2/legacy/legacy.hpp>
 // Note: These are purposely commented out to indicate non-use.
 // #include <opencv2/nonfree/nonfree.hpp>
 // #include <opencv2/nonfree/features2d.hpp>

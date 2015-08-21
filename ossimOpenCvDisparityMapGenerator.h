@@ -23,7 +23,6 @@ public:
 	int ndisparities; //Maximum disparity minus minimum disparity 
 	int SADWindowSize; //Matched block size
 	int minimumDisp;
-	
 };
 
 #endif /* #ifndef ossimOpenCvDisparityMapGenerator_HEADER */               

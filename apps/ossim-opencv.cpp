@@ -12,20 +12,14 @@
 //----------------------------------------------------------------------------
 
 #include <ossim/base/ossimArgumentParser.h>
-#include <ossim/base/ossimApplicationUsage.h>
-#include <ossim/base/ossimConstants.h> 
 #include <ossim/base/ossimException.h>
-#include <ossim/base/ossimNotify.h>
 #include <ossim/base/ossimRefPtr.h>
-#include <ossim/base/ossimTimer.h>
 #include <ossim/base/ossimTrace.h>
 #include <ossim/base/ossimGpt.h>
 #include <ossim/base/ossimDpt.h>
 #include <ossim/base/ossimEcefPoint.h>
 #include <ossim/base/ossimKeywordlist.h>
 #include <ossim/base/ossimKeywordNames.h>
-#include <ossim/base/ossimStringProperty.h>
-#include <ossim/base/ossimPreferences.h>
 
 #include <ossim/elevation/ossimElevManager.h>
 #include <ossim/elevation/ossimSrtmHandler.h>
@@ -35,29 +29,18 @@
 #include "ossim/imaging/ossimImageGeometry.h"
 #include "ossim/imaging/ossimImageFileWriter.h"
 #include "ossim/imaging/ossimImageWriterFactoryRegistry.h"
-#include "ossim/imaging/ossimSrtmTileSource.h"
 #include <ossim/imaging/ossimTiffWriter.h>
-#include <ossim/imaging/ossimTiffOverviewBuilder.h>
-#include <ossim/imaging/ossimEquationCombiner.h>
 
 #include <ossim/init/ossimInit.h>
 
 #include <ossim/point_cloud/ossimPointCloudImageHandler.h>
 #include <ossim/point_cloud/ossimGenericPointCloudHandler.h>
 
-#include <ossim/projection/ossimUtmProjection.h>
 #include <ossim/projection/ossimUtmpt.h>
 
 #include <ossim/util/ossimChipperUtil.h>
 
-#include "ossimOpenCvTPgenerator.h"
 #include "openCVtestclass.h"
-#include "ossimOpenCvDisparityMapGenerator.h"
-
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include <opencv/cv.h>
 
 #include <iostream>
 #include <sstream>
@@ -75,9 +58,6 @@ static const std::string CUT_MIN_LON_KW          = "cut_min_lon";
 static const std::string METERS_KW               = "meters";
 static const std::string OP_KW                   = "operation";
 static const std::string RESAMPLER_FILTER_KW     = "resampler_filter";
-
-// PER SAR static const std::string BANDS_KW                = "b";
-
 
 bool ortho (ossimKeywordlist kwl)
 {
@@ -112,10 +92,7 @@ int main(int argc,  char* argv[])
 	// Initialize ossim stuff, factories, plugin, etc.
 	ossimTimer::instance()->setStartTick();
    	ossimArgumentParser ap(&argc, argv);
-   // ossimInit::instance()->initialize(ap);
-    ossimInit *pippo = ossimInit::instance();
-
-    pippo->initialize(ap);
+    ossimInit::instance()->initialize(ap);
 
 	try
 	{ 
@@ -169,7 +146,7 @@ int main(int argc,  char* argv[])
         {
           //else nsteps = 1;
         }
-        cout << "step number for pyramidal\t " << nsteps << endl;
+        cout << "Total steps number for pyramidal\t " << nsteps << endl;
 
         double lat_min;
         double lon_min;
@@ -305,7 +282,14 @@ int main(int argc,  char* argv[])
         double mean_conversionF_J = mean_conv_factor_J.val[0]/(MaxHeight -MinHeight + 100);
         double stDev_conversionF_I = stDev_conv_factor_I.val[0];
         double mean_conversionF_I = mean_conv_factor_I.val[0]/(MaxHeight -MinHeight + 100);
-        double mean_conversionF = ((sqrt((mean_conv_factor_J.val[0]*mean_conv_factor_J.val[0]) + (mean_conv_factor_I.val[0]*mean_conv_factor_I.val[0]))/(MaxHeight -MinHeight + 100)))*1.0;
+        //double mean_conversionF = ((sqrt((mean_conv_factor_J.val[0]*mean_conv_factor_J.val[0]) + (mean_conv_factor_I.val[0]*mean_conv_factor_I.val[0]))/(MaxHeight -MinHeight + 100)))*1.0;
+
+        double mean_conversionF;
+
+        if (abs(mean_conv_factor_J.val[0]) > abs(mean_conv_factor_I.val[0]))
+                mean_conversionF = mean_conv_factor_J.val[0];
+        else mean_conversionF = mean_conv_factor_I.val[0];
+        mean_conversionF /= (MaxHeight -MinHeight + 100);
 
         cout << "J Conversion Factor from pixels to meters\t" << mean_conversionF_J << endl;
         cout << "Standard deviation J Conversion Factor\t" << stDev_conversionF_J << endl << endl;
@@ -323,7 +307,6 @@ int main(int argc,  char* argv[])
         myfile <<"Standard deviation Conversion Factor\t" << stDev_conversionF_J <<endl;
         myfile.close();
 
-
         double iter = (nsteps-1);
 
         for(int i = (nsteps-1) ; i >= 0  ; i--)
@@ -333,38 +316,19 @@ int main(int argc,  char* argv[])
             std::ostringstream strs;
             strs << iter;
             std::string nLev = strs.str();
-/*
-            ossimInit::instance()->~ossimInit();
-            ossimArgumentParser ap2(&argc, argv);
-            ossimInit::instance()->initialize(ap2);
-
-            // Elevation manager instance
-            ossimPreferences::instance()->loadPreferences(ossimFilename("/home/martina/OSSIM_LAST/preferences/ossim_prefs.txt"));
-            //ossimInit::thePreferences->loadPreferences(ossimFilename("/home/martina/OSSIM_LAST/preferences/"));
-            ossimInit::instance()->initializeElevation();
-*/
-
-            pippo->~ossimInit();
-            pippo = ossimInit::instance();
-            ossimArgumentParser ap2(&argc, argv);
-            pippo->initialize(ap2);
-            pippo->initializeElevation();
-
-
-
 
             ossimElevManager* elev = ossimElevManager::instance();
 
-
-            cout << "Quota Palazzo   " << elev->getHeightAboveEllipsoid(ossimGpt(46.039865, 11.114437, 0.00)) << endl;
+            cout << "Building height" << elev->getHeightAboveEllipsoid(ossimGpt(46.039865, 11.114437, 0.00)) << endl;
 
             master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
             slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
 
             double orthoRes = finalRes*pow (2, iter);
-            cout << finalRes << "\t final res" << endl;
-            cout << iter << "iter" << endl;
-            cout << orthoRes << "\t resolution" << endl;
+            cout << finalRes << "" <<"m" <<"\t final DSM resolution" << endl;
+            cout << orthoRes << "" <<"m" << "\t resolution of this level" << endl;
+            cout << iter << "\t n° iterations left" << endl << endl;
+
             std::ostringstream strsRes;
             strsRes << orthoRes;
             std::string ResParam = strsRes.str();
@@ -424,12 +388,8 @@ int main(int argc,  char* argv[])
                 writer = 0;
                 handler_disp = 0;
                 test= 0;
-
-
             }
             iter --;
-
-           // elev->~ossimElevManager();
             elev = 0;
         }
     cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your stereo-pair!\n" << endl;

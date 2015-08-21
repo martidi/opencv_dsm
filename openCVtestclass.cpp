@@ -6,18 +6,12 @@
 //
 // Author:  Martina Di Rita
 //
-// Description: Class provides OpenCV functions for DSM extraction
+// Description: Class providing OpenCV functions for DSM extraction
 //
 //----------------------------------------------------------------------------
 
-#include <ossim/base/ossimString.h>
-#include <ossim/base/ossimNotify.h>
-#include <ossim/base/ossimTrace.h>
 #include <ossim/base/ossimIrect.h>
-#include <ossim/base/ossimRefPtr.h>
-#include <ossim/base/ossimConstants.h>
 #include <ossim/elevation/ossimElevManager.h>
-#include <ossim/imaging/ossimImageData.h>
 #include <ossim/imaging/ossimImageSource.h>
 
 #include "openCVtestclass.h"
@@ -27,11 +21,7 @@
 #include <ossim/base/ossimArgumentParser.h>
 #include <ossim/base/ossimApplicationUsage.h>
 
-#include <opencv/highgui.h>
-#include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/flann/flann.hpp>
-#include <opencv2/legacy/legacy.hpp>
 // Note: These are purposely commented out to indicate non-use.
 // #include <opencv2/nonfree/nonfree.hpp>
 // #include <opencv2/nonfree/features2d.hpp>
@@ -89,24 +79,8 @@ bool openCVtestclass::execute()
 	
 	cv::Mat slave_mat_warp = TPfinder->warp(slave_mat);
 
-	ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();	
-	
-		// to check the time necessary for Disp Map gen
-		ossimNotify(ossimNotifyLevel_NOTICE)
-		<< "elapsed time in seconds: "
-		<< std::setiosflags(ios::fixed)
-		<< std::setprecision(3)
-		<< ossimTimer::instance()->time_s() << endl << endl;
-	
-	
+	ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();				
 	out_disp = dense_matcher->execute(master_mat_8U, slave_mat_warp); 
-	
-		ossimNotify(ossimNotifyLevel_NOTICE)
-		<< "elapsed time in seconds: "
-		<< std::setiosflags(ios::fixed)
-		<< std::setprecision(3)
-		<< ossimTimer::instance()->time_s() << endl << endl;
-		
 	
 	null_disp_threshold = (dense_matcher->minimumDisp)+0.5;	
 
@@ -353,21 +327,3 @@ cv::Mat openCVtestclass::wallis(cv::Mat image)
 	return Filtered_image;				
 }
 
-
-/*void openCVtestclass::addArguments(ossimArgumentParser& ap)
-{
-   ossimString usageString = ap.getApplicationName();
-   usageString += " [option]... [input-option]... <input-file(s)> <output-file>\nNote at least one input is required either from one of the input options, e.g. --input-dem <my-dem.hgt> or adding to command line in front of the output file in which case the code will try to ascertain what type of input it is.\n\nAvailable traces:\n-T \"ossimChipperUtil:debug\"   - General debug trace to standard out.\n-T \"ossimChipperUtil:log\"     - Writes a log file to output-file.log.\n-T \"ossimChipperUtil:options\" - Writes the options to output-file-options.kwl.";
-
-   ossimApplicationUsage* au = ap.getApplicationUsage();
-   
-   au->setCommandLineUsage(usageString);
-    
-   au->setDescription(ap.getApplicationName()+" Utility application for generating elevation products from dem data.");
-   
-   au->addCommandLineOption("--azimuth", "<azimuth>\nhillshade option - Light source azimuth angle for bump shade.\nRange: 0 to 360, Default = 180.0");
-
-   au->addCommandLineOption( "-b or --bands <n,n...>", "Use the specified bands in given order: e.g. \"3,2,1\" will select bands 3, 2 and 1 of the input image.\nNote: it is 1 based" );
-
-   au->addCommandLineOption("--central-meridian","<central_meridian_in_decimal_degrees>\nNote if set this will be used for the central meridian of the projection.  This can be used to lock the utm zone.");
-}*/
