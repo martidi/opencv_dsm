@@ -5,7 +5,7 @@ OSSIM tool for DSM generation using stereo imagery
 
 ===============
 
-This repository contains the source code of an OSSIM plug-in for Digital Surface Models (DSMs) generation from stereo images.
+This repository contains the source code of an OSSIM plug-in (named D.A.T.E.) for Digital Surface Models (DSMs) generation from stereo images.
 
 This is the updated code (based on a new and different approach) related to the 2014 GSoC project "Photogrammetric image processing: DSM generation tool for OSSIM".
 
