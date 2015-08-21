@@ -6,7 +6,7 @@
 //
 // Author:  Martina Di Rita
 //
-// Description: Class provides a TPs generator
+// Description: Class providing a TPs generator
 //
 //----------------------------------------------------------------------------
 #ifndef ossimOpenCvTPgenerator_HEADER
