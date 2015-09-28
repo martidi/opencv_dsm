@@ -368,7 +368,7 @@ int main(int argc,  char* argv[])
                 test->computeDSM(mean_conversionF/1.0, elev, master_geom);
 
                 // Geocoded DSM generation
-                ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("Temp_DSM.tif"));
+                ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("DSM_test.tif"));
                 handler_disp->setImageGeometry(master_geom); // now I have a "geo" image handler
                 cout << "size" << master_geom->getImageSize() << endl;
                 handler_disp->saveImageGeometry();

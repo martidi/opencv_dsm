@@ -82,7 +82,6 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	//****************************************************** 	
 	//array_disp = array_disp/fscale; // to consider the scale factor also in the disparity values (i singoli valori sono alterati)
 	//cv::resize(array_disp, array_disp, cv::Size(), 1.0/fscale, 1.0/fscale, cv::INTER_AREA ); // to resize the disparity map as the initial image
-
 	
 	cv::waitKey(0);
 
@@ -93,7 +92,6 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	disparity <<"SAD WINDOW SIZE:" << " " << SADWindowSize<< endl;
 	disparity << "MINIMUM DISPARITY VALUE:"<< sgbm.minDisparity << endl;
 	disparity.close();	
-
 		
 	return array_disp;
 }

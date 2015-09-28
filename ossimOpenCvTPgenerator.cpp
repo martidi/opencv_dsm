@@ -75,7 +75,7 @@ void ossimOpenCvTPgenerator::TPgen()
 	vector<cv::DMatch> matches;
 	matcher.match(descriptors1, descriptors2, matches);	
 
-    cerr << matches.size();
+    cerr << matches.size() << endl;
 
 /*    //HARRIS corner detector
 
@@ -249,10 +249,13 @@ void ossimOpenCvTPgenerator::TPgen()
 
 	// Calculation of max and min distances between keypoints 
     double max_dist = matches[0].distance; double min_dist = matches[0].distance;
+    cout << "max dist" << max_dist << endl;
+    cout << "min dist" << min_dist << endl;
 
 	for( int i = 1; i < descriptors1.rows; i++ )
 	{ 
         double dist = matches[i].distance;
+        //cout << "dist" << dist << endl;
 		if( dist < min_dist ) min_dist = dist;
 		if( dist > max_dist ) max_dist = dist;
 	}
@@ -285,7 +288,7 @@ void ossimOpenCvTPgenerator::TPgen()
 		    min_dist = good_dist;
 		}
 		
-        good_dist = (max_dist+min_dist)/2.0;
+        good_dist = (max_dist + min_dist)/2.0;
 		
 		//cout<< per << " " << min_dist << " " << max_dist << " "<< good_dist <<endl;
 		
@@ -330,8 +333,7 @@ void ossimOpenCvTPgenerator::TPgen()
 		num_iter ++;
 		cout << "Iteration n = " << num_iter << endl;
 		control = 0;
- 
- 
+  
 		cv::Mat parallax = cv::Mat::zeros(good_matches.size(), 1, CV_64F);
 		for(size_t i = 0; i < good_matches.size(); i++)
 		{
@@ -345,8 +347,7 @@ void ossimOpenCvTPgenerator::TPgen()
 		
 		cout << "dev_y = " << dev_y << endl
 	         << "mean_diff_y = " << mean_diff_y << endl;
-    		
-    		
+    		   		
 		vector<cv::DMatch > good_matches_corr;
 		
 		// Get the keypoints from the good_matches

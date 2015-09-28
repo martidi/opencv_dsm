@@ -10,9 +10,9 @@
 //
 //----------------------------------------------------------------------------
 
-#include <ossim/base/ossimIrect.h>
 #include <ossim/elevation/ossimElevManager.h>
 #include <ossim/imaging/ossimImageSource.h>
+#include <ossim/imaging/ossimTiffWriter.h>
 
 #include "openCVtestclass.h"
 #include "ossimOpenCvTPgenerator.h"
@@ -20,6 +20,11 @@
 
 #include <ossim/base/ossimArgumentParser.h>
 #include <ossim/base/ossimApplicationUsage.h>
+#include <ossim/base/ossimStringProperty.h>
+#include <ossim/base/ossimIrect.h>
+
+#include <ossim/point_cloud/ossimPointCloudImageHandler.h>
+#include <ossim/point_cloud/ossimGenericPointCloudHandler.h>
 
 #include <opencv2/highgui/highgui.hpp>
 // Note: These are purposely commented out to indicate non-use.
@@ -92,7 +97,78 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
     // for along-track images
     cv::transpose(out_disp, out_disp);
     cv::flip(out_disp, out_disp, 0);
-    
+
+
+
+    // Creation of an OSSIM tiff
+    vector<ossimGpt> image_points;  // Need to fill this vector array
+    out_disp.convertTo(out_disp, CV_64F);
+    out_disp = ((out_disp/16.0)) / mean_conversionF;
+
+    cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
+    cout << "null_disp_threshold"<< null_disp_threshold<< endl;
+
+    for(int i=0; i< out_disp.rows; i++)
+    {
+        for(int j=0; j< out_disp.cols; j++)
+        {
+            ossimDpt image_pt(j,i);
+            ossimGpt world_pt;
+
+            master_geom->localToWorld(image_pt, world_pt);
+
+            ossim_float64 hgtAboveMSL = elev->getHeightAboveMSL(world_pt);
+
+            if(out_disp.at<double>(i,j) >= null_disp_threshold/abs(mean_conversionF))
+            {
+                hgtAboveMSL += out_disp.at<double>(i,j);
+
+                world_pt.height(hgtAboveMSL);
+
+                image_points.push_back(world_pt);
+                //cout <<"punti"<<image_points[i]<<endl;
+            }
+        }
+    }
+
+    ossimRefPtr<ossimGenericPointCloudHandler> pc_handler =
+       new ossimGenericPointCloudHandler(image_points);
+                cout << "prova1" << endl;
+    ossimRefPtr<ossimPointCloudImageHandler> ih =  new ossimPointCloudImageHandler;
+                cout << "prova2" << endl;
+    ih->setCurrentEntry((ossim_uint32)ossimPointCloudImageHandler::HIGHEST);
+            cout << "prova3" << endl;
+    ih->setPointCloudHandler(pc_handler.get());
+    cout << "prova4" << endl;
+    // TODO: This sets the resolution of the output file. There is a default value computed but you
+    // may either adjust it or set it manually here:
+    ossimDpt gsd;
+    ih->getGSD(gsd, 0);
+    cout << gsd.x << "" << gsd.y << endl;
+    ossimString gsdstr = ossimString::toString((gsd.x + gsd.y)/2.0);
+    ossimRefPtr<ossimProperty> gsd_prop = new ossimStringProperty(ossimKeywordNames::METERS_PER_PIXEL_KW, gsdstr);
+    ih->setProperty(gsd_prop);
+
+    // Set up the writer:
+    ossimRefPtr<ossimTiffWriter> tif_writer =  new ossimTiffWriter();
+    tif_writer->setGeotiffFlag(true);
+
+    ossimFilename outfile ("DSM_test.tif");
+    tif_writer->setFilename(outfile);
+    if (tif_writer.valid())
+    {
+       tif_writer->connectMyInputTo(0, ih.get());
+       tif_writer->execute();
+    }
+
+    cout << "Output written to <"<<outfile<<">"<<endl;
+    tif_writer->close();
+    tif_writer = 0;
+    ih = 0;
+    pc_handler = 0;
+
+
+/*
 	cv::Mat out_16bit_disp = cv::Mat::zeros (out_disp.size(),CV_64F);
 	out_disp.convertTo(out_disp, CV_64F);
 	//cout <<  "fattore di conv" << mean_conversionF << endl;
@@ -120,7 +196,7 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 
 
     //cout << out_16bit_disp << endl;
-/*
+
 	// Conversion from OpenCV to OSSIM images   
 	
 	//ossimRefPtr<ossimImageData> disp_ossim = disp_ossim_handler->getSize();
@@ -146,12 +222,14 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	//disp_ossim = disp_ossim->getDoubleBuf();
 	
 	cout << "OpenCV->OSSIM image conversion done_3" << endl;
-*/ 	
+*/
+
+
 	cv::Mat intDSM; 
 	// Conversion from float to integer to write and show
-	out_16bit_disp.convertTo(intDSM, CV_16U);
+    out_disp.convertTo(intDSM, CV_16U);
 	
-    cv::imwrite("Temp_DSM.tif", intDSM);
+    //cv::imwrite("Temp_DSM.tif", intDSM);
 		
 	double minVal, maxVal;
 	minMaxLoc(intDSM, &minVal, &maxVal);
