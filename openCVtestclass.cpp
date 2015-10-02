@@ -129,7 +129,7 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
 {
     //vector<cv::Mat> disparity_maps_16bit;
     vector<cv::Mat> disparity_maps_8bit;
-    vector<ossimGpt> image_points;
+    //vector<ossimGpt> image_points;
     double minVal, maxVal;
 
     //disparity_maps_16bit.resize(disparity_maps.size());
@@ -181,32 +181,37 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
         {
             int num=0.0;
 
-            if(fabs(error_disp.at<double>(i,j)) < 20)
+            if(fabs(error_disp.at<double>(i,j)) < 5)
             {
                 for (unsigned int k = 0; k < disparity_maps.size(); k++)  // for every disparity map
                 {
-                    if(disparity_maps[k].at<double>(i,j) > null_disp_threshold)
+                    if(disparity_maps[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
                     {
 
-                        fusedDisp.at<double>(i,j) += disparity_maps[k].at<double>(i,j)/mean_conversionF[k]; // "metric" disparity
+                        fusedDisp.at<double>(i,j) += disparity_maps[k].at<double>(i,j)*1000.0/mean_conversionF[k]; // "metric" disparity
                         num++;
                     }
                 }
                 fusedDisp.at<double>(i,j)  = fusedDisp.at<double>(i,j) /num;
-
             }
+            else
+            {
+                fusedDisp.at<double>(i,j) = disparity_maps[1].at<double>(i,j)*1000.0 /mean_conversionF[1];
+            }
+
             // sum between "metric" disparity and coarse dsm
             ossimDpt image_pt(j,i);
             ossimGpt world_pt;
             master_geom->localToWorld(image_pt, world_pt);
             ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
             //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
-            hgtAboveMSL += fusedDisp.at<double>(i,j);
-            world_pt.height(hgtAboveMSL);
-            image_points.push_back(world_pt);
+            fusedDisp.at<double>(i,j) += hgtAboveMSL*1000.0; // to work with millimeters
+            //hgtAboveMSL += fusedDisp.at<double>(i,j);
+            //world_pt.height(hgtAboveMSL);
+            //image_points.push_back(world_pt);
         }
     }
-
+/*
     ossimRefPtr<ossimGenericPointCloudHandler> pc_handler = new ossimGenericPointCloudHandler(image_points);
     ossimRefPtr<ossimPointCloudImageHandler> ih =  new ossimPointCloudImageHandler;
     ih->setCurrentEntry((ossim_uint32)ossimPointCloudImageHandler::HIGHEST);
@@ -239,10 +244,12 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
     tif_writer = 0;
     ih = 0;
     pc_handler = 0;
+*/
 
     // Conversion from float to integer to show
     cv::Mat intDSM;
     fusedDisp.convertTo(intDSM, CV_16U);
+    cv::imwrite("DSM_float.tif", intDSM);
 
 	minMaxLoc(intDSM, &minVal, &maxVal);
 	intDSM.convertTo(intDSM, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));   
