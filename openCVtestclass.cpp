@@ -12,6 +12,11 @@
 
 #include <ossim/elevation/ossimElevManager.h>
 #include <ossim/imaging/ossimImageSource.h>
+#include <ossim/imaging/ossimTiffWriter.h>
+#include <ossim/point_cloud/ossimGenericPointCloudHandler.h>
+#include <ossim/point_cloud/ossimPointCloudImageHandler.h>
+#include <ossim/base/ossimStringProperty.h>
+
 #include "openCVtestclass.h"
 #include "ossimOpenCvTPgenerator.h"
 #include "ossimOpenCvDisparityMapGenerator.h"
@@ -122,12 +127,12 @@ bool openCVtestclass::execute()
 
 bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
-    vector<cv::Mat> disparity_maps_16bit;
+    //vector<cv::Mat> disparity_maps_16bit;
     vector<cv::Mat> disparity_maps_8bit;
-
+    vector<ossimGpt> image_points;
     double minVal, maxVal;
 
-    disparity_maps_16bit.resize(disparity_maps.size());
+    //disparity_maps_16bit.resize(disparity_maps.size());
     disparity_maps_8bit.resize(disparity_maps.size());
 
     cout << disparity_maps.size() << endl;
@@ -137,11 +142,12 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
         cv::flip(disparity_maps[k], disparity_maps[k], 0);
 
         disparity_maps[k].convertTo(disparity_maps[k], CV_64F);
-        disparity_maps_16bit[k] = (disparity_maps[k]/16.0); // / mean_conversionF[k];
+        disparity_maps[k] = (disparity_maps[k]/16.0); // / mean_conversionF[k];
 
         // A questo punto ho 2 mappe di disparità ruotate e corrette in pix (/16.0) per opencv
         // Devo fonderle e renderle "metriche"
 
+        //To show disparity maps
         minMaxLoc( disparity_maps[k], &minVal, &maxVal );
         disparity_maps[k].convertTo(disparity_maps_8bit[k], CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
         cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
@@ -151,98 +157,97 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
         cv::imshow( win_name+ossimString(k), disparity_maps_8bit[k]);
     }
 
-    cout << disparity_maps_16bit[0].size() << endl;
-    cout << disparity_maps_16bit[1].size() << endl;
+    cout << disparity_maps[0].size() << endl;
+    cout << disparity_maps[1].size() << endl;
 
-    cv::Mat error_disp = (disparity_maps_16bit[0]/mean_conversionF[0]) - (disparity_maps_16bit[1]/mean_conversionF[1]);
-
+    cv::Mat error_disp = (disparity_maps[0]/mean_conversionF[0]) - (disparity_maps[1]/mean_conversionF[1]); //quando divido per il fattore di conversione diventa metrico
     minMaxLoc(error_disp, &minVal, &maxVal);
     error_disp.convertTo(error_disp, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
     cv::namedWindow("Error disp", CV_WINDOW_NORMAL);
     cv::imshow("Error disp", error_disp);
     cv::waitKey(0);
 
-    cv::Mat fusedDisp = cv::Mat::zeros(disparity_maps_16bit[0].rows, disparity_maps_16bit[0].cols, CV_64F);
+    cv::Mat fusedDisp = cv::Mat::zeros(disparity_maps[0].rows, disparity_maps[0].cols, CV_64F);
 
     cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
     cout << "null_disp_threshold\t"<< null_disp_threshold<< endl;
 
-    cout << "n° rows\t" << fusedDisp.rows << endl;
-    cout << "n° columns\t" << fusedDisp.cols << endl;
+    //cout << "n° rows\t" << fusedDisp.rows << endl;
+    //cout << "n° columns\t" << fusedDisp.cols << endl;
 
-    for (int i=0; i< disparity_maps_16bit[0].rows; i++) // for every row
+    for (int i=0; i< disparity_maps[0].rows; i++) // for every row
     {
-        for(int j=0; j< disparity_maps_16bit[0].cols; j++) // for every column
+        for(int j=0; j< disparity_maps[0].cols; j++) // for every column
         {
             int num=0.0;
 
-            if(error_disp.at<double>(i,j) < 10)
+            if(fabs(error_disp.at<double>(i,j)) < 20)
             {
-                for (unsigned int k = 0; k < disparity_maps_16bit.size(); k++)  // for every disparity map
+                for (unsigned int k = 0; k < disparity_maps.size(); k++)  // for every disparity map
                 {
-                    if(disparity_maps_16bit[k].at<double>(i,j) > null_disp_threshold)
+                    if(disparity_maps[k].at<double>(i,j) > null_disp_threshold)
                     {
 
-                        fusedDisp.at<double>(i,j) += disparity_maps_16bit[k].at<double>(i,j)/mean_conversionF[k]; // "metric" disparity
+                        fusedDisp.at<double>(i,j) += disparity_maps[k].at<double>(i,j)/mean_conversionF[k]; // "metric" disparity
                         num++;
                     }
                 }
-
                 fusedDisp.at<double>(i,j)  = fusedDisp.at<double>(i,j) /num;
-            }
-            else
-            {
-                fusedDisp.at<double>(i,j) = disparity_maps_16bit[1].at<double>(i,j)/mean_conversionF[1];
 
             }
-
             // sum between "metric" disparity and coarse dsm
             ossimDpt image_pt(j,i);
             ossimGpt world_pt;
             master_geom->localToWorld(image_pt, world_pt);
             ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
             //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
-            fusedDisp.at<double>(i,j) += hgtAboveMSL;
+            hgtAboveMSL += fusedDisp.at<double>(i,j);
+            world_pt.height(hgtAboveMSL);
+            image_points.push_back(world_pt);
         }
-   }
+    }
 
-/*	// Conversion from OpenCV to OSSIM images
-	
-	//ossimRefPtr<ossimImageData> disp_ossim = disp_ossim_handler->getSize();
-	cout << "OpenCV->OSSIM image conversion done_1" << endl;	
-	
-	//ossimImageHandler* disp_ossim_handler = ossimImageHandlerRegistry::instance() ->open(ossimFilename("../../../../img_data/ZY_3/ZY3_NAD_E11.5_N46.5_20120909_L1A0000657936/ZY3_TLC_E11_5_N46_5_20120909_L1A0000657936_NAD.TIF"));
-	//ossimIrect bounds_disp = disp_ossim_handler->getBoundingRect(0); 			
-	ossimRefPtr<ossimImageData> disp_ossim = new ossimImageData(NULL, OSSIM_DOUBLE, 1, out_16bit_disp.cols, out_16bit_disp.rows );
-	//disp_ossim->setWidthHeight(out_16bit_disp.cols,out_16bit_disp.rows);    
-		
-	//ossimImageHandler* master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(argv[3]));  	
-	//ossimIrect bounds_master = master_handler->getBoundingRect(0); 		
-	//ossimRefPtr<ossimImageData> img_master = master_handler->getTile(bounds_master, 0);     
-	//ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry(); 	
-	cout << "OpenCV->OSSIM image conversion done_2" << endl;		
-	
-	//master_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
-	//slave_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
+    ossimRefPtr<ossimGenericPointCloudHandler> pc_handler = new ossimGenericPointCloudHandler(image_points);
+    ossimRefPtr<ossimPointCloudImageHandler> ih =  new ossimPointCloudImageHandler;
+    ih->setCurrentEntry((ossim_uint32)ossimPointCloudImageHandler::HIGHEST);
+    ih->setPointCloudHandler(pc_handler.get());
 
-	memcpy((void*)disp_ossim->getDoubleBuf(), (void*)out_16bit_disp.ptr(), out_16bit_disp.cols*out_16bit_disp.rows);
-	//memcpy(slave_mat.ptr(), (void*) slave->getUshortBuf(), 2*slave->getWidth()*slave->getHeight());
-	
-	//disp_ossim = disp_ossim->getDoubleBuf();
-	
-	cout << "OpenCV->OSSIM image conversion done_3" << endl;
- */
+    cout << "prova" << endl;
 
+    // This sets the resolution of the output file
+    ossimDpt gsd;
+    ih->getGSD(gsd, 0);
+    cout << gsd.x << "\t" << gsd.y << endl;
+    ossimString gsdstr = ossimString::toString((gsd.x + gsd.y)/2.0);
+    ossimRefPtr<ossimProperty> gsd_prop = new ossimStringProperty(ossimKeywordNames::METERS_PER_PIXEL_KW, gsdstr);
+    ih->setProperty(gsd_prop);
+
+    // Set up the writer:
+    ossimRefPtr<ossimTiffWriter> tif_writer =  new ossimTiffWriter();
+    tif_writer->setGeotiffFlag(true);
+    ossimFilename outfile ("DSM_float.tif");
+    tif_writer->setFilename(outfile);
+    if (tif_writer.valid())
+    {
+        tif_writer->connectMyInputTo(0, ih.get());
+        tif_writer->execute();
+    }
+
+    cout << "Output written to <"<<outfile<<">"<<endl;
+
+    tif_writer->close();
+    tif_writer = 0;
+    ih = 0;
+    pc_handler = 0;
+
+    // Conversion from float to integer to show
     cv::Mat intDSM;
-	// Conversion from float to integer to write and show
     fusedDisp.convertTo(intDSM, CV_16U);
-	cv::imwrite("Temp_DSM.tif", intDSM);
-		
-    //double minVal, maxVal;
+
 	minMaxLoc(intDSM, &minVal, &maxVal);
 	intDSM.convertTo(intDSM, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));   
 	
-	cv::namedWindow("Temp_DSM", CV_WINDOW_NORMAL);
+    cv::namedWindow("Temp_DSM", CV_WINDOW_NORMAL);
 	cv::imshow("Temp_DSM", intDSM);
 	cv::waitKey(0);	
 	

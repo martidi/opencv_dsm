@@ -414,7 +414,7 @@ int main(int argc,  char* argv[])
                 tripletCv->computeDSM(mean_conversionF, elev, nadir_geom);
 
                 // Geocoded DSM generation
-                ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("Temp_DSM.tif"));
+                ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("DSM_float.tif"));
                 handler_disp->setImageGeometry(nadir_geom);
                 handler_disp->saveImageGeometry();
 
