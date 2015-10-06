@@ -427,6 +427,22 @@ int main(int argc,  char* argv[])
                 ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
                 writer->connectMyInputTo(0, handler_disp);
 
+                /*
+                // Create output image chain:
+                ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
+                memSource->setImage(newImage);
+                memSource->setImageGeometry(nadir_geom);
+
+                ossimRefPtr<ossimTiffWriter> writer = new ossimTiffWriter();
+                writer->connectMyInputTo(0, memSource.get());
+                writer->setFilename(filename);
+                writer->setGeotiffFlag(true);
+                bool success = writer->execute(); */
+
+                return 0;
+
+
+
                 // Add a listener to get percent complete
                 ossimStdOutProgress prog(0, true);
                 writer->addListener(&prog);

@@ -188,7 +188,7 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
                     if(disparity_maps[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
                     {
 
-                        fusedDisp.at<double>(i,j) += disparity_maps[k].at<double>(i,j)*1000.0/mean_conversionF[k]; // "metric" disparity
+                        fusedDisp.at<double>(i,j) += disparity_maps[k].at<double>(i,j)/mean_conversionF[k]; // "metric" disparity
                         num++;
                     }
                 }
@@ -196,7 +196,7 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
             }
             else
             {
-                fusedDisp.at<double>(i,j) = disparity_maps[1].at<double>(i,j)*1000.0 /mean_conversionF[1];
+                fusedDisp.at<double>(i,j) = disparity_maps[1].at<double>(i,j)/mean_conversionF[1];
             }
 
             // sum between "metric" disparity and coarse dsm
@@ -205,7 +205,7 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
             master_geom->localToWorld(image_pt, world_pt);
             ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
             //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
-            fusedDisp.at<double>(i,j) += hgtAboveMSL*1000.0; // to work with millimeters
+            fusedDisp.at<double>(i,j) += hgtAboveMSL; // to work with millimeters
             //hgtAboveMSL += fusedDisp.at<double>(i,j);
             //world_pt.height(hgtAboveMSL);
             //image_points.push_back(world_pt);
@@ -245,6 +245,8 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
     ih = 0;
     pc_handler = 0;
 */
+    //Conversion from m to cm
+    fusedDisp = fusedDisp*100.0;
 
     // Conversion from float to integer to show
     cv::Mat intDSM;
