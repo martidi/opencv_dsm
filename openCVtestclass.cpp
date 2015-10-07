@@ -13,6 +13,8 @@
 #include <ossim/elevation/ossimElevManager.h>
 #include <ossim/imaging/ossimImageSource.h>
 #include <ossim/imaging/ossimTiffWriter.h>
+#include <ossim/imaging/ossimImageDataFactory.h>
+#include <ossim/imaging/ossimMemoryImageSource.h>
 #include <ossim/point_cloud/ossimGenericPointCloudHandler.h>
 #include <ossim/point_cloud/ossimPointCloudImageHandler.h>
 #include <ossim/base/ossimStringProperty.h>
@@ -125,7 +127,7 @@ bool openCVtestclass::execute()
 }
 
 
-bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
+ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
     //vector<cv::Mat> disparity_maps_16bit;
     vector<cv::Mat> disparity_maps_8bit;
@@ -169,6 +171,7 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
 
     cv::Mat fusedDisp = cv::Mat::zeros(disparity_maps[0].rows, disparity_maps[0].cols, CV_64F);
 
+
     cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
     cout << "null_disp_threshold\t"<< null_disp_threshold<< endl;
 
@@ -189,13 +192,16 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
                     {
 
                         fusedDisp.at<double>(i,j) += disparity_maps[k].at<double>(i,j)/mean_conversionF[k]; // "metric" disparity
+                        //outImage.operator =(  outImage->setValue(i,j,disparity_maps[k].at<double>(i,j)/mean_conversionF[k]));
                         num++;
                     }
                 }
                 fusedDisp.at<double>(i,j)  = fusedDisp.at<double>(i,j) /num;
+               // outImage->setValue(i,j,outImage/num);
             }
             else
             {
+               // outImage->setValue(i,j,disparity_maps[1].at<double>(i,j)/mean_conversionF[1]);
                 fusedDisp.at<double>(i,j) = disparity_maps[1].at<double>(i,j)/mean_conversionF[1];
             }
 
@@ -211,44 +217,42 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
             //image_points.push_back(world_pt);
         }
     }
-/*
-    ossimRefPtr<ossimGenericPointCloudHandler> pc_handler = new ossimGenericPointCloudHandler(image_points);
-    ossimRefPtr<ossimPointCloudImageHandler> ih =  new ossimPointCloudImageHandler;
-    ih->setCurrentEntry((ossim_uint32)ossimPointCloudImageHandler::HIGHEST);
-    ih->setPointCloudHandler(pc_handler.get());
 
-    cout << "prova" << endl;
+    // Set the destination image size:
+    ossimIpt image_size (fusedDisp.cols , fusedDisp.rows);
+    ossimRefPtr<ossimImageData> outImage = ossimImageDataFactory::instance()->create(0, OSSIM_FLOAT64, 1, image_size.x, image_size.y);
 
-    // This sets the resolution of the output file
-    ossimDpt gsd;
-    ih->getGSD(gsd, 0);
-    cout << gsd.x << "\t" << gsd.y << endl;
-    ossimString gsdstr = ossimString::toString((gsd.x + gsd.y)/2.0);
-    ossimRefPtr<ossimProperty> gsd_prop = new ossimStringProperty(ossimKeywordNames::METERS_PER_PIXEL_KW, gsdstr);
-    ih->setProperty(gsd_prop);
+    if(outImage.valid())
+       outImage->initialize();
+   // else
+     //  return -1;
 
-    // Set up the writer:
-    ossimRefPtr<ossimTiffWriter> tif_writer =  new ossimTiffWriter();
-    tif_writer->setGeotiffFlag(true);
-    ossimFilename outfile ("DSM_float.tif");
-    tif_writer->setFilename(outfile);
-    if (tif_writer.valid())
+    for (int i=0; i< fusedDisp.cols; i++) // for every row
     {
-        tif_writer->connectMyInputTo(0, ih.get());
-        tif_writer->execute();
+        for(int j=0; j< fusedDisp.rows; j++) // for every column
+        {
+            outImage->setValue(i,j,fusedDisp.at<double>(j,i));
+        }
     }
 
-    cout << "Output written to <"<<outfile<<">"<<endl;
 
-    tif_writer->close();
-    tif_writer = 0;
-    ih = 0;
-    pc_handler = 0;
+/*
+    // come faccio a prendere (o inserire) il valore nel punto i,j?
+    outImage = outImage + outImage->setValue(i,j,disparity_maps[k].at<double>(i,j)/mean_conversionF[k]);
+
+    outImage->setValue(i,j,disparity_maps[1].at<double>(i,j)/mean_conversionF[1]);
+
+    outImage->setValue(i,j,disparity_maps[k].at<double>(i,j)/mean_conversionF[k]);
+    outImage->loadTile();
 */
+
+
+    /*
+
     //Conversion from m to cm
     fusedDisp = fusedDisp*100.0;
 
-    // Conversion from float to integer to show
+    // Conversion from float to integer to show and write
     cv::Mat intDSM;
     fusedDisp.convertTo(intDSM, CV_16U);
     cv::imwrite("DSM_float.tif", intDSM);
@@ -258,9 +262,9 @@ bool openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManag
 	
     cv::namedWindow("Temp_DSM", CV_WINDOW_NORMAL);
 	cv::imshow("Temp_DSM", intDSM);
-	cv::waitKey(0);	
-	
-	return true;
+    cv::waitKey(0);	*/
+    return outImage;
+    //return true;
 }
 
 

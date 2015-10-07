@@ -28,6 +28,8 @@
 #include "ossim/imaging/ossimImageGeometry.h"
 #include "ossim/imaging/ossimImageFileWriter.h"
 #include "ossim/imaging/ossimImageWriterFactoryRegistry.h"
+#include <ossim/imaging/ossimMemoryImageSource.h>
+#include <ossim/imaging/ossimTiffWriter.h>
 
 #include <ossim/init/ossimInit.h>
 
@@ -411,8 +413,36 @@ int main(int argc,  char* argv[])
                 // From Disparity to DSM
                 ossimImageGeometry* nadir_geom = nadir_handler->getImageGeometry().get();
                 nadir_handler->saveImageGeometry();
+
+                    ossimRefPtr<ossimImageData> finalDSM =
                 tripletCv->computeDSM(mean_conversionF, elev, nadir_geom);
 
+
+
+                ossimFilename pathDSM;
+                if (i == 0)
+                    pathDSM = ossimFilename(ap[4]) + ossimString("DSM/") + ossimFilename(ap[5]) + ossimString(".TIF");
+                else
+                    pathDSM = ossimFilename(ap[4]) + ossimString("temp_elevation/") + ossimFilename(ap[5])+ossimString(".TIF");
+
+                //ossimRefPtr<ossimImageGeometry> geometry = new ossimImageGeometry();
+                //geometry->setImageSize(image_size);
+                // Create output image chain:
+                ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
+                memSource->setImage(finalDSM);
+                memSource->setImageGeometry(nadir_geom);
+
+                ossimRefPtr<ossimTiffWriter> writer = new ossimTiffWriter();
+                writer->connectMyInputTo(0, memSource.get());
+                writer->setFilename(pathDSM);
+                writer->setGeotiffFlag(true);
+                bool success = writer->execute();
+                writer->close();
+                writer = 0;
+
+
+                // INSERITO TUTTO IN OPENCVTESTCLASS//
+                /*
                 // Geocoded DSM generation
                 ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("DSM_float.tif"));
                 handler_disp->setImageGeometry(nadir_geom);
@@ -427,22 +457,6 @@ int main(int argc,  char* argv[])
                 ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
                 writer->connectMyInputTo(0, handler_disp);
 
-                /*
-                // Create output image chain:
-                ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
-                memSource->setImage(newImage);
-                memSource->setImageGeometry(nadir_geom);
-
-                ossimRefPtr<ossimTiffWriter> writer = new ossimTiffWriter();
-                writer->connectMyInputTo(0, memSource.get());
-                writer->setFilename(filename);
-                writer->setGeotiffFlag(true);
-                bool success = writer->execute(); */
-
-                return 0;
-
-
-
                 // Add a listener to get percent complete
                 ossimStdOutProgress prog(0, true);
                 writer->addListener(&prog);
@@ -450,11 +464,9 @@ int main(int argc,  char* argv[])
                 writer->removeListener(&prog);
 
                 writer->close();
-                writer = 0;
+                writer = 0;*/
                 delete tripletCv;
 
-                //int a;
-                //cin >> a;
             }
             iter --;
 		}
