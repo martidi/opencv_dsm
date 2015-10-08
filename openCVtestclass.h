@@ -13,6 +13,7 @@
 #define openCVtestclass_HEADER 1
 
 #include <opencv/cv.h>
+#include <ossim/imaging/ossimImageDataFactory.h>
 
 class openCVtestclass
 {
@@ -25,8 +26,8 @@ public:
 	
 	bool writeDisparity(double mean_conversionF);
 	
-    bool computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom);
-
+    //bool computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom);
+    ossimRefPtr<ossimImageData> computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom);
 	cv::Mat wallis(cv::Mat raw_image);
    
     //DOVRANNO ESSERE RIMOSSE

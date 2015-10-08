@@ -171,7 +171,6 @@ ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(vector<double> mean_conv
 
     cv::Mat fusedDisp = cv::Mat::zeros(disparity_maps[0].rows, disparity_maps[0].cols, CV_64F);
 
-
     cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
     cout << "null_disp_threshold\t"<< null_disp_threshold<< endl;
 
@@ -211,7 +210,7 @@ ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(vector<double> mean_conv
             master_geom->localToWorld(image_pt, world_pt);
             ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
             //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
-            fusedDisp.at<double>(i,j) += hgtAboveMSL; // to work with millimeters
+            fusedDisp.at<double>(i,j) += hgtAboveMSL;
             //hgtAboveMSL += fusedDisp.at<double>(i,j);
             //world_pt.height(hgtAboveMSL);
             //image_points.push_back(world_pt);
@@ -227,9 +226,9 @@ ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(vector<double> mean_conv
    // else
      //  return -1;
 
-    for (int i=0; i< fusedDisp.cols; i++) // for every row
+    for (int i=0; i< fusedDisp.cols; i++) // for every column
     {
-        for(int j=0; j< fusedDisp.rows; j++) // for every column
+        for(int j=0; j< fusedDisp.rows; j++) // for every row
         {
             outImage->setValue(i,j,fusedDisp.at<double>(j,i));
         }
@@ -246,25 +245,8 @@ ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(vector<double> mean_conv
     outImage->loadTile();
 */
 
-
-    /*
-
-    //Conversion from m to cm
-    fusedDisp = fusedDisp*100.0;
-
-    // Conversion from float to integer to show and write
-    cv::Mat intDSM;
-    fusedDisp.convertTo(intDSM, CV_16U);
-    cv::imwrite("DSM_float.tif", intDSM);
-
-	minMaxLoc(intDSM, &minVal, &maxVal);
-	intDSM.convertTo(intDSM, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));   
-	
-    cv::namedWindow("Temp_DSM", CV_WINDOW_NORMAL);
-	cv::imshow("Temp_DSM", intDSM);
-    cv::waitKey(0);	*/
     return outImage;
-    //return true;
+
 }
 
 
