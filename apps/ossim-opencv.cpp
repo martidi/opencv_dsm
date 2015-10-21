@@ -30,6 +30,7 @@
 #include "ossim/imaging/ossimImageFileWriter.h"
 #include "ossim/imaging/ossimImageWriterFactoryRegistry.h"
 #include <ossim/imaging/ossimTiffWriter.h>
+#include <ossim/imaging/ossimMemoryImageSource.h>
 
 #include <ossim/init/ossimInit.h>
 
@@ -365,28 +366,37 @@ int main(int argc,  char* argv[])
                 // From Disparity to DSM
                 ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
                 master_handler->saveImageGeometry();
-                test->computeDSM(mean_conversionF/1.0, elev, master_geom);
 
-                // Geocoded DSM generation
-                ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("DSM_test.tif"));
-                handler_disp->setImageGeometry(master_geom); // now I have a "geo" image handler
-                cout << "size" << master_geom->getImageSize() << endl;
-                handler_disp->saveImageGeometry();
+                ossimRefPtr<ossimImageData> finalDSM =
+                test->computeDSM(mean_conversionF/1.0, elev, master_geom);
 
                 ossimFilename pathDSM;
                 if (i == 0)
                     pathDSM = ossimFilename(ap[3]) + ossimString("DSM/") + ossimFilename(ap[4]) + ossimString(".TIF");
                 else
                     pathDSM = ossimFilename(ap[3]) + ossimString("temp_elevation/") + ossimFilename(ap[4])+ossimString(".TIF");
+/*
+
+                // Geocoded DSM generation
+                ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("DSM_test.tif"));
+                handler_disp->setImageGeometry(master_geom); // now I have a "geo" image handler
+                cout << "size" << master_geom->getImageSize() << endl;
+                handler_disp->saveImageGeometry();
+*/
+
+                ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
+                memSource->setImage(finalDSM);
+                memSource->setImageGeometry(master_geom);
+                cout << "size" << master_geom->getImageSize() << endl;
+                memSource->saveImageGeometry();
 
                 ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
-                writer->connectMyInputTo(0, handler_disp);
+                writer->connectMyInputTo(0, memSource.get());
                 writer->execute();
-                int a;
-                cin >>a;
+
                 writer->close();
                 writer = 0;
-                handler_disp = 0;
+                memSource = 0;
                 test= 0;
             }
             iter --;

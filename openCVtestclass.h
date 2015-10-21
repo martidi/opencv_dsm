@@ -21,7 +21,7 @@ public:
 	openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr<ossimImageData> slave); 
 	bool execute();
 	bool writeDisparity(double mean_conversionF);
-	bool computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom);
+    ossimRefPtr<ossimImageData> computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom);
 	cv::Mat wallis(cv::Mat raw_image);
    
 	cv::Mat master_mat, slave_mat;

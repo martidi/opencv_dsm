@@ -13,6 +13,7 @@
 #include <ossim/elevation/ossimElevManager.h>
 #include <ossim/imaging/ossimImageSource.h>
 #include <ossim/imaging/ossimTiffWriter.h>
+#include <ossim/imaging/ossimImageDataFactory.h>
 
 #include "openCVtestclass.h"
 #include "ossimOpenCvTPgenerator.h"
@@ -92,16 +93,15 @@ bool openCVtestclass::execute()
 	return true;
 }
 
-bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
+ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
     // for along-track images
     cv::transpose(out_disp, out_disp);
     cv::flip(out_disp, out_disp, 0);
 
-
-
     // Creation of an OSSIM tiff
-    vector<ossimGpt> image_points;  // Need to fill this vector array
+    //vector<ossimGpt> image_points;  // Need to fill this vector array
+
     out_disp.convertTo(out_disp, CV_64F);
     out_disp = ((out_disp/16.0)) / mean_conversionF;
 
@@ -119,112 +119,76 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 
             ossim_float64 hgtAboveMSL = elev->getHeightAboveMSL(world_pt);
 
+            //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
             if(out_disp.at<double>(i,j) >= null_disp_threshold/abs(mean_conversionF))
             {
-                hgtAboveMSL += out_disp.at<double>(i,j);
+                out_disp.at<double>(i,j) += hgtAboveMSL;
 
-                world_pt.height(hgtAboveMSL);
 
-                image_points.push_back(world_pt);
-                //cout <<"punti"<<image_points[i]<<endl;
+                //hgtAboveMSL += out_disp.at<double>(i,j);
+
+                //world_pt.height(hgtAboveMSL);
+
+                // image_points.push_back(world_pt);
+                // cout <<"punti"<<image_points[i]<<endl;
             }
+            //To fill holes with DSM coarse
+            /*else
+            {
+                out_disp.at<double>(i,j) = hgtAboveMSL;
+            }*/
         }
     }
 
-    ossimRefPtr<ossimGenericPointCloudHandler> pc_handler =
-       new ossimGenericPointCloudHandler(image_points);
-                cout << "prova1" << endl;
-    ossimRefPtr<ossimPointCloudImageHandler> ih =  new ossimPointCloudImageHandler;
-                cout << "prova2" << endl;
-    ih->setCurrentEntry((ossim_uint32)ossimPointCloudImageHandler::HIGHEST);
-            cout << "prova3" << endl;
-    ih->setPointCloudHandler(pc_handler.get());
-    cout << "prova4" << endl;
-    // TODO: This sets the resolution of the output file. There is a default value computed but you
-    // may either adjust it or set it manually here:
-    ossimDpt gsd;
-    ih->getGSD(gsd, 0);
-    cout << gsd.x << "" << gsd.y << endl;
-    ossimString gsdstr = ossimString::toString((gsd.x + gsd.y)/2.0);
-    ossimRefPtr<ossimProperty> gsd_prop = new ossimStringProperty(ossimKeywordNames::METERS_PER_PIXEL_KW, gsdstr);
-    ih->setProperty(gsd_prop);
+    // Set the destination image size:
+    ossimIpt image_size (out_disp.cols , out_disp.rows);
+    ossimRefPtr<ossimImageData> outImage = ossimImageDataFactory::instance()->create(0, OSSIM_FLOAT32, 1, image_size.x, image_size.y);
 
-    // Set up the writer:
-    ossimRefPtr<ossimTiffWriter> tif_writer =  new ossimTiffWriter();
-    tif_writer->setGeotiffFlag(true);
+    if(outImage.valid())
+       outImage->initialize();
+   // else
+     //  return -1;
 
-    ossimFilename outfile ("DSM_test.tif");
-    tif_writer->setFilename(outfile);
-    if (tif_writer.valid())
+    for (int i=0; i< out_disp.cols; i++) // for every column
     {
-       tif_writer->connectMyInputTo(0, ih.get());
-       tif_writer->execute();
+        for(int j=0; j< out_disp.rows; j++) // for every row
+        {
+            outImage->setValue(i,j,out_disp.at<double>(j,i));
+        }
     }
-
-    cout << "Output written to <"<<outfile<<">"<<endl;
-    tif_writer->close();
-    tif_writer = 0;
-    ih = 0;
-    pc_handler = 0;
 
 
 /*
-	cv::Mat out_16bit_disp = cv::Mat::zeros (out_disp.size(),CV_64F);
-	out_disp.convertTo(out_disp, CV_64F);
-	//cout <<  "fattore di conv" << mean_conversionF << endl;
+    cv::Mat out_16bit_disp = cv::Mat::zeros (out_disp.size(),CV_64F);
+    out_disp.convertTo(out_disp, CV_64F);
+    //cout <<  "fattore di conv" << mean_conversionF << endl;
     out_16bit_disp = ((out_disp/16.0)) / mean_conversionF;
-	//out_16bit_disp = (out_disp/16.0) * mean_conversionF;	
-	cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
-	cout << "null_disp_threshold"<< null_disp_threshold<< endl;
-	for(int i=0; i< out_16bit_disp.rows; i++)
-	{
-		for(int j=0; j< out_16bit_disp.cols; j++)
-		{
-			ossimDpt image_pt(j,i);
-			ossimGpt world_pt;     
-			master_geom->localToWorld(image_pt, world_pt);
+    //out_16bit_disp = (out_disp/16.0) * mean_conversionF;
+    cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
+    cout << "null_disp_threshold"<< null_disp_threshold<< endl;
+    for(int i=0; i< out_16bit_disp.rows; i++)
+    {
+        for(int j=0; j< out_16bit_disp.cols; j++)
+        {
+            ossimDpt image_pt(j,i);
+            ossimGpt world_pt;
+            master_geom->localToWorld(image_pt, world_pt);
             ossim_float64 hgtAboveMSL =  elev->getHeightAboveMSL(world_pt);
-            //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
-			if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold/abs(mean_conversionF))		
-			//if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold*abs(mean_conversionF))					
-			{ 
-				out_16bit_disp.at<double>(i,j) = 0.0;
-			}
-			out_16bit_disp.at<double>(i,j) += hgtAboveMSL;
-		}
-	}
 
-
-    //cout << out_16bit_disp << endl;
-
-	// Conversion from OpenCV to OSSIM images   
-	
-	//ossimRefPtr<ossimImageData> disp_ossim = disp_ossim_handler->getSize();
-	cout << "OpenCV->OSSIM image conversion done_1" << endl;	
-	
-	//ossimImageHandler* disp_ossim_handler = ossimImageHandlerRegistry::instance() ->open(ossimFilename("../../../../img_data/ZY_3/ZY3_NAD_E11.5_N46.5_20120909_L1A0000657936/ZY3_TLC_E11_5_N46_5_20120909_L1A0000657936_NAD.TIF"));
-	//ossimIrect bounds_disp = disp_ossim_handler->getBoundingRect(0); 			
-	ossimRefPtr<ossimImageData> disp_ossim = new ossimImageData(NULL, OSSIM_DOUBLE, 1, out_16bit_disp.cols, out_16bit_disp.rows );
-	//disp_ossim->setWidthHeight(out_16bit_disp.cols,out_16bit_disp.rows);    
-		
-	//ossimImageHandler* master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(argv[3]));  	
-	//ossimIrect bounds_master = master_handler->getBoundingRect(0); 		
-	//ossimRefPtr<ossimImageData> img_master = master_handler->getTile(bounds_master, 0);     
-	//ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry(); 	
-	cout << "OpenCV->OSSIM image conversion done_2" << endl;		
-	
-	//master_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
-	//slave_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
-
-	memcpy((void*)disp_ossim->getDoubleBuf(), (void*)out_16bit_disp.ptr(), out_16bit_disp.cols*out_16bit_disp.rows);
-	//memcpy(slave_mat.ptr(), (void*) slave->getUshortBuf(), 2*slave->getWidth()*slave->getHeight());
-	
-	//disp_ossim = disp_ossim->getDoubleBuf();
-	
-	cout << "OpenCV->OSSIM image conversion done_3" << endl;
+            if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold/abs(mean_conversionF))
+            //if(out_16bit_disp.at<double>(i,j) <= null_disp_threshold*abs(mean_conversionF))
+            {
+                out_16bit_disp.at<double>(i,j) = 0.0;
+            }
+            out_16bit_disp.at<double>(i,j) += hgtAboveMSL;
+        }
+    }
 */
 
 
+
+
+/*
 	cv::Mat intDSM; 
 	// Conversion from float to integer to write and show
     out_disp.convertTo(intDSM, CV_16U);
@@ -239,7 +203,8 @@ bool openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev
 	cv::imshow("Temp_DSM", intDSM);
 	cv::waitKey(0);	
 	
-	return true;
+    return true;*/
+    return outImage;
 }
 
 bool openCVtestclass::writeDisparity(double conv_factor)
