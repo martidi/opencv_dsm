@@ -219,7 +219,7 @@ ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(vector<double> mean_conv
 
     // Set the destination image size:
     ossimIpt image_size (fusedDisp.cols , fusedDisp.rows);
-    ossimRefPtr<ossimImageData> outImage = ossimImageDataFactory::instance()->create(0, OSSIM_FLOAT64, 1, image_size.x, image_size.y);
+    ossimRefPtr<ossimImageData> outImage = ossimImageDataFactory::instance()->create(0, OSSIM_FLOAT32, 1, image_size.x, image_size.y);
 
     if(outImage.valid())
        outImage->initialize();
@@ -233,20 +233,7 @@ ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(vector<double> mean_conv
             outImage->setValue(i,j,fusedDisp.at<double>(j,i));
         }
     }
-
-
-/*
-    // come faccio a prendere (o inserire) il valore nel punto i,j?
-    outImage = outImage + outImage->setValue(i,j,disparity_maps[k].at<double>(i,j)/mean_conversionF[k]);
-
-    outImage->setValue(i,j,disparity_maps[1].at<double>(i,j)/mean_conversionF[1]);
-
-    outImage->setValue(i,j,disparity_maps[k].at<double>(i,j)/mean_conversionF[k]);
-    outImage->loadTile();
-*/
-
     return outImage;
-
 }
 
 
