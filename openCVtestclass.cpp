@@ -133,10 +133,10 @@ ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(double mean_conversionF,
                 // cout <<"punti"<<image_points[i]<<endl;
             }
             //To fill holes with DSM coarse
-            /*else
+            else
             {
                 out_disp.at<double>(i,j) = hgtAboveMSL;
-            }*/
+            }
         }
     }
 

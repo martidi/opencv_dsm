@@ -243,8 +243,8 @@ int main(int argc,  char* argv[])
         {
             for (int j=0 ; j<3 ; j++) //LON
             {
-                ossimGpt groundPoint(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight -50);
-                ossimGpt groundPointUp(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight + 50);
+                ossimGpt groundPoint(lat_max-i*Dlat,lon_min+j*Dlon, MinHeight);//MinHeight- 50
+                ossimGpt groundPointUp(lat_max-i*Dlat,lon_min+j*Dlon, MaxHeight);//MaxHeight+ 50
 
                 ossimDpt imagePoint(0.,0.);
                 ossimDpt imagePointUp(0.,0.);
@@ -270,8 +270,8 @@ int main(int argc,  char* argv[])
             }
         }
 
-        //cout << conv_factor_J << endl;
-        //cout << conv_factor_I << endl;
+        cout << conv_factor_J << endl;
+        cout << conv_factor_I << endl;
 
         cv::Scalar mean_conv_factor_J, stDev_conv_factor_J;
         cv::meanStdDev(conv_factor_J, mean_conv_factor_J, stDev_conv_factor_J);

@@ -72,7 +72,7 @@ void ossimOpenCvTPgenerator::TPgen()
 
 	// Matching descriptors
 	cv::BFMatcher matcher(cv::NORM_L2);
-	vector<cv::DMatch> matches;
+    vector<cv::DMatch> matches;
 	matcher.match(descriptors1, descriptors2, matches);	
 
     cerr << matches.size() << endl;

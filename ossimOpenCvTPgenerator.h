@@ -27,7 +27,7 @@ public:
 	 
 	cv::Mat master_mat, slave_mat;
 	cv::vector<cv::KeyPoint> keypoints1, keypoints2;
-	vector<cv::DMatch > good_matches;
+    vector<cv::DMatch > good_matches;
 	double slave_x, slave_y, master_x, master_y;
 };
 
