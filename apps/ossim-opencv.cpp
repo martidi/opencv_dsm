@@ -59,6 +59,7 @@ static const std::string CUT_MIN_LON_KW          = "cut_min_lon";
 static const std::string METERS_KW               = "meters";
 static const std::string OP_KW                   = "operation";
 static const std::string RESAMPLER_FILTER_KW     = "resampler_filter";
+static const std::string PROJECTION_KW           = "projection";
 
 bool ortho (ossimKeywordlist kwl)
 {
@@ -112,6 +113,7 @@ int main(int argc,  char* argv[])
 		
         master_key.addPair(RESAMPLER_FILTER_KW, "box");
         slave_key.addPair(RESAMPLER_FILTER_KW, "box");
+        cout << endl << "Resampling filter is box" << endl << endl;
 
         if(ap.argc() < 5) //ap.argv[0] is the application name
         {
@@ -148,6 +150,14 @@ int main(int argc,  char* argv[])
           //else nsteps = 1;
         }
         cout << "Total steps number for pyramidal\t " << nsteps << endl;
+
+        if(ap.read("--projection", stringParam1) )
+        {
+            master_key.addPair(PROJECTION_KW, tempString1 );
+            slave_key.addPair(PROJECTION_KW, tempString1 );
+
+            cout << "Output DSM is in UTM projection" << endl << endl;
+        }
 
         double lat_min;
         double lon_min;
@@ -219,7 +229,6 @@ int main(int argc,  char* argv[])
         ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();
         ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry();
 
-
         // CONVERSION FACTOR (from pixels to meters) COMPUTATION *************
 
         // Conversion factor computed on tile and not over all the image
@@ -243,8 +252,8 @@ int main(int argc,  char* argv[])
         {
             for (int j=0 ; j<3 ; j++) //LON
             {
-                ossimGpt groundPoint(lat_max-i*Dlat,lon_min+j*Dlon, MinHeight);//MinHeight- 50
-                ossimGpt groundPointUp(lat_max-i*Dlat,lon_min+j*Dlon, MaxHeight);//MaxHeight+ 50
+                ossimGpt groundPoint(lat_max-i*Dlat, lon_min+j*Dlon, MinHeight);//MinHeight- 50
+                ossimGpt groundPointUp(lat_max-i*Dlat, lon_min+j*Dlon, MaxHeight);//MaxHeight+ 50
 
                 ossimDpt imagePoint(0.,0.);
                 ossimDpt imagePointUp(0.,0.);
@@ -320,8 +329,6 @@ int main(int argc,  char* argv[])
 
             ossimElevManager* elev = ossimElevManager::instance();
 
-            cout << "Building height" << elev->getHeightAboveEllipsoid(ossimGpt(46.039865, 11.114437, 0.00)) << endl;
-
             master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
             slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
 
@@ -358,7 +365,8 @@ int main(int argc,  char* argv[])
                 ossimRefPtr<ossimImageData> img_slave = slave_handler->getTile(bounds_slave, 0);
 
                 // TPs and disp map generation
-                openCVtestclass *test = new openCVtestclass(img_master, img_slave) ;
+                openCVtestclass *test = new openCVtestclass(img_master, img_slave);
+
                 test->execute();
 
                 remove(ossimFilename(ossimFilename(ap[3]) + ossimString("temp_elevation/") + ossimFilename(ap[4])+ossimString(".TIF")));
@@ -375,10 +383,9 @@ int main(int argc,  char* argv[])
                     pathDSM = ossimFilename(ap[3]) + ossimString("DSM/") + ossimFilename(ap[4]) + ossimString(".TIF");
                 else
                     pathDSM = ossimFilename(ap[3]) + ossimString("temp_elevation/") + ossimFilename(ap[4])+ossimString(".TIF");
-/*
 
                 // Geocoded DSM generation
-                ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("DSM_test.tif"));
+/*              ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("DSM_test.tif"));
                 handler_disp->setImageGeometry(master_geom); // now I have a "geo" image handler
                 cout << "size" << master_geom->getImageSize() << endl;
                 handler_disp->saveImageGeometry();

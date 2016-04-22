@@ -45,9 +45,9 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	cv::imshow( "Scaled slave", slave_mat);
 	*/	
 		
-    ndisparities = 32; //Maximum disparity minus minimum disparity
+    ndisparities = 16; //Maximum disparity minus minimum disparity
     minimumDisp = -8;
-	SADWindowSize = 5; //Matched block size	
+    SADWindowSize = 11; //Matched block size
 			
 	// Disparity Map generation
 	int cn = master_mat.channels();
@@ -56,14 +56,14 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	sgbm.preFilterCap = 63;
 	sgbm.SADWindowSize = SADWindowSize > 0 ? SADWindowSize : 3;
 	sgbm.P1 = 8*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
-    sgbm.P2 = 40*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
+    sgbm.P2 = 64*cn*sgbm.SADWindowSize*sgbm.SADWindowSize;
 	sgbm.minDisparity = minimumDisp; // Minimum possible disparity value  //con fattore di conversione 1 metti -16*2
 	sgbm.numberOfDisparities = ndisparities;
-	sgbm.uniquenessRatio = 5;
+    sgbm.uniquenessRatio = 5;
 	sgbm.speckleWindowSize = 100;
 	sgbm.speckleRange = 1;
 	sgbm.disp12MaxDiff = 1; // Maximum allowed difference (in integer pixel units) in the left-right disparity check
-	//sgbm.fullDP = true; //activate for consider 8 directions (Hirschmuller algorithm) instead of 5;
+    //sgbm.fullDP = true; //activate for consider 8 directions (Hirschmuller algorithm) instead of 5;
 	
 	double minVal, maxVal;
 	cv::Mat array_disp;

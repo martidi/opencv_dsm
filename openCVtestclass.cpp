@@ -42,22 +42,31 @@ openCVtestclass::openCVtestclass()
 
 openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr<ossimImageData> slave)
 {
-
     // Create the OpenCV images
-	master_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
-	slave_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
+    master_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
+    slave_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
 
-	memcpy(master_mat.ptr(), (void*) master->getUshortBuf(), 2*master->getWidth()*master->getHeight());
-	memcpy(slave_mat.ptr(), (void*) slave->getUshortBuf(), 2*slave->getWidth()*slave->getHeight());
+    memcpy(master_mat.ptr(), (void*) master->getUshortBuf(), 2*master->getWidth()*master->getHeight());
+    memcpy(slave_mat.ptr(), (void*) slave->getUshortBuf(), 2*slave->getWidth()*slave->getHeight());
 
+    //memcpy(master_mat.ptr(), (void*) master->getSshortBuf(), 2*master->getWidth()*master->getHeight());
+    //memcpy(slave_mat.ptr(), (void*) slave->getSshortBuf(), 2*slave->getWidth()*slave->getHeight());
+
+    /*memcpy(master_mat.ptr(), (void*) master->getUcharBuf()    //ossim_uint8  NO
+    memcpy(master_mat.ptr(), (void*) master->getBuf() //void                    SI
+    memcpy(master_mat.ptr(), (void*) master->getFloatBuf()  //ossim_float32 SI
+    memcpy(master_mat.ptr(), (void*) master->getSshortBuf() //ossim_sint16 NO
+    memcpy(master_mat.ptr(), (void*) master->getUshortBuf() //ossim_uint16 NO
+    memcpy(master_mat.ptr(), (void*) master->getDoubleBuf() //ossim_float64 NO
+    */
 	cout << "OSSIM->OpenCV image conversion done" << endl;
 	
 	// Rotation for along-track images
-    cv::transpose(master_mat, master_mat);
-	cv::flip(master_mat, master_mat, 1);
+    //cv::transpose(master_mat, master_mat);
+    //cv::flip(master_mat, master_mat, 1);
 	
-	cv::transpose(slave_mat, slave_mat);
-    cv::flip(slave_mat, slave_mat, 1);
+    //cv::transpose(slave_mat, slave_mat);
+    //cv::flip(slave_mat, slave_mat, 1);
 }
 
 
@@ -96,8 +105,8 @@ bool openCVtestclass::execute()
 ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(double mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
     // for along-track images
-    cv::transpose(out_disp, out_disp);
-    cv::flip(out_disp, out_disp, 0);
+    //cv::transpose(out_disp, out_disp);
+    //cv::flip(out_disp, out_disp, 0);
 
     // Creation of an OSSIM tiff
     //vector<ossimGpt> image_points;  // Need to fill this vector array
@@ -210,8 +219,8 @@ ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(double mean_conversionF,
 bool openCVtestclass::writeDisparity(double conv_factor)
 {
 	// Rotation for along-track images
-    cv::transpose(out_disp, out_disp);
-    cv::flip(out_disp, out_disp, 0);
+    //cv::transpose(out_disp, out_disp);
+    //cv::flip(out_disp, out_disp, 0);
 
 	out_disp = (out_disp/16.0) * conv_factor;
 	cv::imwrite("mDisparity.jpg", out_disp);

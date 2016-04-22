@@ -29,7 +29,13 @@ public:
 	vector<cv::DMatch > good_matches;
 	cv::Mat out_disp; 
 	double null_disp_threshold;
+
 };
 
 #endif /* #ifndef openCVtestclass_HEADER */
+
+
+
+
+
              

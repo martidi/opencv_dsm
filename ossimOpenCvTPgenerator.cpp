@@ -38,6 +38,10 @@ ossimOpenCvTPgenerator::ossimOpenCvTPgenerator(cv::Mat master, cv::Mat slave)
 
 void ossimOpenCvTPgenerator::run()
 {
+    cv::Ptr<cv::CLAHE> filtro = cv::createCLAHE(8.0); //threshold for contrast limiting
+    filtro->apply(master_mat, master_mat);
+    filtro->apply(slave_mat, slave_mat);
+
     cv::namedWindow( "master_img", CV_WINDOW_NORMAL );
     cv::imshow("master_img", master_mat);
    
