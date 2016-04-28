@@ -239,15 +239,15 @@ cv::Mat ossimOpenCvTPgenerator::warp(cv::Mat slave_16bit)
 	cv::warpAffine(slave_mat, warp_dst, rot_matrix, warp_dst.size());
 	cv::warpAffine(slave_16bit, warp_dst_16bit, rot_matrix, warp_dst.size());
     
-	cv::namedWindow("Master image", CV_WINDOW_NORMAL);
-	cv::imshow("Master image", master_mat );
+    //cv::namedWindow("Master image", CV_WINDOW_NORMAL);
+    //cv::imshow("Master image", master_mat );
 	cv::imwrite("Master_8bit.tif",  master_mat);
 
-	cv::namedWindow("Warped image", CV_WINDOW_NORMAL);
-	cv::imshow("Warped image", warp_dst );
+    //cv::namedWindow("Warped image", CV_WINDOW_NORMAL);
+    //cv::imshow("Warped image", warp_dst );
 	cv::imwrite("Slave_8bit.tif",  warp_dst);
 	
-	cv::waitKey(0);
+    //cv::waitKey(0);
     
 	return warp_dst;
 }	

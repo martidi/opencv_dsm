@@ -53,6 +53,7 @@ static const std::string CUT_MIN_LON_KW          = "cut_min_lon";
 static const std::string METERS_KW               = "meters";
 static const std::string OP_KW                   = "operation";
 static const std::string RESAMPLER_FILTER_KW     = "resampler_filter";
+static const std::string PROJECTION_KW           = "projection";
 
 bool ortho (ossimKeywordlist kwl)
 {
@@ -145,7 +146,17 @@ int main(int argc,  char* argv[])
         {
           //else nsteps = 1;
         }
-        cout << "step number for pyramidal\t " << nsteps << endl;
+        cout << "Total steps number for pyramidal\t " << nsteps << endl;
+
+
+        if(ap.read("--projection", stringParam1) )
+        {
+            forward_key.addPair(PROJECTION_KW, tempString1 );
+            nadir_key.addPair(PROJECTION_KW, tempString1 );
+            backward_key.addPair(PROJECTION_KW, tempString1 );
+
+            cout << "Output DSM is in UTM projection" << endl << endl;
+        }
 
         double lat_min;
         double lon_min;
@@ -249,8 +260,8 @@ int main(int argc,  char* argv[])
         {
             for (int j=0 ; j<3 ; j++) //LON
             {
-                ossimGpt groundPoint(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight -50);
-                ossimGpt groundPointUp(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight + 50);
+                ossimGpt groundPoint(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight); //MinHeight -50
+                ossimGpt groundPointUp(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight); //MaxHeight + 50
 
                 ossimDpt imagePoint(0.,0.);
                 ossimDpt imagePointUp(0.,0.);

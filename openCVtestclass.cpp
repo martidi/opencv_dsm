@@ -75,12 +75,16 @@ openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> forward, ossimRefPt
 	
 	cout << "OSSIM->OpenCV image conversion done" << endl;
 	
-	// Rotation for along-track images
+    // Rotation for along-track OPTICAL images
+    //********* To comment out for SAR images *********
+    /*
     for(size_t i = 0; i < images.size(); i++)
         {
             cv::transpose(images[i], images[i]);
             cv::flip(images[i], images[i], 1);
         }
+     */
+    //********* To comment out for SAR images *********
 }
 
 
@@ -129,35 +133,35 @@ bool openCVtestclass::execute()
 
 ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
-    //vector<cv::Mat> disparity_maps_16bit;
     vector<cv::Mat> disparity_maps_8bit;
-    //vector<ossimGpt> image_points;
     double minVal, maxVal;
-
-    //disparity_maps_16bit.resize(disparity_maps.size());
     disparity_maps_8bit.resize(disparity_maps.size());
 
     cout << disparity_maps.size() << endl;
     for (unsigned int k = 0; k < disparity_maps.size(); ++k)
     {
+        // Rotation for along-track OPTICAL images
+        //********* To comment out for SAR images *********
+        /*
         cv::transpose(disparity_maps[k], disparity_maps[k]);
         cv::flip(disparity_maps[k], disparity_maps[k], 0);
+        */
+        //********* To comment out for SAR images *********
 
         disparity_maps[k].convertTo(disparity_maps[k], CV_64F);
         disparity_maps[k] = (disparity_maps[k]/16.0); // / mean_conversionF[k];
 
-        // A questo punto ho 2 mappe di disparità ruotate e corrette in pix (/16.0) per opencv
-        // Devo fonderle e renderle "metriche"
-
         //To show disparity maps
-        minMaxLoc( disparity_maps[k], &minVal, &maxVal );
+        /*minMaxLoc( disparity_maps[k], &minVal, &maxVal );
         disparity_maps[k].convertTo(disparity_maps_8bit[k], CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
         cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
-
         ossimString win_name = "Disparity_Map_";
         cv::namedWindow( win_name+ossimString(k), CV_WINDOW_NORMAL );
-        cv::imshow( win_name+ossimString(k), disparity_maps_8bit[k]);
+        cv::imshow( win_name+ossimString(k), disparity_maps_8bit[k]);*/
     }
+
+    // A questo punto ho 2 mappe di disparità ruotate e corrette in pix (/16.0) per opencv
+    // Devo fonderle e renderle "metriche"
 
     cout << disparity_maps[0].size() << endl;
     cout << disparity_maps[1].size() << endl;
