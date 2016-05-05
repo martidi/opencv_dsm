@@ -20,22 +20,19 @@ class openCVtestclass
 public:
 	openCVtestclass();
     openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr<ossimImageData> slave);
-    openCVtestclass(ossimRefPtr<ossimImageData> forward, ossimRefPtr<ossimImageData> nadir, ossimRefPtr<ossimImageData> backward);
-	
-	bool execute();
-	
+
+    bool execute(double mean_conversionF);
 	bool writeDisparity(double mean_conversionF);
 	
     //bool computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom);
-    ossimRefPtr<ossimImageData> computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom);
+    ossimRefPtr<ossimImageData> computeDSM( ossimElevManager* elev, ossimImageGeometry* master_geom);
 	cv::Mat wallis(cv::Mat raw_image);
    
-    //DOVRANNO ESSERE RIMOSSE
-    cv::Mat backward_mat, nadir_mat, forward_mat;
-
-	vector<cv::Mat> images;
-	
-    vector<cv::Mat> disparity_maps;
+    cv::Mat master_mat, slave_mat;
+    cv::vector<cv::KeyPoint> keypoints1, keypoints2;
+    vector<cv::DMatch > good_matches;
+    cv::Mat out_disp;
+    vector<cv::Mat> fusedDisp_array;
 
     double null_disp_threshold;
 };

@@ -39,7 +39,7 @@ openCVtestclass::openCVtestclass()
 
 openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr<ossimImageData> slave)
 {
-/*	// Create the OpenCV images
+    // Create the OpenCV images
 	master_mat.create(cv::Size(master->getWidth(), master->getHeight()), CV_16UC1);
 	slave_mat.create(cv::Size(slave->getWidth(), slave->getHeight()), CV_16UC1);
 	
@@ -48,47 +48,18 @@ openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr
 
 	cout << "OSSIM->OpenCV image conversion done" << endl;
 	
-	// Rotation for along-track images
-    cv::transpose(master_mat, master_mat);
-	cv::flip(master_mat, master_mat, 1);
-	
-	cv::transpose(slave_mat, slave_mat);
-    cv::flip(slave_mat, slave_mat, 1);*/
-}
-
-
-openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> forward, ossimRefPtr<ossimImageData> nadir, ossimRefPtr<ossimImageData> backward)
-{
-	// Create the OpenCV images
-
-    forward_mat.create(cv::Size(forward->getWidth(), forward->getHeight()), CV_16UC1);
-	nadir_mat.create(cv::Size(nadir->getWidth(), nadir->getHeight()), CV_16UC1);
-	backward_mat.create(cv::Size(backward->getWidth(), backward->getHeight()), CV_16UC1);
-
-    images.push_back(nadir_mat);
-    images.push_back(forward_mat);
-    images.push_back(backward_mat);
-
-    memcpy(images[0].ptr(), (void*) nadir->getUshortBuf(), 2*nadir->getWidth()*nadir->getHeight());
-    memcpy(images[1].ptr(), (void*) forward->getUshortBuf(), 2*forward->getWidth()*forward->getHeight());
-    memcpy(images[2].ptr(), (void*) backward->getUshortBuf(), 2*backward->getWidth()*backward->getHeight());
-	
-	cout << "OSSIM->OpenCV image conversion done" << endl;
-	
     // Rotation for along-track OPTICAL images
-    //********* To comment out for SAR images *********
-    /*
-    for(size_t i = 0; i < images.size(); i++)
-        {
-            cv::transpose(images[i], images[i]);
-            cv::flip(images[i], images[i], 1);
-        }
-     */
-    //********* To comment out for SAR images *********
+    //********* To be commented for SAR images *********
+    //cv::transpose(master_mat, master_mat);
+    //cv::flip(master_mat, master_mat, 1);
+	
+    //cv::transpose(slave_mat, slave_mat);
+    //cv::flip(slave_mat, slave_mat, 1);
+    //********* To be commented for SAR images *********
 }
 
 
-bool openCVtestclass::execute()
+bool openCVtestclass::execute(double mean_conversionF)
 {			
 	// ****************************
 	// Activate for Wallis filter	
@@ -98,117 +69,64 @@ bool openCVtestclass::execute()
       //  images[i] = wallis(images[i]);
     //}
 
-    vector<cv::Mat> images_8U;
+    double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
+    cv::Mat master_mat_8U;
+    cv::Mat slave_mat_8U;
 
-    for(size_t i = 0; i < images.size(); i++)
-    {
-        double minVal_images= 0, maxVal_images= 0;
+    minMaxLoc( master_mat, &minVal_master, &maxVal_master );
+    minMaxLoc( slave_mat, &minVal_slave, &maxVal_slave );
+    master_mat.convertTo( master_mat_8U, CV_8UC1, 255.0/(maxVal_master - minVal_master), -minVal_master*255.0/(maxVal_master - minVal_master));
+    slave_mat.convertTo( slave_mat_8U, CV_8UC1, 255.0/(maxVal_slave - minVal_slave), -minVal_slave*255.0/(maxVal_slave - minVal_slave));
 
-        images_8U.push_back(images[i]);
-        minMaxLoc( images[i], &minVal_images, &maxVal_images );
-        images[i].convertTo( images_8U[i], CV_8UC1, 255.0/(maxVal_images - minVal_images), -minVal_images*255.0/(maxVal_images - minVal_images));
+    ossimOpenCvTPgenerator* TPfinder = new ossimOpenCvTPgenerator(master_mat_8U, slave_mat_8U);
+    TPfinder->run();
 
-        cv::namedWindow("Input image", CV_WINDOW_NORMAL);
-        cv::imshow("Input image", images_8U[i]);
-        cv::waitKey(0);
-    }
+    cv::Mat slave_mat_warp = TPfinder->warp(slave_mat);
 
-    for(size_t i = 1; i < images.size(); i++)
-    {
-        ossimOpenCvTPgenerator* TPfinder = new ossimOpenCvTPgenerator(images_8U[0], images_8U[i]);
-        TPfinder->run();
+    ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
+    out_disp = dense_matcher->execute(master_mat_8U, slave_mat_warp);
 
-        cv::Mat slave_mat_warp = TPfinder->warp(images[i]);
+    // ogni disp map deve essere ruotata, convertita a CV_64F, divisa per 16 bit, resa metrica tramite il conv fact
 
-        ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
-        disparity_maps.push_back(dense_matcher->execute(images_8U[0], slave_mat_warp));
+    // Rotation for along-track OPTICAL images
+    //********* To be commented for SAR images *********
+    //cv::transpose(out_disp, out_disp);
+    //cv::flip(out_disp, out_disp, 0);
+    //********* To be commented for SAR images *********
 
-        null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
-    }
+    out_disp.convertTo(out_disp, CV_64F);
+    out_disp = ((out_disp/16.0)) / mean_conversionF; //quando divido per il fattore di conversione le rendo metriche
 
-  //  writeDisparity(1.0);
-	return true;
+    // Nel vettore globale di cv::Mat immagazzino tutte le mappe di disparità che genero ad ogni ciclo
+    fusedDisp_array.push_back(out_disp);
+    //null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
+    return true;
 }
 
-
-ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(vector<double> mean_conversionF, ossimElevManager* elev, ossimImageGeometry* master_geom)
+ossimRefPtr<ossimImageData> openCVtestclass::computeDSM( ossimElevManager* elev, ossimImageGeometry* master_geom)
 {
-    vector<cv::Mat> disparity_maps_8bit;
-    double minVal, maxVal;
-    disparity_maps_8bit.resize(disparity_maps.size());
+    cout<< " " << endl << "MERGING DISPARITY MAPS \t wait few minutes..." << endl << endl;
 
-    cout << disparity_maps.size() << endl;
-    for (unsigned int k = 0; k < disparity_maps.size(); ++k)
+    cv::Mat fusedDisp = cv::Mat::zeros(fusedDisp_array[0].rows, fusedDisp_array[0].cols, CV_64F);
+
+    // voglio fare la media per ogni x e y delle varie mappe di disparità
+    for (int i=0; i< fusedDisp_array[0].rows; i++) // for every row
     {
-        // Rotation for along-track OPTICAL images
-        //********* To comment out for SAR images *********
-        /*
-        cv::transpose(disparity_maps[k], disparity_maps[k]);
-        cv::flip(disparity_maps[k], disparity_maps[k], 0);
-        */
-        //********* To comment out for SAR images *********
-
-        disparity_maps[k].convertTo(disparity_maps[k], CV_64F);
-        disparity_maps[k] = (disparity_maps[k]/16.0); // / mean_conversionF[k];
-
-        //To show disparity maps
-        /*minMaxLoc( disparity_maps[k], &minVal, &maxVal );
-        disparity_maps[k].convertTo(disparity_maps_8bit[k], CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
-        cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
-        ossimString win_name = "Disparity_Map_";
-        cv::namedWindow( win_name+ossimString(k), CV_WINDOW_NORMAL );
-        cv::imshow( win_name+ossimString(k), disparity_maps_8bit[k]);*/
-    }
-
-    // A questo punto ho 2 mappe di disparità ruotate e corrette in pix (/16.0) per opencv
-    // Devo fonderle e renderle "metriche"
-
-    cout << disparity_maps[0].size() << endl;
-    cout << disparity_maps[1].size() << endl;
-
-    cv::Mat error_disp = (disparity_maps[0]/mean_conversionF[0]) - (disparity_maps[1]/mean_conversionF[1]); //quando divido per il fattore di conversione diventa metrico
-    minMaxLoc(error_disp, &minVal, &maxVal);
-    error_disp.convertTo(error_disp, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
-    cv::namedWindow("Error disp", CV_WINDOW_NORMAL);
-    cv::imshow("Error disp", error_disp);
-    cv::waitKey(0);
-
-    cv::Mat fusedDisp = cv::Mat::zeros(disparity_maps[0].rows, disparity_maps[0].cols, CV_64F);
-
-    cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
-    cout << "null_disp_threshold\t"<< null_disp_threshold<< endl;
-
-    //cout << "n° rows\t" << fusedDisp.rows << endl;
-    //cout << "n° columns\t" << fusedDisp.cols << endl;
-
-    for (int i=0; i< disparity_maps[0].rows; i++) // for every row
-    {
-        for(int j=0; j< disparity_maps[0].cols; j++) // for every column
+        for(int j=0; j< fusedDisp_array[0].cols; j++) // for every column
         {
             int num=0.0;
 
-            if(fabs(error_disp.at<double>(i,j)) < 5)
-            {
-                for (unsigned int k = 0; k < disparity_maps.size(); k++)  // for every disparity map
-                {
-                    if(disparity_maps[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
-                    {
-
-                        fusedDisp.at<double>(i,j) += disparity_maps[k].at<double>(i,j)/mean_conversionF[k]; // "metric" disparity
-                        //outImage.operator =(  outImage->setValue(i,j,disparity_maps[k].at<double>(i,j)/mean_conversionF[k]));
-                        num++;
-                    }
+            //if(fabs(error_disp.at<double>(i,j)) < 5)
+                //{
+                for (unsigned int k=0 ; k < fusedDisp_array.size() ; k++ ) //for every disp map of the vector; dato che la size mio ridà il num di Mat presenti, giusto?
+                {   // sommo ad ogni ciclo il valore corrispodente per tutte le i e le j, contando i cicli con num
+                    fusedDisp.at<double>(i,j) += fusedDisp_array[k].at<double>(i,j);// /mean_conversionF[k]; // "metric" disparity
+                    num++;
                 }
-                fusedDisp.at<double>(i,j)  = fusedDisp.at<double>(i,j) /num;
-               // outImage->setValue(i,j,outImage/num);
-            }
-            else
-            {
-               // outImage->setValue(i,j,disparity_maps[1].at<double>(i,j)/mean_conversionF[1]);
-                fusedDisp.at<double>(i,j) = disparity_maps[1].at<double>(i,j)/mean_conversionF[1];
-            }
+                //}
+                fusedDisp.at<double>(i,j)  = fusedDisp.at<double>(i,j) /num; //faccio la media
 
-            // sum between "metric" disparity and coarse dsm
+            // Sum between "metric" disparity and coarse dsm
             ossimDpt image_pt(j,i);
             ossimGpt world_pt;
             master_geom->localToWorld(image_pt, world_pt);
@@ -226,9 +144,9 @@ ossimRefPtr<ossimImageData> openCVtestclass::computeDSM(vector<double> mean_conv
     ossimRefPtr<ossimImageData> outImage = ossimImageDataFactory::instance()->create(0, OSSIM_FLOAT32, 1, image_size.x, image_size.y);
 
     if(outImage.valid())
-       outImage->initialize();
-   // else
-     //  return -1;
+        outImage->initialize();
+    // else
+    //  return -1;
 
     for (int i=0; i< fusedDisp.cols; i++) // for every column
     {
@@ -246,20 +164,19 @@ bool openCVtestclass::writeDisparity(double conv_factor)
 {
     for(int i = 0; i < disparity_maps.size(); i++)
     {
+        // Rotation for along-track OPTICAL images
+        //********* To be commented for SAR images *********
         cv::transpose(disparity_maps[i], disparity_maps[i]);
         cv::flip(disparity_maps[i], disparity_maps[i], 0);
 
        // disparity_maps[i] = (disparity_maps[i]/16.0) * conv_factor;
         disparity_maps[i] = (disparity_maps[i]/16.0) * 1;
 
-
         ossimString name = "SGM Disparity_";
        name.append(i);
         name.append(".tif");
 
         cv::imwrite(name.string(), disparity_maps[i]);
-
-
     }
 	return true;
 }*/

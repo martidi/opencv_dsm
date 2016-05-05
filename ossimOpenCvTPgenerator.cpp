@@ -56,7 +56,6 @@ void ossimOpenCvTPgenerator::TPgen()
     cv::Ptr<cv::FeatureDetector> m_detector;
     cv::Ptr<cv::OrbFeatureDetector> detector = cv::FeatureDetector::create("ORB");
     m_detector = new cv::GridAdaptedFeatureDetector (detector, 500, 5, 5 );
-
     m_detector->detect(master_mat, keypoints1);
     m_detector->detect(slave_mat, keypoints2);
 
@@ -70,13 +69,15 @@ void ossimOpenCvTPgenerator::TPgen()
 
 	// Matching descriptors
 	cv::BFMatcher matcher(cv::NORM_L2);
-	vector<cv::DMatch> matches;
+    vector<cv::DMatch> matches;
 	matcher.match(descriptors1, descriptors2, matches);	
 
     cerr << matches.size();
 
 	// Calculation of max and min distances between keypoints 
 	double max_dist = matches[0].distance; double min_dist = matches[0].distance;
+    cout << "max dist" << max_dist << endl;
+    cout << "min dist" << min_dist << endl;
 
 	for( int i = 1; i < descriptors1.rows; i++ )
 	{ 
@@ -85,8 +86,8 @@ void ossimOpenCvTPgenerator::TPgen()
 		if( dist > max_dist ) max_dist = dist;
 	}
 	
-    cout << "Min dist between keypoints = " << min_dist << endl;
-    cout << "Max dist between keypoints = " << max_dist << endl;
+    //cout << "Min dist between keypoints = " << min_dist << endl;
+    //cout << "Max dist between keypoints = " << max_dist << endl;
 		
     // Selection of the better 80% descriptors
 	int N_TOT = descriptors1.rows;

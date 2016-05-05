@@ -38,6 +38,7 @@
 #include "openCVtestclass.h"
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <cstdlib> /* for exit */
 #include <iomanip>
@@ -54,6 +55,39 @@ static const std::string METERS_KW               = "meters";
 static const std::string OP_KW                   = "operation";
 static const std::string RESAMPLER_FILTER_KW     = "resampler_filter";
 static const std::string PROJECTION_KW           = "projection";
+static const std::string INPUT_NB_KW           = "input";
+
+ossimImageHandler* raw_image_handler;
+
+class StereoPair
+ {
+   ossimString master, slave;
+   int id;
+
+   public:
+   void setID(int ID)
+   {
+       id = ID;
+   }
+
+   void setPath(ossimString img_master_path, ossimString img_slave_path)
+   {
+      master = img_master_path;
+      slave = img_slave_path;
+   }
+
+   ossimString masterPath()
+   {
+       return master;
+   }
+
+   ossimString slavePath()
+   {
+       return slave;
+   }
+};
+
+
 
 bool ortho (ossimKeywordlist kwl)
 {
@@ -91,29 +125,13 @@ int main(int argc,  char* argv[])
 	{ 
 		// PARSER *******************************
 		cout << "Arg number " << ap.argc() << endl;
-				
-		ossimKeywordlist forward_key;
-		ossimKeywordlist nadir_key;
-		ossimKeywordlist backward_key;		
 
-        forward_key.addPair("image1.file", ap[1]);
-        nadir_key.addPair("image1.file", ap[2]);
-        backward_key.addPair("image1.file", ap[3]);
-
-		//Default keyword for orthorectification
-		forward_key.addPair(OP_KW, "ortho");
-		nadir_key.addPair( OP_KW, "ortho");
-		backward_key.addPair( OP_KW, "ortho");		
-		
-		forward_key.addPair(RESAMPLER_FILTER_KW, "box");
-		nadir_key.addPair( RESAMPLER_FILTER_KW, "box");
-        backward_key.addPair( RESAMPLER_FILTER_KW, "box");
-
-        if(ap.argc() < 6) //ap.argv[0] is the application name
+        // SISTEMARE, DEVE ESSERE <5, IL PIU GEN POSSIBILE (SOLO CON 2 IMMAGINI)
+        if(ap.argc() < 5) //ap.argv[0] is the application name
         {
             ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
             std::string errMsg = "Few arguments...";
-            cout << endl << "Usage: ossim-dsm-app <input_fwd_image> <input_nad_image> <input_bwd_image> <output_results_directory> <output_dsm_name> [options] <n° steps for pyramidal>" << endl;
+            cout << endl << "Usage: ossim-dsm-app <input_image_1> <input_image_2> ... <input_image_n> <output_results_directory> <output_dsm_name> [options] <n° steps for pyramidal>" << endl;
             cout << "Options:" << endl;
             cout << "--cut-bbox-ll <min_lat> <min_lon> <max_lat> <max_lon> \t Specify a bounding box with the minimum"   << endl;
             cout << "\t\t\t\t\t\t\tlatitude/longitude and max latitude/longitude" << endl;
@@ -121,42 +139,16 @@ int main(int argc,  char* argv[])
             cout << "--meters <meters> \t\t\t\t\t Specify a size (in meters) for a resampling"   << endl<< endl;
             throw ossimException(errMsg);
         }
-		
-		// Parsing
-		std::string tempString1,tempString2,tempString3,tempString4;
-		ossimArgumentParser::ossimParameter stringParam1(tempString1);
-		ossimArgumentParser::ossimParameter stringParam2(tempString2);
-		ossimArgumentParser::ossimParameter stringParam3(tempString3);
-		ossimArgumentParser::ossimParameter stringParam4(tempString4);
-    
-		if(ap.read("--meters", stringParam1) )
-		{
-			forward_key.addPair(METERS_KW, tempString1 );
-			nadir_key.addPair( METERS_KW, tempString1 );
-			backward_key.addPair( METERS_KW, tempString1 );			
-		}
-        double finalRes = atof(tempString1.c_str());
-		cout << "Orthoimages resolution = " << tempString1 <<" meters"<< endl << endl;
 
+        // li definisco qui così ce l'ho a disposizione anche dopo
+        ossimKeywordlist master_key;
+        ossimKeywordlist slave_key;
 
-        int nsteps;
-        ossimArgumentParser::ossimParameter iteration(nsteps);
-
-        if(ap.read("--nsteps", iteration))
-        {
-          //else nsteps = 1;
-        }
-        cout << "Total steps number for pyramidal\t " << nsteps << endl;
-
-
-        if(ap.read("--projection", stringParam1) )
-        {
-            forward_key.addPair(PROJECTION_KW, tempString1 );
-            nadir_key.addPair(PROJECTION_KW, tempString1 );
-            backward_key.addPair(PROJECTION_KW, tempString1 );
-
-            cout << "Output DSM is in UTM projection" << endl << endl;
-        }
+        std::string tempString1,tempString2,tempString3,tempString4;
+        ossimArgumentParser::ossimParameter stringParam1(tempString1);
+        ossimArgumentParser::ossimParameter stringParam2(tempString2);
+        ossimArgumentParser::ossimParameter stringParam3(tempString3);
+        ossimArgumentParser::ossimParameter stringParam4(tempString4);
 
         double lat_min;
         double lon_min;
@@ -164,34 +156,81 @@ int main(int argc,  char* argv[])
         double lon_max;
         double MinHeight;
         double MaxHeight;
-        
-		if( ap.read("--cut-bbox-ll", stringParam1, stringParam2, stringParam3, stringParam4) )
-		{
-			forward_key.addPair( CUT_MIN_LAT_KW, tempString1 );
-			forward_key.addPair( CUT_MIN_LON_KW, tempString2 );
-			forward_key.addPair( CUT_MAX_LAT_KW, tempString3 );
-			forward_key.addPair( CUT_MAX_LON_KW, tempString4 );
-			
-			nadir_key.addPair( CUT_MIN_LAT_KW, tempString1 );
-			nadir_key.addPair( CUT_MIN_LON_KW, tempString2 );
-			nadir_key.addPair( CUT_MAX_LAT_KW, tempString3 );
-			nadir_key.addPair( CUT_MAX_LON_KW, tempString4 );
-		
-			backward_key.addPair( CUT_MIN_LAT_KW, tempString1 );
-			backward_key.addPair( CUT_MIN_LON_KW, tempString2 );
-			backward_key.addPair( CUT_MAX_LAT_KW, tempString3 );
-			backward_key.addPair( CUT_MAX_LON_KW, tempString4 );
-			
-			lat_min = atof(tempString1.c_str());
-			lon_min = atof(tempString2.c_str());
-			lat_max = atof(tempString3.c_str());
-     		lon_max = atof(tempString4.c_str());
-			
-     						     								
- 			cout << "Tile extent:" << "\tLat_min = "<< lat_min << endl   
-								<<"\t\tLon_min = " << lon_min << endl
-								<<"\t\tLat_max = " << lat_max << endl
-								<<"\t\tLon_max = " << lon_max << endl << endl; 
+
+        // per leggere un file da terminale
+        fstream f_input;
+        f_input.open(ap[1], ios::in);
+
+        if (f_input.fail())
+        {
+            cout << "Missing input file" << endl;
+        }
+
+        ossimString s1;
+        ossimString s2;
+        int id;
+        vector<StereoPair> StereoPairList;
+
+        while (f_input >> id >> s1 >> s2) // fino a che leggi un int seguito da due ossimString
+        {
+            cout <<id <<endl;
+            StereoPair ii;
+
+            ii.setPath(s1,s2);
+            ii.setID(id);
+            cout << ii.masterPath() << endl;
+            cout << ii.slavePath() << endl;
+            StereoPairList.push_back(ii);
+        }
+
+        f_input.close();
+        // Leggo quante immagini ho in input
+        cout << "numero coppie " << StereoPairList.size() << endl;
+
+        // Per ottenerele path delle immagini
+        /*cout << "dir_0_master " << StereoPairList[0].masterPath() << endl;
+        cout << "dir_0_slave " << StereoPairList[0].slavePath() << endl;
+        cout << "dir_1_master " << StereoPairList[1].masterPath() << endl;
+        cout << "dir_1_slave " << StereoPairList[1].slavePath() << endl;
+        cout << "dir_2_master " << StereoPairList[2].masterPath() << endl;
+        cout << "dir_2_slave " << StereoPairList[2].slavePath() << endl << endl;*/
+
+
+        /**********************************************/
+        /************ BEGIN OF ARG PARSING ************/
+        /**********************************************/
+
+        /************ UTM projection ************/
+        if(ap.read("--projection", stringParam1) )
+        {
+            master_key.addPair(PROJECTION_KW, tempString1 );
+            slave_key.addPair(PROJECTION_KW, tempString1 );
+
+            cout << "Output DSM is in UTM projection" << endl << endl;
+        }
+
+        /************ Tiling ************/
+        if( ap.read("--cut-bbox-ll", stringParam1, stringParam2, stringParam3, stringParam4) )
+        {
+            master_key.addPair( CUT_MIN_LAT_KW, tempString1 );
+            master_key.addPair( CUT_MIN_LON_KW, tempString2 );
+            master_key.addPair( CUT_MAX_LAT_KW, tempString3 );
+            master_key.addPair( CUT_MAX_LON_KW, tempString4 );
+
+            slave_key.addPair( CUT_MIN_LAT_KW, tempString1 );
+            slave_key.addPair( CUT_MIN_LON_KW, tempString2 );
+            slave_key.addPair( CUT_MAX_LAT_KW, tempString3 );
+            slave_key.addPair( CUT_MAX_LON_KW, tempString4 );
+
+            lat_min = atof(tempString1.c_str());
+            lon_min = atof(tempString2.c_str());
+            lat_max = atof(tempString3.c_str());
+            lon_max = atof(tempString4.c_str());
+
+            cout << "Tile extent:" << "\tLat_min = "<< lat_min << endl
+                                    <<"\t\tLon_min = " << lon_min << endl
+                                    <<"\t\tLat_max = " << lat_max << endl
+                                    <<"\t\tLon_max = " << lon_max << endl << endl;
 
             //**********MIN and MAX HEIGHT COMPUTATION************************
             std::vector<ossim_float64> HeightAboveMSL;
@@ -209,160 +248,42 @@ int main(int argc,  char* argv[])
             MaxHeight = *max_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
             cout << "Min height for this tile is " << std::setprecision(6) << MinHeight << " m" << endl;
             cout << "Max height for this tile is " << std::setprecision(6) << MaxHeight << " m" << endl;
-		}
-
-
-		// End of arg parsing
-		ap.reportRemainingOptionsAsUnrecognized();
-		if (ap.errors())
-		{
-			ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
-			std::string errMsg = "Unknown option...";
-			throw ossimException(errMsg);
-		}
-
-		//END PARSER****************************
-	        
-        cout << endl << "FORWARD DIRECTORY:" << " " << ap[1] << endl;
-        cout << "NADIR DIRECTORY:"  << " " << ap[2] << endl;
-        cout << "BACKWARD DIRECTORY:"  << " " << ap[3] << endl << endl;
-
-        ossimImageHandler* raw_forward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[1]));
-        ossimImageHandler* raw_nadir_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]));
-        ossimImageHandler* raw_backward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[3]));
-
-        ossimRefPtr<ossimImageGeometry> raw_forward_geom = raw_forward_handler->getImageGeometry();
-        ossimRefPtr<ossimImageGeometry> raw_nadir_geom = raw_nadir_handler->getImageGeometry();
-        ossimRefPtr<ossimImageGeometry> raw_backward_geom = raw_backward_handler->getImageGeometry();
-
-        // CONVERSION FACTOR (from pixels to meters) COMPUTATION *************
-
-        // Conversion factor computed on tile and not over all the image
-        double Dlon = (lon_max - lon_min)/2.0;
-        double Dlat = (lat_max - lat_min)/2.0;
-
-        // Getting ready the log file
-        char * logfile = ap[3];
-        string log(logfile);
-        log.erase(log.end()-4, log.end()-0 );
-        log = log + "_logfile.txt";
-
-        // Creating and writing the log file
-        ofstream myfile;
-        myfile.open (log.c_str());
-
-        cv::Mat conv_factor_J_NadFwd = cv::Mat::zeros(3,3, CV_64F);
-        cv::Mat conv_factor_I_NadFwd = cv::Mat::zeros(3,3, CV_64F);
-        cv::Mat conv_factor_J_NadBwd = cv::Mat::zeros(3,3, CV_64F);
-        cv::Mat conv_factor_I_NadBwd = cv::Mat::zeros(3,3, CV_64F);
-
-        for (int i=0 ; i<3 ; i++) //LAT
-        {
-            for (int j=0 ; j<3 ; j++) //LON
-            {
-                ossimGpt groundPoint(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight); //MinHeight -50
-                ossimGpt groundPointUp(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight); //MaxHeight + 50
-
-                ossimDpt imagePoint(0.,0.);
-                ossimDpt imagePointUp(0.,0.);
-
-                raw_nadir_geom->worldToLocal(groundPoint,imagePoint);        //con qst trasf ottengo imagePoint della nadir
-                raw_nadir_geom->worldToLocal(groundPointUp,imagePointUp);
-
-                myfile << "NADIR IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t";
-
-                double DeltaI_nad = imagePointUp.x - imagePoint.x;
-                double DeltaJ_nad = imagePointUp.y - imagePoint.y;
-
-                raw_forward_geom->worldToLocal(groundPoint,imagePoint);
-                raw_forward_geom->worldToLocal(groundPointUp,imagePointUp);
-
-                myfile << "FORWARD IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t" << endl;
-
-                double DeltaI_fwd = imagePointUp.x - imagePoint.x;
-                double DeltaJ_fwd = imagePointUp.y - imagePoint.y;
-
-                raw_backward_geom->worldToLocal(groundPoint,imagePoint);
-                raw_backward_geom->worldToLocal(groundPointUp,imagePointUp);
-
-                myfile << "BACKWARD IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t" << endl;
-
-                double DeltaI_bwd = imagePointUp.x - imagePoint.x;
-                double DeltaJ_bwd = imagePointUp.y - imagePoint.y;
-
-                conv_factor_J_NadFwd.at<double>(i,j) = DeltaJ_fwd - DeltaJ_nad; // conv_factor for ACROSS-track imgs
-                conv_factor_I_NadFwd.at<double>(i,j) = DeltaI_fwd - DeltaI_nad; // conv_factor for ALONG-track imgs
-                conv_factor_J_NadBwd.at<double>(i,j) = DeltaJ_fwd - DeltaJ_bwd;
-                conv_factor_I_NadBwd.at<double>(i,j) = DeltaI_fwd - DeltaI_bwd;
-            }
         }
 
-        cv::Scalar mean_conv_factor_J_NadFwd, stDev_conv_factor_J_NadFwd;
-        cv::meanStdDev(conv_factor_J_NadFwd, mean_conv_factor_J_NadFwd, stDev_conv_factor_J_NadFwd);
-        cv::Scalar mean_conv_factor_I_NadFwd, stDev_conv_factor_I_NadFwd;
-        cv::meanStdDev(conv_factor_I_NadFwd, mean_conv_factor_I_NadFwd, stDev_conv_factor_I_NadFwd);
+        /************ Sampling ************/
+        if(ap.read("--meters", stringParam1) )
+        {
+            master_key.addPair(METERS_KW, tempString1 );
+            slave_key.addPair(METERS_KW, tempString1 );
+        }
+        double finalRes = atof(tempString1.c_str());
+        cout << "Orthoimages resolution = " << tempString1 <<" meters"<< endl << endl;
 
-        double stDev_conversionF_J_NadFwd = stDev_conv_factor_J_NadFwd.val[0];
-        double mean_conversionF_J_NadFwd = mean_conv_factor_J_NadFwd.val[0]/(MaxHeight -MinHeight + 100);
-        double stDev_conversionF_I_NadFwd = stDev_conv_factor_I_NadFwd.val[0];
-        double mean_conversionF_I_NadFwd = mean_conv_factor_I_NadFwd.val[0]/(MaxHeight -MinHeight + 100);
-        //double mean_conversionF_NadFwd = (sqrt((mean_conv_factor_J_NadFwd.val[0]*mean_conv_factor_J_NadFwd.val[0]) + (mean_conv_factor_I_NadFwd.val[0]*mean_conv_factor_I_NadFwd.val[0]))/(MaxHeight -MinHeight + 100));
+        /************ Default keyword for ortho ************/
+        master_key.addPair(OP_KW, "ortho");
+        slave_key.addPair(OP_KW, "ortho");
 
-        vector<double> mean_conversionF;
-        mean_conversionF.resize(2);
+        /************ Resampler ************/
+        master_key.addPair(RESAMPLER_FILTER_KW, "box");
+        slave_key.addPair(RESAMPLER_FILTER_KW, "box");
+        cout << endl << "Resampling filter is box" << endl << endl;
 
-        if (abs(mean_conv_factor_J_NadFwd.val[0]) > abs(mean_conv_factor_I_NadFwd.val[0]))
-                mean_conversionF[0] = mean_conv_factor_J_NadFwd.val[0];
-        else mean_conversionF[0] = mean_conv_factor_I_NadFwd.val[0];
-        mean_conversionF[0] /= (MaxHeight -MinHeight + 100);
+        /************ Number of iteration ************/
+        int nsteps;
+        ossimArgumentParser::ossimParameter iteration(nsteps);
+        if(ap.read("--nsteps", iteration))
+        {
+            //else nsteps = 1;
+        }
+        cout << "Total steps number for pyramidal\t " << nsteps << endl;
 
-        cv::Scalar mean_conv_factor_J_NadBwd, stDev_conv_factor_J_NadBwd;
-        cv::meanStdDev(conv_factor_J_NadBwd, mean_conv_factor_J_NadBwd, stDev_conv_factor_J_NadBwd);
-        cv::Scalar mean_conv_factor_I_NadBwd, stDev_conv_factor_I_NadBwd;
-        cv::meanStdDev(conv_factor_I_NadBwd, mean_conv_factor_I_NadBwd, stDev_conv_factor_I_NadBwd);
-
-        double stDev_conversionF_J_NadBwd = stDev_conv_factor_J_NadBwd.val[0];
-        double mean_conversionF_J_NadBwd = mean_conv_factor_J_NadBwd.val[0]/(MaxHeight -MinHeight + 100);
-        double stDev_conversionF_I_NadBwd = stDev_conv_factor_I_NadBwd.val[0];
-        double mean_conversionF_I_NadBwd = mean_conv_factor_I_NadBwd.val[0]/(MaxHeight -MinHeight + 100);
-        //double mean_conversionF_NadBwd = (sqrt((mean_conv_factor_J_NadBwd.val[0]*mean_conv_factor_J_NadBwd.val[0]) + (mean_conv_factor_I_NadBwd.val[0]*mean_conv_factor_I_NadBwd.val[0]))/(MaxHeight -MinHeight + 100));
-
-        if (abs(mean_conv_factor_J_NadBwd.val[0]) > abs(mean_conv_factor_I_NadBwd.val[0]))
-                mean_conversionF[1] = mean_conv_factor_J_NadBwd.val[0];
-        else mean_conversionF[1] = mean_conv_factor_I_NadBwd.val[0];
-        mean_conversionF[1] /= (MaxHeight -MinHeight + 100);
-
-        cout << "J Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF_J_NadFwd << endl;
-        cout << "Standard deviation J Conversion Factor for NAD-FWD\t" << stDev_conversionF_J_NadFwd << endl << endl;
-        cout << "I Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF_I_NadFwd << endl;
-        cout << "Standard deviation I Conversion Factor for NAD-FWD\t" << stDev_conversionF_I_NadFwd << endl << endl;
-
-        cout << "Total Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF[0] << endl <<endl;
-
-        cout << "J Conversion Factor from pixels to meters NAD-BWD\t" << mean_conversionF_J_NadBwd << endl;
-        cout << "Standard deviation J Conversion Factor NAD-BWD\t" << stDev_conversionF_J_NadBwd << endl << endl;
-        cout << "I Conversion Factor from pixels to meters NAD-BWD\t" << mean_conversionF_I_NadBwd << endl;
-        cout << "Standard deviation I Conversion Factor NAD-BWD\t" << stDev_conversionF_I_NadBwd << endl << endl;
-
-        cout << "Total Conversion Factor from pixels to meters NAD-BWD\t" << mean_conversionF[1] << endl;
-
-        // END CONVERSION FACTOR COMPUTATION ****************************************
-
-        myfile << endl << "Nadir orthorectification parameters" <<endl;
-        myfile << nadir_key << endl;
-        myfile << "Forward orthorectification parameters" <<endl;
-        myfile << forward_key << endl;
-        myfile << "Backward orthorectification parameters" <<endl;
-        myfile << backward_key << endl;
-        myfile <<"Conversion Factor from pixels to meters for NAD-FWD\t" << mean_conversionF_J_NadFwd <<endl;
-        myfile <<"Standard deviation Conversion Factor for NAD-FWD\t" << stDev_conversionF_J_NadFwd <<endl;
-        myfile <<"Conversion Factor from pixels to meters for NAD-BWD\t" << mean_conversionF_J_NadBwd <<endl;
-        myfile <<"Standard deviation Conversion Factor for NAD-BWD\t" << stDev_conversionF_J_NadBwd <<endl;
-        myfile.close();
+        /**********************************************/
+        /************ END OF ARG PARSING ************/
+        /**********************************************/
 
         double iter = (nsteps-1);
 
-        for(int i = (nsteps-1) ; i >= 0  ; i--)
+        for(int b = iter ; b >= 0  ; b--)
         {
             iter;
 
@@ -374,83 +295,191 @@ int main(int argc,  char* argv[])
             ossimElevManager* elev = ossimElevManager::instance();
             cout << "elevation database \t" << elev->getNumberOfElevationDatabases() << endl;
 
-            forward_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoForward.TIF"));
-            nadir_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoNadir.TIF"));
-            backward_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoBackward.TIF"));
+            master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
+            slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
 
             double orthoRes = finalRes*pow (2, iter);
-            cout << finalRes << "risFinale" << endl;
-            cout << iter << "iter" << endl;
-            cout << orthoRes << endl;
+            cout << finalRes << " " << "m" << "\t final DSM resolution" << endl;
+            cout << orthoRes << " " << "m" << "\t resolution of this level" << endl;
+            cout << iter << "\t n° iterations left" << endl << endl;
+
             std::ostringstream strsRes;
             strsRes << orthoRes;
             std::string ResParam = strsRes.str();
 
-            forward_key.addPair(METERS_KW, ResParam);
-            nadir_key.addPair( METERS_KW, ResParam);
-            backward_key.addPair( METERS_KW, ResParam);
+            master_key.addPair(METERS_KW, ResParam);
+            slave_key.addPair( METERS_KW, ResParam);
 
-            cout << "Start forward orthorectification" << endl;
-            ortho(forward_key);
-
-            cout << "Start nadir orthorectification" << endl;
-            ortho(nadir_key);
-
-            cout << "Start backward orthorectification" << endl;
-            ortho(backward_key);
-				 
-            // ImageHandlers & ImageGeometry instance
-            ossimImageHandler* forward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoForward.TIF"));
-            ossimImageHandler* nadir_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoNadir.TIF"));
-            ossimImageHandler* backward_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[4]) + ossimString("ortho_images/") + ossimFilename(ap[5]) + ossimString("_level") + nLev + ossimString("_orthoBackward.TIF"));
-
-            if(forward_handler && nadir_handler && backward_handler && raw_forward_handler && raw_nadir_handler && raw_backward_handler) // enter if exist both forward, nadir and backward
+            // Lavoro su due immagini alla volta
+            for (int k=0; k<=StereoPairList.size(); k++)
             {
-                // Load ortho images
-                ossimIrect bounds_forward = forward_handler->getBoundingRect(0);
-                ossimIrect bounds_nadir = nadir_handler->getBoundingRect(0);
-                ossimIrect bounds_backward = backward_handler->getBoundingRect(0);
+                master_key.addPair("image1.file", StereoPairList[k].masterPath());
+                slave_key.addPair("image1.file", StereoPairList[k].slavePath());
 
-                ossimRefPtr<ossimImageData> img_forward = forward_handler->getTile(bounds_forward, 0);
-                ossimRefPtr<ossimImageData> img_nadir = nadir_handler->getTile(bounds_nadir, 0);
-                ossimRefPtr<ossimImageData> img_backward = backward_handler->getTile(bounds_backward, 0);
+                cout << endl << "IMAGE MASTER DIRECTORY:" << " " << StereoPairList[k].masterPath() << endl;
+                cout << "IMAGE SLAVE DIRECTORY:"  << " " << StereoPairList[k].slavePath() << endl << endl;
 
-                // TPs and disparity map generation
-                openCVtestclass *tripletCv = new openCVtestclass(img_forward, img_nadir, img_backward) ;
-                tripletCv->execute();
+                ap.reportRemainingOptionsAsUnrecognized();
+                if (ap.errors())
+                {
+                    ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
+                    std::string errMsg = "Unknown option...";
+                    throw ossimException(errMsg);
+                }
 
-                remove(ossimFilename(ossimFilename(ap[4]) + ossimString("temp_elevation/") + ossimFilename(ap[5])+ossimString(".TIF")));
+                //END PARSER****************************
+
+                ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(StereoPairList[k].masterPath()));
+                ossimImageHandler* raw_slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(StereoPairList[k].slavePath()));
+
+                ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();
+                ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry();
+
+                // CONVERSION FACTOR (from pixels to meters) COMPUTATION *************
+
+                // Conversion factor computed on tile and not over all the image
+                double Dlon = (lon_max - lon_min)/2.0;
+                double Dlat = (lat_max - lat_min)/2.0;
+
+                // Getting ready the log file
+                char * logfile = ap[3];
+                string log(logfile);
+                log.erase(log.end()-4, log.end()-0 );
+                log = log + "_logfile.txt";
+
+                // Creating and writing the log file
+                ofstream myfile;
+                myfile.open (log.c_str());
+
+                cv::Mat conv_factor_J = cv::Mat::zeros(3,3, CV_64F);
+                cv::Mat conv_factor_I = cv::Mat::zeros(3,3, CV_64F);
+
+                for (int i=0 ; i<3 ; i++) //LAT
+                {
+                    for (int j=0 ; j<3 ; j++) //LON
+                    {
+                    ossimGpt groundPoint(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight); //MinHeight -50
+                    ossimGpt groundPointUp(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight); //MaxHeight + 50
+
+                    ossimDpt imagePoint(0.,0.);
+                    ossimDpt imagePointUp(0.,0.);
+
+                    raw_master_geom->worldToLocal(groundPoint,imagePoint);        //con qst trasf ottengo imagePoint della nadir
+                    raw_master_geom->worldToLocal(groundPointUp,imagePointUp);
+
+                    myfile << "MASTER IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t";
+
+                    double DeltaI_master = imagePointUp.x - imagePoint.x;
+                    double DeltaJ_master = imagePointUp.y - imagePoint.y;
+
+                    raw_slave_geom->worldToLocal(groundPoint,imagePoint);
+                    raw_slave_geom->worldToLocal(groundPointUp,imagePointUp);
+
+                    myfile << "SLAVE IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t" << endl;
+
+                    double DeltaI_slave = imagePointUp.x - imagePoint.x;
+                    double DeltaJ_slave = imagePointUp.y - imagePoint.y;
+
+                    conv_factor_J.at<double>(i,j) = DeltaJ_slave - DeltaJ_master; // conv_factor for ACROSS-track imgs
+                    conv_factor_I.at<double>(i,j) = DeltaI_slave - DeltaI_master; // conv_factor for ALONG-track imgs
+                    }
+                }
+
+                cout << conv_factor_J << endl;
+                cout << conv_factor_I << endl;
+
+                cv::Scalar mean_conv_factor_J, stDev_conv_factor_J;
+                cv::meanStdDev(conv_factor_J, mean_conv_factor_J, stDev_conv_factor_J);
+
+                cv::Scalar mean_conv_factor_I, stDev_conv_factor_I;
+                cv::meanStdDev(conv_factor_I, mean_conv_factor_I, stDev_conv_factor_I);
+
+                double stDev_conversionF_J = stDev_conv_factor_J.val[0];
+                double mean_conversionF_J = mean_conv_factor_J.val[0]/(MaxHeight -MinHeight + 100);
+                double stDev_conversionF_I = stDev_conv_factor_I.val[0];
+                double mean_conversionF_I = mean_conv_factor_I.val[0]/(MaxHeight -MinHeight + 100);
+
+                double mean_conversionF;
+                //mean_conversionF.resize(2);
+
+                if (abs(mean_conv_factor_J.val[0]) > abs(mean_conv_factor_I.val[0]))
+                    mean_conversionF = mean_conv_factor_J.val[0];
+                else mean_conversionF = mean_conv_factor_I.val[0];
+                mean_conversionF /= (MaxHeight -MinHeight + 100);
+
+                cout << "J Conversion Factor from pixels to meters\t" << mean_conversionF_J << endl;
+                cout << "Standard deviation J Conversion Factor\t" << stDev_conversionF_J << endl << endl;
+                cout << "I Conversion Factor from pixels to meters\t" << mean_conversionF_I << endl;
+                cout << "Standard deviation I Conversion Factor\t" << stDev_conversionF_I << endl << endl;
+                cout << "Total Conversion Factor from pixels to meters\t" << mean_conversionF << endl << endl;
+
+                // END CONVERSION FACTOR COMPUTATION ****************************************
+
+                myfile << endl << "Master orthorectification parameters" <<endl;
+                myfile << master_key << endl;
+                myfile << "Slave orthorectification parameters" <<endl;
+                myfile << slave_key << endl;
+                myfile <<"Conversion Factor from pixels to meters\t" << mean_conversionF_J <<endl;
+                myfile <<"Standard deviation Conversion Factor\t" << stDev_conversionF_J <<endl;
+                myfile.close();
+
+                cout << "Start master orthorectification level " << nLev << endl;
+                ortho(master_key);
+
+                cout << "Start slave orthorectification level " << nLev << endl;
+                ortho(slave_key);
+
+                // ImageHandlers & ImageGeometry instance
+                ossimImageHandler* master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
+                ossimImageHandler* slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
+
+                //if(master_handler && slave_handler && raw_master_handler && raw_slave_handler) // enter if exist both master and slave
+                //{
+                 // Load ortho images
+                 ossimIrect bounds_master = master_handler->getBoundingRect(0);
+                 ossimIrect bounds_slave = slave_handler->getBoundingRect(0);
+
+                 ossimRefPtr<ossimImageData> img_master = master_handler->getTile(bounds_master, 0);
+                 ossimRefPtr<ossimImageData> img_slave = slave_handler->getTile(bounds_slave, 0);
+
+                 // TPs and disparity map generation
+                 openCVtestclass *stereoCV = new openCVtestclass(img_master, img_slave) ;
+                 stereoCV->execute(mean_conversionF/1.0);
+                 //}
+
+                remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
+
+                cout << "ciclo" << k << endl;
+
 
                 // From Disparity to DSM
-                ossimImageGeometry* nadir_geom = nadir_handler->getImageGeometry().get();
-                nadir_handler->saveImageGeometry();
+                ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
+                master_handler->saveImageGeometry();
 
-                    ossimRefPtr<ossimImageData> finalDSM =
-                tripletCv->computeDSM(mean_conversionF, elev, nadir_geom);
-
-
+                // CREO UN'UNICA MAPPA DI DISPARITA' MEDIA E GENERO IL DSM
+                ossimRefPtr<ossimImageData> finalDSM = stereoCV->computeDSM(elev, master_geom);
 
                 ossimFilename pathDSM;
-                if (i == 0)
-                    pathDSM = ossimFilename(ap[4]) + ossimString("DSM/") + ossimFilename(ap[5]) + ossimString(".TIF");
+                if (b == 0)
+                   pathDSM = ossimFilename(ap[2]) + ossimString("DSM/") + ossimFilename(ap[3]) + ossimString(".TIF");
                 else
-                    pathDSM = ossimFilename(ap[4]) + ossimString("temp_elevation/") + ossimFilename(ap[5])+ossimString(".TIF");
+                    pathDSM = ossimFilename(ap[42]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF");
 
-                //ossimRefPtr<ossimImageGeometry> geometry = new ossimImageGeometry();
-                //geometry->setImageSize(image_size);
                 // Create output image chain:
                 ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
                 memSource->setImage(finalDSM);
-                memSource->setImageGeometry(nadir_geom);
+                memSource->setImageGeometry(master_geom);
+                cout << "size" << master_geom->getImageSize() << endl;
+                memSource->saveImageGeometry();
 
-                ossimRefPtr<ossimTiffWriter> writer = new ossimTiffWriter();
+                ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
                 writer->connectMyInputTo(0, memSource.get());
-                writer->setFilename(pathDSM);
-                writer->setGeotiffFlag(true);
-                bool success = writer->execute();
+                writer->execute();
+
                 writer->close();
                 writer = 0;
-
+                memSource = 0;
+                delete stereoCV;
 
                 // INSERITO TUTTO IN OPENCVTESTCLASS//
                 /*
@@ -459,28 +488,17 @@ int main(int argc,  char* argv[])
                 handler_disp->setImageGeometry(nadir_geom);
                 handler_disp->saveImageGeometry();
 
-                ossimFilename pathDSM;
-                if (i == 0)
-                    pathDSM = ossimFilename(ap[4]) + ossimString("DSM/") + ossimFilename(ap[5]) + ossimString(".TIF");
-                else
-                    pathDSM = ossimFilename(ap[4]) + ossimString("temp_elevation/") + ossimFilename(ap[5])+ossimString(".TIF");
-
-                ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
-                writer->connectMyInputTo(0, handler_disp);
-
                 // Add a listener to get percent complete
                 ossimStdOutProgress prog(0, true);
                 writer->addListener(&prog);
                 writer->execute();
                 writer->removeListener(&prog);
-
-                writer->close();
                 writer = 0;*/
-                delete tripletCv;
 
+                iter --;
+                elev = 0;
             }
-            iter --;
-		}
+        }
         cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your triplet!\n" << endl;
 	}     
 	catch (const ossimException& e)
