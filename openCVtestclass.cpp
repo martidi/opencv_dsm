@@ -59,7 +59,7 @@ openCVtestclass::openCVtestclass(ossimRefPtr<ossimImageData> master, ossimRefPtr
 }
 
 
-bool openCVtestclass::execute(double mean_conversionF)
+/*bool openCVtestclass::execute(double mean_conversionF)
 {			
 	// ****************************
 	// Activate for Wallis filter	
@@ -101,7 +101,7 @@ bool openCVtestclass::execute(double mean_conversionF)
     fusedDisp_array.push_back(out_disp);
     //null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
     return true;
-}
+}*/
 
 ossimRefPtr<ossimImageData> openCVtestclass::computeDSM( ossimElevManager* elev, ossimImageGeometry* master_geom)
 {

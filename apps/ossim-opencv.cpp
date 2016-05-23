@@ -36,6 +36,8 @@
 #include <ossim/util/ossimChipperUtil.h>
 
 #include "openCVtestclass.h"
+#include "ossimDispMerging.h"
+#include "ossimStereoPair.h"
 
 #include <iostream>
 #include <fstream>
@@ -59,41 +61,12 @@ static const std::string INPUT_NB_KW           = "input";
 
 ossimImageHandler* raw_image_handler;
 
-class StereoPair
- {
-   ossimString master, slave;
-   int id;
-
-   public:
-   void setID(int ID)
-   {
-       id = ID;
-   }
-
-   void setPath(ossimString img_master_path, ossimString img_slave_path)
-   {
-      master = img_master_path;
-      slave = img_slave_path;
-   }
-
-   ossimString masterPath()
-   {
-       return master;
-   }
-
-   ossimString slavePath()
-   {
-       return slave;
-   }
-};
-
-
 
 bool ortho (ossimKeywordlist kwl)
 {
-	// Make the generator
-	ossimRefPtr<ossimChipperUtil> chipper = new ossimChipperUtil;
-	chipper->initialize(kwl);
+    // Make the generator
+    ossimRefPtr<ossimChipperUtil> chipper = new ossimChipperUtil;
+    chipper->initialize(kwl);
 
 	try
 	{      
@@ -141,8 +114,7 @@ int main(int argc,  char* argv[])
         }
 
         // li definisco qui così ce l'ho a disposizione anche dopo
-        ossimKeywordlist master_key;
-        ossimKeywordlist slave_key;
+        ossimKeywordlist image_key;
 
         std::string tempString1,tempString2,tempString3,tempString4;
         ossimArgumentParser::ossimParameter stringParam1(tempString1);
@@ -157,70 +129,29 @@ int main(int argc,  char* argv[])
         double MinHeight;
         double MaxHeight;
 
-        // per leggere un file da terminale
-        fstream f_input;
-        f_input.open(ap[1], ios::in);
-
-        if (f_input.fail())
-        {
-            cout << "Missing input file" << endl;
-        }
-
-        ossimString s1;
-        ossimString s2;
-        int id;
-        vector<StereoPair> StereoPairList;
-
-        while (f_input >> id >> s1 >> s2) // fino a che leggi un int seguito da due ossimString
-        {
-            cout <<id <<endl;
-            StereoPair ii;
-
-            ii.setPath(s1,s2);
-            ii.setID(id);
-            cout << ii.masterPath() << endl;
-            cout << ii.slavePath() << endl;
-            StereoPairList.push_back(ii);
-        }
-
-        f_input.close();
-        // Leggo quante immagini ho in input
-        cout << "numero coppie " << StereoPairList.size() << endl;
-
-        // Per ottenerele path delle immagini
-        /*cout << "dir_0_master " << StereoPairList[0].masterPath() << endl;
-        cout << "dir_0_slave " << StereoPairList[0].slavePath() << endl;
-        cout << "dir_1_master " << StereoPairList[1].masterPath() << endl;
-        cout << "dir_1_slave " << StereoPairList[1].slavePath() << endl;
-        cout << "dir_2_master " << StereoPairList[2].masterPath() << endl;
-        cout << "dir_2_slave " << StereoPairList[2].slavePath() << endl << endl;*/
-
-
+        /**********************************************/
         /**********************************************/
         /************ BEGIN OF ARG PARSING ************/
         /**********************************************/
+        /**********************************************/
 
-        /************ UTM projection ************/
-        if(ap.read("--projection", stringParam1) )
-        {
-            master_key.addPair(PROJECTION_KW, tempString1 );
-            slave_key.addPair(PROJECTION_KW, tempString1 );
+        /***************************************************/
+        /************ Default keyword for ortho ************/
+        image_key.addPair(OP_KW, "ortho");
 
-            cout << "Output DSM is in UTM projection" << endl << endl;
-        }
+        /***********************************/
+        /************ Resampler ************/
+        image_key.addPair(RESAMPLER_FILTER_KW, "box");
+        cout << endl << "Resampling filter is box" << endl << endl;
 
+        /********************************/
         /************ Tiling ************/
         if( ap.read("--cut-bbox-ll", stringParam1, stringParam2, stringParam3, stringParam4) )
         {
-            master_key.addPair( CUT_MIN_LAT_KW, tempString1 );
-            master_key.addPair( CUT_MIN_LON_KW, tempString2 );
-            master_key.addPair( CUT_MAX_LAT_KW, tempString3 );
-            master_key.addPair( CUT_MAX_LON_KW, tempString4 );
-
-            slave_key.addPair( CUT_MIN_LAT_KW, tempString1 );
-            slave_key.addPair( CUT_MIN_LON_KW, tempString2 );
-            slave_key.addPair( CUT_MAX_LAT_KW, tempString3 );
-            slave_key.addPair( CUT_MAX_LON_KW, tempString4 );
+            image_key.addPair( CUT_MIN_LAT_KW, tempString1 );
+            image_key.addPair( CUT_MIN_LON_KW, tempString2 );
+            image_key.addPair( CUT_MAX_LAT_KW, tempString3 );
+            image_key.addPair( CUT_MAX_LON_KW, tempString4 );
 
             lat_min = atof(tempString1.c_str());
             lon_min = atof(tempString2.c_str());
@@ -232,7 +163,7 @@ int main(int argc,  char* argv[])
                                     <<"\t\tLat_max = " << lat_max << endl
                                     <<"\t\tLon_max = " << lon_max << endl << endl;
 
-            //**********MIN and MAX HEIGHT COMPUTATION************************
+            /********** MIN and MAX HEIGHT COMPUTATION *********/
             std::vector<ossim_float64> HeightAboveMSL;
             for(double lat = lat_min; lat < lat_max; lat += 0.001)
             {
@@ -247,27 +178,30 @@ int main(int argc,  char* argv[])
             MinHeight = *min_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
             MaxHeight = *max_element(HeightAboveMSL.begin(), HeightAboveMSL.end());
             cout << "Min height for this tile is " << std::setprecision(6) << MinHeight << " m" << endl;
-            cout << "Max height for this tile is " << std::setprecision(6) << MaxHeight << " m" << endl;
+            cout << "Max height for this tile is " << std::setprecision(6) << MaxHeight << " m" << endl << endl;
         }
 
+        /****************************************/
+        /************ UTM projection ************/
+        if(ap.read("--projection", stringParam1) )
+        {
+            //ossimKeywordlist projection; // creo questo ossimKeywordList di appoggio per poi riempire il vettore image_key
+            image_key.addPair(PROJECTION_KW, tempString1);
+            //image_key.push_back(projection);
+
+            cout << "Output DSM is in UTM projection" << endl << endl;
+        }
+
+        /**********************************/
         /************ Sampling ************/
         if(ap.read("--meters", stringParam1) )
         {
-            master_key.addPair(METERS_KW, tempString1 );
-            slave_key.addPair(METERS_KW, tempString1 );
+            image_key.addPair(METERS_KW, tempString1 );
         }
         double finalRes = atof(tempString1.c_str());
         cout << "Orthoimages resolution = " << tempString1 <<" meters"<< endl << endl;
 
-        /************ Default keyword for ortho ************/
-        master_key.addPair(OP_KW, "ortho");
-        slave_key.addPair(OP_KW, "ortho");
-
-        /************ Resampler ************/
-        master_key.addPair(RESAMPLER_FILTER_KW, "box");
-        slave_key.addPair(RESAMPLER_FILTER_KW, "box");
-        cout << endl << "Resampling filter is box" << endl << endl;
-
+        /*********************************************/
         /************ Number of iteration ************/
         int nsteps;
         ossimArgumentParser::ossimParameter iteration(nsteps);
@@ -275,177 +209,295 @@ int main(int argc,  char* argv[])
         {
             //else nsteps = 1;
         }
-        cout << "Total steps number for pyramidal\t " << nsteps << endl;
+        cout << "Total steps number for pyramidal:\t " << nsteps << endl << endl;
 
-        /**********************************************/
-        /************ END OF ARG PARSING ************/
-        /**********************************************/
-
-        double iter = (nsteps-1);
-
-        for(int b = iter ; b >= 0  ; b--)
+        ap.reportRemainingOptionsAsUnrecognized();
+        if (ap.errors())
         {
-            iter;
+            ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
+            std::string errMsg = "Unknown option...";
+            throw ossimException(errMsg);
+        }
 
-            std::ostringstream strs;
-            strs << iter;
-            std::string nLev = strs.str();
+        /**********************************************/
+        /**********************************************/
+        /************ END OF ARG PARSING **************/
+        /**********************************************/
+        /**********************************************/
 
-            // Elevation manager instance
+        //cout << image_key << endl << endl;
+
+
+        // Reading a file from the terminal
+        fstream f_input;
+        f_input.open(ap[1], ios::in);
+
+        if (f_input.fail())
+        {
+            cout << "Missing input file" << endl;
+        }
+
+        // Reading image path and pairs info from the text file
+        ossimString imagePath;
+        int id;
+        int imagesNumb;
+        vector<ossimString> imageList;
+        vector<ossimStereoPair> StereoPairList;
+
+        f_input >> imagesNumb;
+        cout << "Number of images: " << imagesNumb << endl;
+
+        //while (f_input >> id >> imagePath )// fino a che leggi un int seguito da due ossimString
+
+        for (int i=0; i < imagesNumb ; i++)
+        {
+            f_input >> id >> imagePath;
+            cout <<id << endl;
+            cout << imagePath << endl;
+            imageList.push_back(imagePath);
+        }
+
+        int pairsNumb;
+        f_input >> pairsNumb;
+        cout << endl << "Number of pairs: " << pairsNumb << endl << endl;
+
+        // Riempio il vettore della coppia con info su id, path e fattore di conversione
+        for (int i=0; i < pairsNumb ; i++)
+        {
+            int idMaster,idSlave;
+            ossimStereoPair pair;
+            f_input >> idMaster >>  idSlave;
+
+            pair.setID(idMaster, idSlave);
+            pair.setRawPath(imageList[idMaster],imageList[idSlave]);
+            pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, MinHeight, MaxHeight);
+            StereoPairList.push_back(pair);
+
+            cout << "Pair " << idMaster << idSlave <<endl;
+            cout << "path master\t" << StereoPairList[i].getRawMasterPath() << endl;
+            cout << "path slave\t" << StereoPairList[i].getRawSlavePath() << endl;
+            cout << "conv factor pair: " << idMaster << idSlave << "\t" << StereoPairList[i].getConversionFactor() << endl<< endl << endl<< endl;
+        }
+       // f_input.close();
+
+        //cout << StereoPairList[2].getRawMasterPath() << endl; // così entro nella path della master della coppia
+        //cout << StereoPairList[2].getConversionFactor() << endl;
+
+        // Leggo quante immagini ho in input
+        cout << "Number of images to be processed: " << imageList.size() << endl << endl;
+
+        // Per ottenere le path delle singole immagini elencate nel file
+        cout << "dir_image_0 " << imageList[0] << endl;
+        cout << "dir_image_1 " << imageList[1] << endl;
+        cout << "dir_image_2 " << imageList[2] << endl;
+        cout << "dir_image_3 " << imageList[3] << endl<< endl;
+
+      /*  for (int i = 0; i <= pairsNumb  ; i++)
+        {
+            pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, MinHeight, MaxHeight);
+            double mean_conversionF = pair.getConversionFactor();
+            cout << mean_conversionF << endl << endl;
+        }*/
+
+        /*******************************************************/
+        /*******************************************************/
+        /************ PYRAMIDAL ITERATION BEGINNING ************/
+        /*******************************************************/
+        /*******************************************************/
+        double iterationLeft = (nsteps-1);
+
+        for(int b = (nsteps-1) ; b >= 0  ; b--)
+        {
+            iterationLeft;
+
+            // Elevation manager instance for coarse DSM reading
             ossimElevManager* elev = ossimElevManager::instance();
             cout << "elevation database \t" << elev->getNumberOfElevationDatabases() << endl;
 
-            master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
-            slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
+            std::ostringstream strs;
+            strs << iterationLeft;
+            std::string Level = strs.str();
 
-            double orthoRes = finalRes*pow (2, iter);
-            cout << finalRes << " " << "m" << "\t final DSM resolution" << endl;
-            cout << orthoRes << " " << "m" << "\t resolution of this level" << endl;
-            cout << iter << "\t n° iterations left" << endl << endl;
-
+            double orthoRes = finalRes*pow (2, iterationLeft);
             std::ostringstream strsRes;
             strsRes << orthoRes;
             std::string ResParam = strsRes.str();
 
-            master_key.addPair(METERS_KW, ResParam);
-            slave_key.addPair( METERS_KW, ResParam);
+            cout << finalRes << " " << "m" << "\t final DSM resolution" << endl;
+            cout << orthoRes << " " << "m" << "\t resolution of this level" << endl;
+            cout << Level << "\t n° iterations left" << endl << endl<< endl;
 
-            // Lavoro su due immagini alla volta
-            for (int k=0; k<=StereoPairList.size(); k++)
+            image_key.addPair(METERS_KW, ResParam);
+
+
+            vector<ossimString> orthoList;
+            for (int n=0; n < imagesNumb ; n++)
             {
-                master_key.addPair("image1.file", StereoPairList[k].masterPath());
-                slave_key.addPair("image1.file", StereoPairList[k].slavePath());
+                image_key.addPair("image1.file", imageList[n]);
 
-                cout << endl << "IMAGE MASTER DIRECTORY:" << " " << StereoPairList[k].masterPath() << endl;
-                cout << "IMAGE SLAVE DIRECTORY:"  << " " << StereoPairList[k].slavePath() << endl << endl;
+                string Result;           // string which will contain the result
+                ostringstream convert;   // stream used for the conversion
+                convert << n;            // insert the textual representation of 'n' in the characters in the stream
+                Result = convert.str();
+                ossimString orthoPath = ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_level") + Level + ossimString("_image_") + Result + ossimString("_ortho.TIF");
+                image_key.add( ossimKeywordNames::OUTPUT_FILE_KW, orthoPath);
+                orthoList.push_back(orthoPath);
 
-                ap.reportRemainingOptionsAsUnrecognized();
-                if (ap.errors())
+                cout << "ORTHO FOR LEVEL: "<< Level << endl << endl;
+                cout << "path " << orthoPath << endl;
+                //cout << n << endl << endl;
+                cout << "Start orthorectification level " << Level << endl;
+                ortho(image_key);
+                //cout << image_key << endl << endl;
+            }
+
+            cout << endl << "UPDATED KEY: "<< endl<< endl;
+            cout <<image_key << endl << endl;
+            //cout << "ortholist" << orthoList[0] << endl << endl;
+
+            // Riempio il vettore della coppia con info su path delle ortho
+
+            for (int i=0; i < pairsNumb ; i++)
                 {
-                    ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
-                    std::string errMsg = "Unknown option...";
-                    throw ossimException(errMsg);
+                    //int idMaster,idSlave;
+                    //f_input >> idMaster >>  idSlave;
+                    //cout << "pippo " << orthoList[idMaster] << endl;
+                    StereoPairList[i].setOrthoPath(orthoList[StereoPairList[i].get_id_master()], orthoList[StereoPairList[i].get_id_slave()]);
+
+                    cout << "Pair " << StereoPairList[i].get_id_master() << StereoPairList[i].get_id_slave() <<endl;
+                    cout << "path ortho master\t" << StereoPairList[i].getOrthoMasterPath() << endl;
+                    cout << "path ortho slave\t" << StereoPairList[i].getOrthoSlavePath() << endl << endl;
                 }
 
-                //END PARSER****************************
 
-                ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(StereoPairList[k].masterPath()));
-                ossimImageHandler* raw_slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(StereoPairList[k].slavePath()));
+            iterationLeft--;
 
-                ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();
-                ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry();
+            // Raw images path
 
-                // CONVERSION FACTOR (from pixels to meters) COMPUTATION *************
+            /*cout << StereoPairList[0].getRawMasterPath() << endl;
+            cout << StereoPairList[1].getRawMasterPath() << endl;
+            cout << StereoPairList[2].getRawMasterPath() << endl;
+            cout << StereoPairList[0].getRawSlavePath() << endl;
+            cout << StereoPairList[1].getRawSlavePath() << endl;
+            cout << StereoPairList[2].getRawSlavePath() << endl;*/
 
-                // Conversion factor computed on tile and not over all the image
-                double Dlon = (lon_max - lon_min)/2.0;
-                double Dlat = (lat_max - lat_min)/2.0;
+            //preparo vettore di stereo-coppie + fattore di conversione
+            //StereoPairList[i].getConversionFactor();
+            //StereoPairList[i].getOrthoMasterPath();
+            //StereoPairList[i].getOrthoSlavePath();
 
-                // Getting ready the log file
-                char * logfile = ap[3];
-                string log(logfile);
-                log.erase(log.end()-4, log.end()-0 );
-                log = log + "_logfile.txt";
+            double null_disp_threshold = 7.5;
 
-                // Creating and writing the log file
-                ofstream myfile;
-                myfile.open (log.c_str());
+            ossimDispMerging *mergedDisp = new ossimDispMerging() ;
+            mergedDisp->execute(StereoPairList); // da qui voglio ottenere mappa di disparità fusa e metrica
 
-                cv::Mat conv_factor_J = cv::Mat::zeros(3,3, CV_64F);
-                cv::Mat conv_factor_I = cv::Mat::zeros(3,3, CV_64F);
 
-                for (int i=0 ; i<3 ; i++) //LAT
+
+            cv::Mat FinalDisparity = mergedDisp->getMergedDisparity(); // questa è mappa di disparità fusa e metrica
+
+
+
+
+            // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse
+            // poi faccio il geocoding
+            // poi esco da ciclo e rinizio a diversa risoluzione
+
+            // From Disparity to DSM
+            ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
+            master_handler->saveImageGeometry();
+
+
+
+            cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
+            cout << "null_disp_threshold"<< null_disp_threshold<< endl;
+
+            for(int i=0; i< FinalDisparity.rows; i++)
+            {
+                for(int j=0; j< FinalDisparity.cols; j++)
                 {
-                    for (int j=0 ; j<3 ; j++) //LON
+                    ossimDpt image_pt(j,i);
+                    ossimGpt world_pt;
+
+                    master_geom->localToWorld(image_pt, world_pt);
+
+                    ossim_float64 hgtAboveMSL = elev->getHeightAboveMSL(world_pt);
+                    //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
+
+                    if(FinalDisparity.at<double>(i,j) >= null_disp_threshold/abs(StereoPairList[i].getConversionFactor()))
                     {
-                    ossimGpt groundPoint(lat_max-i*Dlat,lon_min+j*Dlon,MinHeight); //MinHeight -50
-                    ossimGpt groundPointUp(lat_max-i*Dlat,lon_min+j*Dlon,MaxHeight); //MaxHeight + 50
+                        FinalDisparity.at<double>(i,j) += hgtAboveMSL;
 
-                    ossimDpt imagePoint(0.,0.);
-                    ossimDpt imagePointUp(0.,0.);
 
-                    raw_master_geom->worldToLocal(groundPoint,imagePoint);        //con qst trasf ottengo imagePoint della nadir
-                    raw_master_geom->worldToLocal(groundPointUp,imagePointUp);
+                        //hgtAboveMSL += FinalDisparity.at<double>(i,j);
 
-                    myfile << "MASTER IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t";
+                        //world_pt.height(hgtAboveMSL);
 
-                    double DeltaI_master = imagePointUp.x - imagePoint.x;
-                    double DeltaJ_master = imagePointUp.y - imagePoint.y;
-
-                    raw_slave_geom->worldToLocal(groundPoint,imagePoint);
-                    raw_slave_geom->worldToLocal(groundPointUp,imagePointUp);
-
-                    myfile << "SLAVE IMAGE" << "\t" << "Ground point" << groundPoint << "\t" << "Image point" << imagePoint << "\t" << "Ground point up" << groundPointUp << "\t" << "Image point up" << imagePointUp << "\t" << endl;
-
-                    double DeltaI_slave = imagePointUp.x - imagePoint.x;
-                    double DeltaJ_slave = imagePointUp.y - imagePoint.y;
-
-                    conv_factor_J.at<double>(i,j) = DeltaJ_slave - DeltaJ_master; // conv_factor for ACROSS-track imgs
-                    conv_factor_I.at<double>(i,j) = DeltaI_slave - DeltaI_master; // conv_factor for ALONG-track imgs
+                        // image_points.push_back(world_pt);
+                        // cout <<"punti"<<image_points[i]<<endl;
+                    }
+                    //To fill holes with DSM coarse
+                    else
+                    {
+                        FinalDisparity.at<double>(i,j) = hgtAboveMSL;
                     }
                 }
+            }
 
-                cout << conv_factor_J << endl;
-                cout << conv_factor_I << endl;
+            // Set the destination image size:
+            ossimIpt image_size (FinalDisparity.cols , FinalDisparity.rows);
+            ossimRefPtr<ossimImageData> finalDSM = ossimImageDataFactory::instance()->create(0, OSSIM_FLOAT32, 1, image_size.x, image_size.y);
 
-                cv::Scalar mean_conv_factor_J, stDev_conv_factor_J;
-                cv::meanStdDev(conv_factor_J, mean_conv_factor_J, stDev_conv_factor_J);
+            if(finalDSM.valid())
+               finalDSM->initialize();
+           // else
+             //  return -1;
 
-                cv::Scalar mean_conv_factor_I, stDev_conv_factor_I;
-                cv::meanStdDev(conv_factor_I, mean_conv_factor_I, stDev_conv_factor_I);
+            for (int i=0; i< FinalDisparity.cols; i++) // for every column
+            {
+                for(int j=0; j< FinalDisparity.rows; j++) // for every row
+                {
+                    finalDSM->setValue(i,j,FinalDisparity.at<double>(j,i));
+                }
+            }
 
-                double stDev_conversionF_J = stDev_conv_factor_J.val[0];
-                double mean_conversionF_J = mean_conv_factor_J.val[0]/(MaxHeight -MinHeight + 100);
-                double stDev_conversionF_I = stDev_conv_factor_I.val[0];
-                double mean_conversionF_I = mean_conv_factor_I.val[0]/(MaxHeight -MinHeight + 100);
 
-                double mean_conversionF;
-                //mean_conversionF.resize(2);
 
-                if (abs(mean_conv_factor_J.val[0]) > abs(mean_conv_factor_I.val[0]))
-                    mean_conversionF = mean_conv_factor_J.val[0];
-                else mean_conversionF = mean_conv_factor_I.val[0];
-                mean_conversionF /= (MaxHeight -MinHeight + 100);
 
-                cout << "J Conversion Factor from pixels to meters\t" << mean_conversionF_J << endl;
-                cout << "Standard deviation J Conversion Factor\t" << stDev_conversionF_J << endl << endl;
-                cout << "I Conversion Factor from pixels to meters\t" << mean_conversionF_I << endl;
-                cout << "Standard deviation I Conversion Factor\t" << stDev_conversionF_I << endl << endl;
-                cout << "Total Conversion Factor from pixels to meters\t" << mean_conversionF << endl << endl;
 
-                // END CONVERSION FACTOR COMPUTATION ****************************************
 
-                myfile << endl << "Master orthorectification parameters" <<endl;
-                myfile << master_key << endl;
-                myfile << "Slave orthorectification parameters" <<endl;
-                myfile << slave_key << endl;
-                myfile <<"Conversion Factor from pixels to meters\t" << mean_conversionF_J <<endl;
-                myfile <<"Standard deviation Conversion Factor\t" << stDev_conversionF_J <<endl;
-                myfile.close();
+            ossimFilename pathDSM;
+            if (b == 0)
+               pathDSM = ossimFilename(ap[2]) + ossimString("DSM/") + ossimFilename(ap[3]) + ossimString(".TIF");
+            else
+                pathDSM = ossimFilename(ap[42]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF");
 
-                cout << "Start master orthorectification level " << nLev << endl;
-                ortho(master_key);
+            // Create output image chain:
+            ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
+            memSource->setImage(finalDSM);
+            memSource->setImageGeometry(master_geom);
+            cout << "size" << master_geom->getImageSize() << endl;
+            memSource->saveImageGeometry();
 
-                cout << "Start slave orthorectification level " << nLev << endl;
-                ortho(slave_key);
+            ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
+            writer->connectMyInputTo(0, memSource.get());
+            writer->execute();
 
-                // ImageHandlers & ImageGeometry instance
-                ossimImageHandler* master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
-                ossimImageHandler* slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
+            writer->close();
+            writer = 0;
+            memSource = 0;
+            delete mergedDisp;
+            elev = 0;
+        }
+        iterationLeft --;
 
-                //if(master_handler && slave_handler && raw_master_handler && raw_slave_handler) // enter if exist both master and slave
-                //{
-                 // Load ortho images
-                 ossimIrect bounds_master = master_handler->getBoundingRect(0);
-                 ossimIrect bounds_slave = slave_handler->getBoundingRect(0);
 
-                 ossimRefPtr<ossimImageData> img_master = master_handler->getTile(bounds_master, 0);
-                 ossimRefPtr<ossimImageData> img_slave = slave_handler->getTile(bounds_slave, 0);
+        f_input.close();
 
-                 // TPs and disparity map generation
-                 openCVtestclass *stereoCV = new openCVtestclass(img_master, img_slave) ;
-                 stereoCV->execute(mean_conversionF/1.0);
-                 //}
+
+            /*
+
+
+
 
                 remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
 
@@ -459,27 +511,6 @@ int main(int argc,  char* argv[])
                 // CREO UN'UNICA MAPPA DI DISPARITA' MEDIA E GENERO IL DSM
                 ossimRefPtr<ossimImageData> finalDSM = stereoCV->computeDSM(elev, master_geom);
 
-                ossimFilename pathDSM;
-                if (b == 0)
-                   pathDSM = ossimFilename(ap[2]) + ossimString("DSM/") + ossimFilename(ap[3]) + ossimString(".TIF");
-                else
-                    pathDSM = ossimFilename(ap[42]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF");
-
-                // Create output image chain:
-                ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
-                memSource->setImage(finalDSM);
-                memSource->setImageGeometry(master_geom);
-                cout << "size" << master_geom->getImageSize() << endl;
-                memSource->saveImageGeometry();
-
-                ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
-                writer->connectMyInputTo(0, memSource.get());
-                writer->execute();
-
-                writer->close();
-                writer = 0;
-                memSource = 0;
-                delete stereoCV;
 
                 // INSERITO TUTTO IN OPENCVTESTCLASS//
                 /*
@@ -495,16 +526,15 @@ int main(int argc,  char* argv[])
                 writer->removeListener(&prog);
                 writer = 0;*/
 
-                iter --;
-                elev = 0;
-            }
+
+ /*            }
         }
-        cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your triplet!\n" << endl;
-	}     
+        cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your triplet!\n" << endl;*/
+    }
 	catch (const ossimException& e)
 	{
 		ossimNotify(ossimNotifyLevel_WARN) << e.what() << endl;
-		return 1;
+        return 1;
 	}
   
 	return 0;

@@ -13,13 +13,17 @@
 #define ossimOpenCvDisparityMapGenerator_HEADER 1
 
 #include <opencv/cv.h>
+#include "ossimStereoPair.h"
 
 class ossimOpenCvDisparityMapGenerator
 {
 public:
 	ossimOpenCvDisparityMapGenerator();
-	cv::Mat execute(cv::Mat master_mat, cv::Mat slave_mat);   
+    void execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair);
+    cv::Mat getDisp();
 
+    cv::Mat array_disp;
+    cv::Mat mergedDisp_array;
     int ndisparities; //Maximum disparity minus minimum disparity
     int SADWindowSize; //Matched block size
     int minimumDisp;

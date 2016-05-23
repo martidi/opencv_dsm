@@ -25,13 +25,64 @@ ossimOpenCvTPgenerator::ossimOpenCvTPgenerator()
 
 }
 
+
 ossimOpenCvTPgenerator::ossimOpenCvTPgenerator(cv::Mat master, cv::Mat slave)
 {
+    // Create the OpenCV images
     master_mat = master;
     slave_mat = slave;
 }
 
-void ossimOpenCvTPgenerator::run()
+bool ossimOpenCvTPgenerator::execute()
+{
+
+    TPgen();
+    TPdraw();
+    TPwarp();
+
+    //cv::Mat slave_mat_warp = TPfinder->warp(slave_mat);
+   // slave_mat_warp = TPfinder->warp(slave_mat);
+/*
+    ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
+    out_disp = dense_matcher->execute(master_mat_8U, slave_mat_warp);
+
+   // ogni disp map deve essere ruotata, convertita a CV_64F, divisa per 16 bit, resa metrica tramite il conv fact
+
+    // Rotation for along-track OPTICAL images
+    //********* To be commented for SAR images *********
+    //cv::transpose(out_disp, out_disp);
+    //cv::flip(out_disp, out_disp, 0);
+    //********* To be commented for SAR images *********
+
+    out_disp.convertTo(out_disp, CV_64F);
+    out_disp = ((out_disp/16.0)) / ConversionFactor; //quando divido per il fattore di conversione le rendo metriche
+
+    // Nel vettore globale di cv::Mat immagazzino tutte le mappe di disparità che genero ad ogni ciclo
+    fusedDisp_array.push_back(out_disp);
+    //null_disp_threshold = (dense_matcher->minimumDisp)+0.5;*/
+
+    return true;
+}
+
+
+
+
+
+
+    //ossimOpenCvTPgenerator* TPfinder = new ossimOpenCvTPgenerator(master_mat, slave_mat);
+    //TPfinder->run();
+
+
+
+
+
+/*ossimOpenCvTPgenerator::ossimOpenCvTPgenerator(cv::Mat master, cv::Mat slave)
+{
+    master_mat = master;
+    slave_mat = slave;
+}*/
+
+/*void ossimOpenCvTPgenerator::run()
 {
 	cv::namedWindow( "master_img", CV_WINDOW_NORMAL );
 	cv::imshow("master_img", master_mat);
@@ -43,7 +94,7 @@ void ossimOpenCvTPgenerator::run()
    
 	TPgen();  
 	TPdraw();
-}
+}*/
 
 void ossimOpenCvTPgenerator::TPgen()
 {
@@ -214,7 +265,7 @@ void ossimOpenCvTPgenerator::TPdraw()
     cv::waitKey(0);
 }
 
-cv::Mat ossimOpenCvTPgenerator::warp(cv::Mat slave_16bit)
+bool ossimOpenCvTPgenerator::TPwarp()
 {
 	std::vector<cv::Point2f> aff_match1, aff_match2;
 	// Get the keypoints from the good_matches
@@ -235,10 +286,10 @@ cv::Mat ossimOpenCvTPgenerator::warp(cv::Mat slave_16bit)
  
     // Set the destination image the same type and size as source
 	cv::Mat warp_dst = cv::Mat::zeros(master_mat.rows, master_mat.cols, master_mat.type());
-	cv::Mat warp_dst_16bit = cv::Mat::zeros(slave_16bit.rows, slave_16bit.cols, slave_16bit.type());
+    //cv::Mat warp_dst_16bit = cv::Mat::zeros(slave_16bit.rows, slave_16bit.cols, slave_16bit.type());
 	
 	cv::warpAffine(slave_mat, warp_dst, rot_matrix, warp_dst.size());
-	cv::warpAffine(slave_16bit, warp_dst_16bit, rot_matrix, warp_dst.size());
+    //cv::warpAffine(slave_16bit, warp_dst_16bit, rot_matrix, warp_dst.size());
     
     //cv::namedWindow("Master image", CV_WINDOW_NORMAL);
     //cv::imshow("Master image", master_mat );
@@ -247,11 +298,20 @@ cv::Mat ossimOpenCvTPgenerator::warp(cv::Mat slave_16bit)
     //cv::namedWindow("Warped image", CV_WINDOW_NORMAL);
     //cv::imshow("Warped image", warp_dst );
 	cv::imwrite("Slave_8bit.tif",  warp_dst);
-	
+
+    slave_mat_warp = warp_dst;
+
     //cv::waitKey(0);
     
-	return warp_dst;
+    return true;
 }	
+
+
+cv::Mat ossimOpenCvTPgenerator::getWarpedImage()
+{
+    return slave_mat_warp;
+}
+
 
 cv::Mat ossimOpenCvTPgenerator::estRT(std::vector<cv::Point2f> master, std::vector<cv::Point2f> slave)
 {

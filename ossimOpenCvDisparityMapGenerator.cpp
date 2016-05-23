@@ -12,6 +12,7 @@
 
 #include <ossim/imaging/ossimImageSource.h>
 #include "ossimOpenCvDisparityMapGenerator.h"
+
 #include <opencv2/highgui/highgui.hpp>
 // Note: These are purposely commented out to indicate non-use.
 // #include <opencv2/nonfree/nonfree.hpp>
@@ -24,7 +25,7 @@ ossimOpenCvDisparityMapGenerator::ossimOpenCvDisparityMapGenerator()
 	
 }
 
-cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave_mat)
+void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair)
 {
 	cout << "DISPARITY MAP GENERATION \t in progress..." << endl;
 		
@@ -62,9 +63,10 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
     //sgbm.fullDP = true; //activate for consider 8 directions (Hirschmuller algorithm) instead of 5;
 
     double minVal, maxVal;
-    cv::Mat array_disp;
+
     cv::Mat array_disp_8U;
     sgbm(master_mat, slave_mat, array_disp);
+
     minMaxLoc( array_disp, &minVal, &maxVal );
     array_disp.convertTo( array_disp_8U, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
     cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
@@ -85,10 +87,27 @@ cv::Mat ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat sl
 	disparity <<"DISPARITY RANGE:" << " " << ndisparities << endl;
 	disparity <<"SAD WINDOW SIZE:" << " " << SADWindowSize<< endl;
 	disparity << "MINIMUM DISPARITY VALUE:"<< sgbm.minDisparity << endl;
-	disparity.close();	
-		
-	return array_disp;
+    disparity.close();
+
+    // ogni disp map deve essere ruotata, convertita a CV_64F, divisa per 16 bit, resa metrica tramite il conv fact
+
+    // Rotation for along-track OPTICAL images
+    //********* To be commented for SAR images *********
+    //cv::transpose(array_disp, array_disp);
+    //cv::flip(array_disp, array_disp, 0);
+    //********* To be commented for SAR images *********
+
+    array_disp.convertTo(array_disp, CV_64F);
+    array_disp = ((array_disp/16.0)) / StereoPair.getConversionFactor(); //quando divido per il fattore di conversione le rendo metriche
+
 }
 
 
+
+cv::Mat ossimOpenCvDisparityMapGenerator::getDisp()
+{
+
+    return array_disp;
+
+}
 
