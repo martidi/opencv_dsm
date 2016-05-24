@@ -13,10 +13,13 @@
 #include "ossimOpenCvTPgenerator.h"
 #include "ossimDispMerging.h"
 #include "ossimOpenCvDisparityMapGenerator.h"
+#include "ossimImagePreprocess.cpp"
 
-
+#include <ossim/imaging/ossimMemoryImageSource.h>
 #include "ossim/imaging/ossimImageHandlerRegistry.h"
 #include "ossim/imaging/ossimImageHandler.h"
+#include "ossim/imaging/ossimImageFileWriter.h"
+#include "ossim/imaging/ossimImageWriterFactoryRegistry.h"
 
 #include <opencv2/highgui/highgui.hpp>
 
@@ -65,59 +68,152 @@ for (int i = 0; i < pairsNumb ; i++)
     null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
     }
 
+    // DISPARITY MAPS FUSION
 
+    merged_disp = cv::Mat::zeros(disp_array[0].rows, disp_array[0].cols, CV_64F);
 
+    cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
+    cout << "null_disp_threshold\t"<< null_disp_threshold<< endl;
 
+    //cout << "n° rows\t" << merged_disp.rows << endl;
+    //cout << "n° columns\t" << merged_disp.cols << endl;
 
+    for (int i=0; i< disp_array[0].rows; i++) // for every row
+    {
+        for(int j=0; j< disp_array[0].cols; j++) // for every column
+        {
+            /*int num=0.0;
 
-    // Fusione mappe di disparità
+            if(fabs(error_disp.at<double>(i,j)) < 5)
+            {
+                for (unsigned int k = 0; k < disp_array.size(); k++)  // for every disparity map
+                {
+                    if(disp_array[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
+                    {
+
+                        merged_disp.at<double>(i,j) += disp_array[k].at<double>(i,j)/mean_conversionF[k]; // "metric" disparity
+                        //outImage.operator =(  outImage->setValue(i,j,disp_array[k].at<double>(i,j)/mean_conversionF[k]));
+                        num++;
+                    }
+                }
+                merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;
+            // outImage->setValue(i,j,outImage/num);
+            }
+            else
+            {
+                // outImage->setValue(i,j,disp_array[1].at<double>(i,j)/mean_conversionF[1]);
+                merged_disp.at<double>(i,j) = disp_array[1].at<double>(i,j)/mean_conversionF[1];
+            }*/
+        }
+    }
+
 
     //disparityFusion()
-    //merged_disp
-
-
-
 
 
      //remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
 
      //cout << "ciclo" << k << endl;
 
-/*
-     // From Disparity to DSM
-     ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
-     master_handler->saveImageGeometry();
+    return true;
+}
 
-     // CREO UN'UNICA MAPPA DI DISPARITA' MEDIA E GENERO IL DSM
-     ossimRefPtr<ossimImageData> finalDSM = stereoTP->computeDSM(elev, master_geom);
 
-     ossimFilename pathDSM;
-     if (b == 0)
-        pathDSM = ossimFilename(ap[2]) + ossimString("DSM/") + ossimFilename(ap[3]) + ossimString(".TIF");
-     else
-         pathDSM = ossimFilename(ap[42]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF");
+bool ossimDispMerging::computeDsm(vector<ossimStereoPair> StereoPairList, ossimElevManager *elev, int b, ossimArgumentParser ap)
+{
+    // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse
+    // poi faccio il geocoding
+    // poi esco da ciclo e rinizio a diversa risoluzione
 
-     // Create output image chain:
-     ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
-     memSource->setImage(finalDSM);
-     memSource->setImageGeometry(master_geom);
-     cout << "size" << master_geom->getImageSize() << endl;
-     memSource->saveImageGeometry();
+    // From Disparity to DSM
+    ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
+    master_handler->saveImageGeometry();
 
-     ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
-     writer->connectMyInputTo(0, memSource.get());
-     writer->execute();
+    cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
+    cout << "null_disp_threshold"<< null_disp_threshold<< endl;
 
-     writer->close();
-     writer = 0;
-     memSource = 0;
-     delete stereoTP;*/
+    for(int i=0; i< merged_disp.rows; i++)
+    {
+        for(int j=0; j< merged_disp.cols; j++)
+        {
+            ossimDpt image_pt(j,i);
+            ossimGpt world_pt;
 
+            master_geom->localToWorld(image_pt, world_pt);
+
+            ossim_float64 hgtAboveMSL = elev->getHeightAboveMSL(world_pt);
+            //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
+
+            if(merged_disp.at<double>(i,j) >= null_disp_threshold/abs(StereoPairList[i].getConversionFactor()))
+            {
+                merged_disp.at<double>(i,j) += hgtAboveMSL;
+
+
+                //hgtAboveMSL += merged_disp.at<double>(i,j);
+
+                //world_pt.height(hgtAboveMSL);
+
+                // image_points.push_back(world_pt);
+                // cout <<"punti"<<image_points[i]<<endl;
+            }
+            //To fill holes with DSM coarse
+            else
+            {
+                merged_disp.at<double>(i,j) = hgtAboveMSL;
+            }
+        }
+    }
+
+    // Set the destination image size:
+    ossimIpt image_size (merged_disp.cols , merged_disp.rows);
+    finalDSM = ossimImageDataFactory::instance()->create(0, OSSIM_FLOAT32, 1, image_size.x, image_size.y);
+
+    if(finalDSM.valid())
+       finalDSM->initialize();
+   // else
+     //  return -1;
+
+    for (int i=0; i< merged_disp.cols; i++) // for every column
+    {
+        for(int j=0; j< merged_disp.rows; j++) // for every row
+        {
+            finalDSM->setValue(i,j,merged_disp.at<double>(j,i));
+        }
+    }
+
+
+    ossimFilename pathDSM;
+    if (b == 0)
+       pathDSM = ossimFilename(ap[2]) + ossimString("DSM/") + ossimFilename(ap[3]) + ossimString(".TIF");
+    else
+        pathDSM = ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF");
+
+    cout << "path dsm " << pathDSM << endl;
+
+    // Create output image chain:
+    ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
+    memSource->setImage(finalDSM);
+    memSource->setImageGeometry(master_geom);
+    cout << "dsm size " << master_geom->getImageSize() << endl;
+    memSource->saveImageGeometry();
+
+    ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
+    writer->connectMyInputTo(0, memSource.get());
+    writer->execute();
+
+    writer->close();
+    writer = 0;
+    memSource = 0;
 
     return true;
 }
 
 
+ossimRefPtr<ossimImageData> ossimDispMerging::getDsm()
+{
+    return finalDSM;
+
+}
 
 bool ossimDispMerging::imgConversionToMat()
 {
@@ -155,10 +251,9 @@ bool ossimDispMerging::imgPreProcessing()
     // ****************************
     // Activate for Wallis filter
     // ****************************
-    //for(size_t i = 0; i < images.size(); i++)
-    //{
-      //  images[i] = wallis(images[i]);
-    //}
+    /*ossimImagePreprocess *preprocess = new ossimImagePreprocess();
+    master_mat = preprocess->wallis(master_mat);
+    slave_mat = preprocess->wallis(slave_mat);*/
 
     return true;
 }
@@ -190,7 +285,5 @@ cv::Mat ossimDispMerging::getMergedDisparity()
     return merged_disp;
 
 }
-
-
 
 

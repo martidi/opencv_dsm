@@ -386,18 +386,19 @@ int main(int argc,  char* argv[])
             //StereoPairList[i].getOrthoMasterPath();
             //StereoPairList[i].getOrthoSlavePath();
 
-            double null_disp_threshold = 7.5;
-
             ossimDispMerging *mergedDisp = new ossimDispMerging() ;
             mergedDisp->execute(StereoPairList); // da qui voglio ottenere mappa di disparità fusa e metrica
 
-
+            // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse
+            // poi faccio il geocoding
+            // poi esco da ciclo e rinizio a diversa risoluzione
+            mergedDisp->computeDsm(StereoPairList, elev, b, ap); // genero e salvo il dsm finale
 
             cv::Mat FinalDisparity = mergedDisp->getMergedDisparity(); // questa è mappa di disparità fusa e metrica
 
 
 
-
+/*
             // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse
             // poi faccio il geocoding
             // poi esco da ciclo e rinizio a diversa risoluzione
@@ -406,7 +407,7 @@ int main(int argc,  char* argv[])
             ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
             master_handler->saveImageGeometry();
 
-
+            double null_disp_threshold = 7.5;
 
             cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
             cout << "null_disp_threshold"<< null_disp_threshold<< endl;
@@ -461,10 +462,6 @@ int main(int argc,  char* argv[])
             }
 
 
-
-
-
-
             ossimFilename pathDSM;
             if (b == 0)
                pathDSM = ossimFilename(ap[2]) + ossimString("DSM/") + ossimFilename(ap[3]) + ossimString(".TIF");
@@ -484,48 +481,20 @@ int main(int argc,  char* argv[])
 
             writer->close();
             writer = 0;
-            memSource = 0;
+            memSource = 0;*/
+
+
             delete mergedDisp;
             elev = 0;
         }
         iterationLeft --;
 
-
         f_input.close();
 
 
-            /*
-
-
-
-
-                remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
+            /*  remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
 
                 cout << "ciclo" << k << endl;
-
-
-                // From Disparity to DSM
-                ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
-                master_handler->saveImageGeometry();
-
-                // CREO UN'UNICA MAPPA DI DISPARITA' MEDIA E GENERO IL DSM
-                ossimRefPtr<ossimImageData> finalDSM = stereoCV->computeDSM(elev, master_geom);
-
-
-                // INSERITO TUTTO IN OPENCVTESTCLASS//
-                /*
-                // Geocoded DSM generation
-                ossimImageHandler *handler_disp = ossimImageHandlerRegistry::instance()->open(ossimFilename("DSM_float.tif"));
-                handler_disp->setImageGeometry(nadir_geom);
-                handler_disp->saveImageGeometry();
-
-                // Add a listener to get percent complete
-                ossimStdOutProgress prog(0, true);
-                writer->addListener(&prog);
-                writer->execute();
-                writer->removeListener(&prog);
-                writer = 0;*/
-
 
  /*            }
         }

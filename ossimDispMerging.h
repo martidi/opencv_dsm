@@ -15,6 +15,8 @@
 #include <opencv/cv.h>
 #include <ossim/imaging/ossimImageDataFactory.h>
 #include "ossim/imaging/ossimImageHandler.h"
+#include <ossim/elevation/ossimElevManager.h>
+#include <ossim/base/ossimArgumentParser.h>
 
 #include "ossimStereoPair.h"
 #include "ossimOpenCvTPgenerator.h"
@@ -26,6 +28,8 @@ public:
         ossimDispMerging();
         bool execute(vector<ossimStereoPair> StereoPairList);
         cv::Mat getMergedDisparity();
+        bool computeDsm(vector<ossimStereoPair> StereoPairList, ossimElevManager *elev, int b, ossimArgumentParser ap);
+        ossimRefPtr<ossimImageData> getDsm();
 
 private:
 
@@ -42,8 +46,8 @@ private:
         //chiamata dense matching
 
         vector<cv::Mat> disp_array;
-        cv::Mat disparityMap;
-
+        //cv::Mat disparityMap;
+        ossimRefPtr<ossimImageData> finalDSM;
         cv::Mat merged_disp;
         cv::Mat master_mat, slave_mat;
         cv::Mat master_mat_8U,slave_mat_8U;
