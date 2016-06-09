@@ -181,7 +181,7 @@ void ossimOpenCvTPgenerator::TPgen()
 			double px = keypoints1[i].pt.x - keypoints2[matches[i].trainIdx].pt.x;
 			double py = keypoints1[i].pt.y - keypoints2[matches[i].trainIdx].pt.y;	
 			
-            if(fabs(py) <  50)
+            if(fabs(py) <  20)
 			{
 				good_matches.push_back(matches[i]);
 

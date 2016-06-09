@@ -13,7 +13,7 @@
 #include "ossimOpenCvTPgenerator.h"
 #include "ossimDispMerging.h"
 #include "ossimOpenCvDisparityMapGenerator.h"
-#include "ossimImagePreprocess.cpp"
+#include "ossimImagePreprocess.h"
 
 #include <ossim/imaging/ossimMemoryImageSource.h>
 #include "ossim/imaging/ossimImageHandlerRegistry.h"
@@ -38,42 +38,45 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList)
     int pairsNumb = StereoPairList.size();
 
     // Faccio ciclo lavorando su una coppia alla volta
-for (int i = 0; i < pairsNumb ; i++)
-    {
-    cout << endl << endl << "PAIR PROCESSED: " << endl ;
-    cout << StereoPairList[i].get_id_master() << "\t" << StereoPairList[i].get_id_slave() << endl ;
-    // ImageHandlers & ImageGeometry instance
-    master_handler = ossimImageHandlerRegistry::instance()->open(StereoPairList[i].getOrthoMasterPath());
-    slave_handler = ossimImageHandlerRegistry::instance()->open(StereoPairList[i].getOrthoSlavePath());
+    for (int i = 0; i < pairsNumb ; i++)
+        {
+        cout << endl << endl << "PAIR PROCESSED: " << endl ;
+        cout << StereoPairList[i].get_id_master() << "\t" << StereoPairList[i].get_id_slave() << endl ;
 
-    //if(master_handler && slave_handler && raw_master_handler && raw_slave_handler) // enter if exist both master and slave
-    //{
+        // ImageHandlers & ImageGeometry instance
+        master_handler = ossimImageHandlerRegistry::instance()->open(StereoPairList[i].getOrthoMasterPath());
+        slave_handler = ossimImageHandlerRegistry::instance()->open(StereoPairList[i].getOrthoSlavePath());
 
-    // Conversion from ossim image to opencv matrix
-     imgConversionToMat(); //apre le img ortho e diventano opencv mat
+        //if(master_handler && slave_handler && raw_master_handler && raw_slave_handler) // enter if exist both master and slave
+        //{
 
-     imgPreProcessing(); // wallis filter
+        // Conversion from ossim image to opencv matrix
+        imgConversionToMat(); //apre le img ortho e diventano opencv mat
 
-     imgConversionTo8bit();      // Conversion from 16 bit to 8 bit
+        imgPreProcessing(); // wallis filter
 
-    // TPs and disparity map generation
-    ossimOpenCvTPgenerator *stereoTP = new ossimOpenCvTPgenerator(master_mat_8U, slave_mat_8U) ;
-    stereoTP->execute();
+        imgConversionTo8bit();      // Conversion from 16 bit to 8 bit
 
-    ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
-    dense_matcher->execute(master_mat_8U, stereoTP->getWarpedImage(), StereoPairList[i]);
+        // TPs generation
+        ossimOpenCvTPgenerator *stereoTP = new ossimOpenCvTPgenerator(master_mat_8U, slave_mat_8U) ;
+        stereoTP->execute();
 
-    // Nel vettore globale di cv::Mat immagazzino tutte le mappe di disparità che genero ad ogni ciclo
-    disp_array.push_back(dense_matcher->getDisp());
-    null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
-    }
+        // Disparity map generation
+        ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
+        dense_matcher->execute(master_mat_8U, stereoTP->getWarpedImage(), StereoPairList[i]); // dopo questo execute ho disp metrica
+
+        // Nel vettore globale di cv::Mat immagazzino tutte le mappe di disparità che genero ad ogni ciclo
+        disp_array.push_back(dense_matcher->getDisp());
+        null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
+        }
+
+    cout << endl << "Disparity maps number " << disp_array.size() << endl;
 
     // DISPARITY MAPS FUSION
 
     merged_disp = cv::Mat::zeros(disp_array[0].rows, disp_array[0].cols, CV_64F);
 
-    cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
-    cout << "null_disp_threshold\t"<< null_disp_threshold<< endl;
+    cout<< " " << endl << "DISPARITY MAPS FUSION \t wait few minutes..." << endl;
 
     //cout << "n° rows\t" << merged_disp.rows << endl;
     //cout << "n° columns\t" << merged_disp.cols << endl;
@@ -82,37 +85,33 @@ for (int i = 0; i < pairsNumb ; i++)
     {
         for(int j=0; j< disp_array[0].cols; j++) // for every column
         {
-            /*int num=0.0;
+            int num=0.0;
 
-            if(fabs(error_disp.at<double>(i,j)) < 5)
+            for (unsigned int k = 0; k < disp_array.size(); k++)  // for every disparity map
             {
-                for (unsigned int k = 0; k < disp_array.size(); k++)  // for every disparity map
-                {
-                    if(disp_array[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
+                //for (int z = 0; z < k; z++)
+                //{
+                    //if(fabs(disp_array[z].at<double>(i,j) - disp_array[z+1].at<double>(i,j)) < 5)
+                    //{
+                        if(disp_array[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
+                        {
+                            merged_disp.at<double>(i,j) += disp_array[k].at<double>(i,j);
+                            num++;
+                        }
+                    //}
+
+                    else
                     {
-
-                        merged_disp.at<double>(i,j) += disp_array[k].at<double>(i,j)/mean_conversionF[k]; // "metric" disparity
-                        //outImage.operator =(  outImage->setValue(i,j,disp_array[k].at<double>(i,j)/mean_conversionF[k]));
-                        num++;
+                        merged_disp.at<double>(i,j) = disp_array[1].at<double>(i,j);
                     }
-                }
-                merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;
-            // outImage->setValue(i,j,outImage/num);
+
+                //}
+            merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;
             }
-            else
-            {
-                // outImage->setValue(i,j,disp_array[1].at<double>(i,j)/mean_conversionF[1]);
-                merged_disp.at<double>(i,j) = disp_array[1].at<double>(i,j)/mean_conversionF[1];
-            }*/
         }
     }
 
-
-    //disparityFusion()
-
-
      //remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
-
      //cout << "ciclo" << k << endl;
 
     return true;
@@ -121,6 +120,8 @@ for (int i = 0; i < pairsNumb ; i++)
 
 bool ossimDispMerging::computeDsm(vector<ossimStereoPair> StereoPairList, ossimElevManager *elev, int b, ossimArgumentParser ap)
 {
+    remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
+
     // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse
     // poi faccio il geocoding
     // poi esco da ciclo e rinizio a diversa risoluzione
@@ -170,8 +171,8 @@ bool ossimDispMerging::computeDsm(vector<ossimStereoPair> StereoPairList, ossimE
 
     if(finalDSM.valid())
        finalDSM->initialize();
-   // else
-     //  return -1;
+    // else
+    //  return -1;
 
     for (int i=0; i< merged_disp.cols; i++) // for every column
     {
@@ -181,12 +182,11 @@ bool ossimDispMerging::computeDsm(vector<ossimStereoPair> StereoPairList, ossimE
         }
     }
 
-
     ossimFilename pathDSM;
     if (b == 0)
        pathDSM = ossimFilename(ap[2]) + ossimString("DSM/") + ossimFilename(ap[3]) + ossimString(".TIF");
     else
-        pathDSM = ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF");
+        pathDSM = ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ ossimString(".TIF");
 
     cout << "path dsm " << pathDSM << endl;
 
@@ -212,8 +212,8 @@ bool ossimDispMerging::computeDsm(vector<ossimStereoPair> StereoPairList, ossimE
 ossimRefPtr<ossimImageData> ossimDispMerging::getDsm()
 {
     return finalDSM;
-
 }
+
 
 bool ossimDispMerging::imgConversionToMat()
 {
@@ -246,6 +246,7 @@ bool ossimDispMerging::imgConversionToMat()
 
 }
 
+
 bool ossimDispMerging::imgPreProcessing()
 {
     // ****************************
@@ -258,9 +259,9 @@ bool ossimDispMerging::imgPreProcessing()
     return true;
 }
 
+
 bool ossimDispMerging::imgConversionTo8bit()
 {
-
     double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
 
     minMaxLoc( master_mat, &minVal_master, &maxVal_master );
@@ -283,7 +284,6 @@ bool ossimDispMerging::imgConversionTo8bit()
 cv::Mat ossimDispMerging::getMergedDisparity()
 {
     return merged_disp;
-
 }
 
 

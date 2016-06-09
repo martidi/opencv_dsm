@@ -227,7 +227,6 @@ int main(int argc,  char* argv[])
 
         //cout << image_key << endl << endl;
 
-
         // Reading a file from the terminal
         fstream f_input;
         f_input.open(ap[1], ios::in);
@@ -235,38 +234,38 @@ int main(int argc,  char* argv[])
         if (f_input.fail())
         {
             cout << "Missing input file" << endl;
+            return 1;
         }
 
         // Reading image path and pairs info from the text file
-        ossimString imagePath;
         int id;
         int imagesNumb;
+        int pairsNumb;
+        ossimString imagePath;
         vector<ossimString> imageList;
         vector<ossimStereoPair> StereoPairList;
 
         f_input >> imagesNumb;
-        cout << "Number of images: " << imagesNumb << endl;
+        cout << "IMAGES NUMBER: " << imagesNumb << endl;
 
         //while (f_input >> id >> imagePath )// fino a che leggi un int seguito da due ossimString
 
         for (int i=0; i < imagesNumb ; i++)
         {
             f_input >> id >> imagePath;
-            cout <<id << endl;
-            cout << imagePath << endl;
             imageList.push_back(imagePath);
+            cout << id << endl;
+            cout << imagePath << endl;
         }
-
-        int pairsNumb;
         f_input >> pairsNumb;
-        cout << endl << "Number of pairs: " << pairsNumb << endl << endl;
+        cout << endl << "PAIRS NUMBER: " << pairsNumb << endl << endl;
 
-        // Riempio il vettore della coppia con info su id, path e fattore di conversione
+        // Riempio il vettore della coppia con info su id, path e fattore di conversione per ciascuna coppia
         for (int i=0; i < pairsNumb ; i++)
         {
             int idMaster,idSlave;
             ossimStereoPair pair;
-            f_input >> idMaster >>  idSlave;
+            f_input >> idMaster >> idSlave;
 
             pair.setID(idMaster, idSlave);
             pair.setRawPath(imageList[idMaster],imageList[idSlave]);
@@ -278,7 +277,6 @@ int main(int argc,  char* argv[])
             cout << "path slave\t" << StereoPairList[i].getRawSlavePath() << endl;
             cout << "conv factor pair: " << idMaster << idSlave << "\t" << StereoPairList[i].getConversionFactor() << endl<< endl << endl<< endl;
         }
-       // f_input.close();
 
         //cout << StereoPairList[2].getRawMasterPath() << endl; // così entro nella path della master della coppia
         //cout << StereoPairList[2].getConversionFactor() << endl;
@@ -289,15 +287,8 @@ int main(int argc,  char* argv[])
         // Per ottenere le path delle singole immagini elencate nel file
         cout << "dir_image_0 " << imageList[0] << endl;
         cout << "dir_image_1 " << imageList[1] << endl;
-        cout << "dir_image_2 " << imageList[2] << endl;
-        cout << "dir_image_3 " << imageList[3] << endl<< endl;
-
-      /*  for (int i = 0; i <= pairsNumb  ; i++)
-        {
-            pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, MinHeight, MaxHeight);
-            double mean_conversionF = pair.getConversionFactor();
-            cout << mean_conversionF << endl << endl;
-        }*/
+        //cout << "dir_image_2 " << imageList[2] << endl;
+        //cout << "dir_image_3 " << imageList[3] << endl<< endl;
 
         /*******************************************************/
         /*******************************************************/
@@ -312,7 +303,12 @@ int main(int argc,  char* argv[])
 
             // Elevation manager instance for coarse DSM reading
             ossimElevManager* elev = ossimElevManager::instance();
-            cout << "elevation database \t" << elev->getNumberOfElevationDatabases() << endl;
+            cout << endl << "elevation database \t" << elev->getNumberOfElevationDatabases() << endl;
+
+            //ossimFilename pippo = ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ ossimString(".TIF");
+            //ossimElevManager::instance()->loadElevationPath(pippo);
+
+            cout << "Building height \t" << elev->getHeightAboveEllipsoid(ossimGpt(46.07334640, 11.12284482, 0.00)) << endl;
 
             std::ostringstream strs;
             strs << iterationLeft;
@@ -329,7 +325,7 @@ int main(int argc,  char* argv[])
 
             image_key.addPair(METERS_KW, ResParam);
 
-
+            // Ortho cycle for all the input images
             vector<ossimString> orthoList;
             for (int n=0; n < imagesNumb ; n++)
             {
@@ -345,8 +341,9 @@ int main(int argc,  char* argv[])
 
                 cout << "ORTHO FOR LEVEL: "<< Level << endl << endl;
                 cout << "path " << orthoPath << endl;
-                //cout << n << endl << endl;
                 cout << "Start orthorectification level " << Level << endl;
+                //cout << n << endl << endl;
+
                 ortho(image_key);
                 //cout << image_key << endl << endl;
             }
@@ -356,7 +353,6 @@ int main(int argc,  char* argv[])
             //cout << "ortholist" << orthoList[0] << endl << endl;
 
             // Riempio il vettore della coppia con info su path delle ortho
-
             for (int i=0; i < pairsNumb ; i++)
                 {
                     //int idMaster,idSlave;
@@ -369,8 +365,7 @@ int main(int argc,  char* argv[])
                     cout << "path ortho slave\t" << StereoPairList[i].getOrthoSlavePath() << endl << endl;
                 }
 
-
-            iterationLeft--;
+                iterationLeft --;
 
             // Raw images path
 
@@ -388,117 +383,32 @@ int main(int argc,  char* argv[])
 
             ossimDispMerging *mergedDisp = new ossimDispMerging() ;
             mergedDisp->execute(StereoPairList); // da qui voglio ottenere mappa di disparità fusa e metrica
+            cv::Mat FinalDisparity = mergedDisp->getMergedDisparity(); // questa è mappa di disparità fusa e metrica
 
             // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse
             // poi faccio il geocoding
             // poi esco da ciclo e rinizio a diversa risoluzione
             mergedDisp->computeDsm(StereoPairList, elev, b, ap); // genero e salvo il dsm finale
 
-            cv::Mat FinalDisparity = mergedDisp->getMergedDisparity(); // questa è mappa di disparità fusa e metrica
-
-
-
-/*
-            // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse
-            // poi faccio il geocoding
-            // poi esco da ciclo e rinizio a diversa risoluzione
-
-            // From Disparity to DSM
-            ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
-            master_handler->saveImageGeometry();
-
-            double null_disp_threshold = 7.5;
-
-            cout<< " " << endl << "DSM GENERATION \t wait few minutes..." << endl;
-            cout << "null_disp_threshold"<< null_disp_threshold<< endl;
-
-            for(int i=0; i< FinalDisparity.rows; i++)
-            {
-                for(int j=0; j< FinalDisparity.cols; j++)
-                {
-                    ossimDpt image_pt(j,i);
-                    ossimGpt world_pt;
-
-                    master_geom->localToWorld(image_pt, world_pt);
-
-                    ossim_float64 hgtAboveMSL = elev->getHeightAboveMSL(world_pt);
-                    //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //Augusta site
-
-                    if(FinalDisparity.at<double>(i,j) >= null_disp_threshold/abs(StereoPairList[i].getConversionFactor()))
-                    {
-                        FinalDisparity.at<double>(i,j) += hgtAboveMSL;
-
-
-                        //hgtAboveMSL += FinalDisparity.at<double>(i,j);
-
-                        //world_pt.height(hgtAboveMSL);
-
-                        // image_points.push_back(world_pt);
-                        // cout <<"punti"<<image_points[i]<<endl;
-                    }
-                    //To fill holes with DSM coarse
-                    else
-                    {
-                        FinalDisparity.at<double>(i,j) = hgtAboveMSL;
-                    }
-                }
-            }
-
-            // Set the destination image size:
-            ossimIpt image_size (FinalDisparity.cols , FinalDisparity.rows);
-            ossimRefPtr<ossimImageData> finalDSM = ossimImageDataFactory::instance()->create(0, OSSIM_FLOAT32, 1, image_size.x, image_size.y);
-
-            if(finalDSM.valid())
-               finalDSM->initialize();
-           // else
-             //  return -1;
-
-            for (int i=0; i< FinalDisparity.cols; i++) // for every column
-            {
-                for(int j=0; j< FinalDisparity.rows; j++) // for every row
-                {
-                    finalDSM->setValue(i,j,FinalDisparity.at<double>(j,i));
-                }
-            }
-
-
-            ossimFilename pathDSM;
-            if (b == 0)
-               pathDSM = ossimFilename(ap[2]) + ossimString("DSM/") + ossimFilename(ap[3]) + ossimString(".TIF");
-            else
-                pathDSM = ossimFilename(ap[42]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF");
-
-            // Create output image chain:
-            ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
-            memSource->setImage(finalDSM);
-            memSource->setImageGeometry(master_geom);
-            cout << "size" << master_geom->getImageSize() << endl;
-            memSource->saveImageGeometry();
-
-            ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
-            writer->connectMyInputTo(0, memSource.get());
-            writer->execute();
-
-            writer->close();
-            writer = 0;
-            memSource = 0;*/
-
-
             delete mergedDisp;
             elev = 0;
         }
-        iterationLeft --;
+
+        /*******************************************************/
+        /*******************************************************/
+        /************ PYRAMIDAL ITERATION ENDING ***************/
+        /*******************************************************/
+        /*******************************************************/
 
         f_input.close();
-
 
             /*  remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
 
                 cout << "ciclo" << k << endl;
 
  /*            }
-        }
-        cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your triplet!\n" << endl;*/
+        }*/
+        cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your triplet!\n" << endl;
     }
 	catch (const ossimException& e)
 	{

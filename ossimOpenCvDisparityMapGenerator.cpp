@@ -43,7 +43,7 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 	*/	
 					
     ndisparities = 32; //Maximum disparity minus minimum disparity
-    minimumDisp = -8;
+    minimumDisp = -16;
     SADWindowSize = 5; //Matched block size
 
     // Disparity Map generation

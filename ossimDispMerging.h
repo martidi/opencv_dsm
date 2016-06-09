@@ -34,11 +34,8 @@ public:
 private:
 
         bool imgConversionToMat(); //apre le img ortho e diventano opencv mat
-
         bool imgPreProcessing(); //vedi wallis
-
         bool imgConversionTo8bit();
-
         bool disparityFusion();
 
         //chiamata TPgenerator -> slave_warped
