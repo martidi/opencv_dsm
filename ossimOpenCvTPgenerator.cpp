@@ -65,40 +65,13 @@ bool ossimOpenCvTPgenerator::execute()
 }
 
 
-
-
-
-
-    //ossimOpenCvTPgenerator* TPfinder = new ossimOpenCvTPgenerator(master_mat, slave_mat);
-    //TPfinder->run();
-
-
-
-
-
-/*ossimOpenCvTPgenerator::ossimOpenCvTPgenerator(cv::Mat master, cv::Mat slave)
-{
-    master_mat = master;
-    slave_mat = slave;
-}*/
-
-/*void ossimOpenCvTPgenerator::run()
-{
-	cv::namedWindow( "master_img", CV_WINDOW_NORMAL );
-	cv::imshow("master_img", master_mat);
-   
-	cv::namedWindow( "slave_img", CV_WINDOW_NORMAL );
-	cv::imshow("slave_img", slave_mat);
-   
-    //cv::waitKey(0);
-   
-	TPgen();  
-	TPdraw();
-}*/
-
 void ossimOpenCvTPgenerator::TPgen()
 {
-   	// Computing detector
+    cv::Ptr<cv::CLAHE> filtro = cv::createCLAHE(8.0);
+    filtro->apply(master_mat, master_mat);
+    filtro->apply(slave_mat, slave_mat);
+
+    // Computing detector
 
     //cv::OrbFeatureDetector detector(30000);//, 2.0f,8, 151, 0, 2, cv::ORB::HARRIS_SCORE, 151 ); // edgeThreshold = 150, patchSize = 150);
     //detector.detect(master_mat, keypoints1);
@@ -147,7 +120,7 @@ void ossimOpenCvTPgenerator::TPgen()
 	double good_dist = (max_dist+min_dist)/2.0;
 	double per = 100;
 	 
-    while (fabs(per-0.80) > 0.001 && N_ITER <= 200)
+    while (fabs(per-0.98) > 0.001 && N_ITER <= 200)
 	{		
 		for( int i = 0; i < descriptors1.rows; i++ )
 		{
@@ -156,7 +129,7 @@ void ossimOpenCvTPgenerator::TPgen()
 		
 		per = (double)N_GOOD/(double)N_TOT;
 		
-        if(per >= 0.80)
+        if(per >= 0.98)
 		{
 			max_dist = good_dist;
 		}
@@ -181,7 +154,7 @@ void ossimOpenCvTPgenerator::TPgen()
 			double px = keypoints1[i].pt.x - keypoints2[matches[i].trainIdx].pt.x;
 			double py = keypoints1[i].pt.y - keypoints2[matches[i].trainIdx].pt.y;	
 			
-            if(fabs(py) <  20)
+            if(fabs(py) <  10)
 			{
 				good_matches.push_back(matches[i]);
 
@@ -246,14 +219,14 @@ void ossimOpenCvTPgenerator::TPgen()
 
 void ossimOpenCvTPgenerator::TPdraw()
 {
-    cv::Mat filt_master, filt_slave;
+    /*cv::Mat filt_master, filt_slave;
     cv::Ptr<cv::CLAHE> filtro = cv::createCLAHE(3.0);
     filtro->apply(master_mat, filt_master);
-    filtro->apply(slave_mat, filt_slave);
+    filtro->apply(slave_mat, filt_slave);*/
 
     // Drawing the results
     cv::Mat img_matches;
-    cv::drawMatches(filt_master, keypoints1, filt_slave, keypoints2,
+    cv::drawMatches(master_mat, keypoints1, slave_mat, keypoints2,
                good_matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
                vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
 
