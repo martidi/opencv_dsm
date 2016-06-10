@@ -38,9 +38,9 @@ ossimOpenCvTPgenerator::ossimOpenCvTPgenerator(cv::Mat master, cv::Mat slave)
 
 void ossimOpenCvTPgenerator::run()
 {
-    cv::Ptr<cv::CLAHE> filtro = cv::createCLAHE(8.0); //threshold for contrast limiting
+    /*cv::Ptr<cv::CLAHE> filtro = cv::createCLAHE(8.0); //threshold for contrast limiting
     filtro->apply(master_mat, master_mat);
-    filtro->apply(slave_mat, slave_mat);
+    filtro->apply(slave_mat, slave_mat);*/
 
     cv::namedWindow( "master_img", CV_WINDOW_NORMAL );
     cv::imshow("master_img", master_mat);
@@ -377,14 +377,14 @@ void ossimOpenCvTPgenerator::TPgen()
 
 void ossimOpenCvTPgenerator::TPdraw()
 {
-    cv::Mat filt_master, filt_slave;
+    /*cv::Mat filt_master, filt_slave;
     cv::Ptr<cv::CLAHE> filtro = cv::createCLAHE(8.0); //threshold for contrast limiting
     filtro->apply(master_mat, filt_master);
-    filtro->apply(slave_mat, filt_slave);
+    filtro->apply(slave_mat, filt_slave);*/
 
     // Drawing the results
     cv::Mat img_matches;
-    cv::drawMatches(filt_master, keypoints1, filt_slave, keypoints2,
+    cv::drawMatches(master_mat, keypoints1, slave_mat, keypoints2,
                good_matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
                vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
 

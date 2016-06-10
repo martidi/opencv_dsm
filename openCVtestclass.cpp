@@ -86,7 +86,10 @@ bool openCVtestclass::execute()
 
    	minMaxLoc( master_mat, &minVal_master, &maxVal_master );
    	minMaxLoc( slave_mat, &minVal_slave, &maxVal_slave );
-	master_mat.convertTo( master_mat_8U, CV_8UC1, 255.0/(maxVal_master - minVal_master), -minVal_master*255.0/(maxVal_master - minVal_master));
+    cout << "max_master \t" << maxVal_master << "max_slave \t" << maxVal_slave << endl;
+
+    maxVal_master = maxVal_slave = 500.0 ;
+    master_mat.convertTo( master_mat_8U, CV_8UC1, 255.0/(maxVal_master - minVal_master), -minVal_master*255.0/(maxVal_master - minVal_master));
 	slave_mat.convertTo( slave_mat_8U, CV_8UC1, 255.0/(maxVal_slave - minVal_slave), -minVal_slave*255.0/(maxVal_slave - minVal_slave)); 
 
 	ossimOpenCvTPgenerator* TPfinder = new ossimOpenCvTPgenerator(master_mat_8U, slave_mat_8U);
