@@ -306,7 +306,7 @@ int main(int argc,  char* argv[])
             cout << endl << "elevation database \t" << elev->getNumberOfElevationDatabases() << endl;
 
             //ossimFilename pippo = ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ ossimString(".TIF");
-            //ossimElevManager::instance()->loadElevationPath(pippo);
+            //ossimElevManager::instance()->loadElevationPath(pippo, true);
 
             cout << "Building height \t" << elev->getHeightAboveEllipsoid(ossimGpt(46.07334640, 11.12284482, 0.00)) << endl;
 
