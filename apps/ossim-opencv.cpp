@@ -302,12 +302,20 @@ int main(int argc,  char* argv[])
             iterationLeft;
 
             // Elevation manager instance for coarse DSM reading
+            ossimFilename tempDSM = ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ ossimString(".TIF");
             ossimElevManager* elev = ossimElevManager::instance();
-            cout << endl << "elevation database \t" << elev->getNumberOfElevationDatabases() << endl;
 
-            //ossimFilename pippo = ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ ossimString(".TIF");
-            //ossimElevManager::instance()->loadElevationPath(pippo, true);
+            if(b != nsteps-1)
+            {
+                cout << "Prendo il DSM temporaneo" << endl;
+                elev->loadElevationPath(tempDSM, true);
+                //ossimElevManager::instance()->loadElevationPath(tempDSM, true);
+            }
 
+            cout <<"indice b " << b << endl;
+            cout <<"nsteps-1 " << nsteps-1 << endl;
+            cout << endl << "path temp " << tempDSM << endl;
+            cout << "elevation database \t" << elev->getNumberOfElevationDatabases() << endl;
             cout << "Building height \t" << elev->getHeightAboveEllipsoid(ossimGpt(46.07334640, 11.12284482, 0.00)) << endl;
 
             std::ostringstream strs;

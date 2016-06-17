@@ -55,6 +55,8 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList)
 
         imgPreProcessing(); // wallis filter
 
+        imgGetHisto(); // histogram computation
+
         imgConversionTo8bit();      // Conversion from 16 bit to 8 bit
 
         // TPs generation
@@ -257,6 +259,84 @@ bool ossimDispMerging::imgPreProcessing()
     slave_mat = preprocess->wallis(slave_mat);*/
 
     return true;
+}
+
+
+
+bool ossimDispMerging::imgGetHisto()
+{
+    cout << "Histogram computation " << endl;
+
+    /// Establish the number of bins
+    int histSize = 256; //forse anche meno
+
+    /// Set the ranges ( for B,G,R) )
+    float range[] = { 0, 256 } ;
+    const float* histRange = { range };
+    ///We want our bins to have the same size (uniform) and to clear the histograms in the beginning, so:
+    bool uniform = true; bool accumulate = false;
+    /// we create the Mat objects to save our histogram
+    cv::Mat hist;
+
+    /// Compute the histograms:
+    cv::calcHist( &master_mat, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
+
+    /// Create an image to display the histograms
+    ///Draw the histograms
+    int hist_w = 512; int hist_h = 400;
+    int bin_w = cvRound( (double) hist_w/histSize );
+
+    cv::Mat histImage( hist_h, hist_w, CV_8UC3, cv::Scalar( 0,0,0) );
+
+    /// Normalize the result to [ 0, histImage.rows ]
+    normalize(hist, hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+
+    /// Draw
+    for( int i = 1; i < histSize; i++ )
+    {
+        line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(hist.at<float>(i-1)) ) ,
+                         cv::Point( bin_w*(i), hist_h - cvRound(hist.at<float>(i)) ),
+                         cv::Scalar( 255, 0, 0), 2, 8, 0  );
+    }
+
+    /*int hbins = 30, sbins = 32;
+    int histSize[] = {hbins, sbins};
+    // hue varies from 0 to 179, see cvtColor
+    float hranges[] = { 0, 180 };
+    // saturation varies from 0 (black-gray-white) to
+    // 255 (pure spectrum color)
+    float sranges[] = { 0, 256 };
+    const float* ranges[] = { hranges, sranges };
+    int channels[] = {0,1};
+    cv::MatND hist;
+    cout << "a" << endl;
+    cv::calcHist(&master_mat, 1, channels, cv::Mat(), hist, 2, histSize, ranges, true, false);
+
+    double maxVal=0;
+    cv::minMaxLoc(hist, 0, &maxVal, 0, 0);
+cout << "a" << endl;
+        int scale = 10;
+        cv::Mat histImg = cv::Mat::zeros(sbins*scale, hbins*10, CV_8UC3);
+
+        for( int h = 0; h < hbins; h++ )
+            for( int s = 0; s < sbins; s++ )
+            {
+                float binVal = hist.at<float>(h, s);
+                int intensity = cvRound(binVal*255/maxVal);
+                cv::rectangle( histImg, cv::Point(h*scale, s*scale),
+                            cv::Point( (h+1)*scale - 1, (s+1)*scale - 1),
+                            cv::Scalar::all(intensity),
+                            CV_FILLED );
+            }*/
+
+
+
+
+    cv::namedWindow( "histogram", 1 );
+    cv::imshow("histogram", histImage);
+    cv::waitKey(0);
+    return true;
+//V_WINDOW_NORMAL
 }
 
 

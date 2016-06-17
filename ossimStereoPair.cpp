@@ -75,7 +75,7 @@ void ossimStereoPair::computeConversionFactor( double longitude_max, double long
         /************ BEGIN CONV FACTOR COMPUTATION ************/
         /*******************************************************/
 
-        // varibaiel is intialized=True per vedere se le path sono riempite
+        // variabile is intialized=True per vedere se le path sono riempite
         // sennò dai errore
 
         ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(raw_master));
