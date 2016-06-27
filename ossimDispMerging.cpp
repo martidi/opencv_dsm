@@ -267,11 +267,15 @@ bool ossimDispMerging::imgGetHisto()
 {
     cout << "Histogram computation " << endl;
 
+    double minVal, maxVal;
+    minMaxLoc( master_mat, &minVal, &maxVal );
+    cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
+
     /// Establish the number of bins
-    int histSize = 256; //forse anche meno
+    int histSize = maxVal - minVal;
 
     /// Set the ranges ( for B,G,R) )
-    float range[] = { 0, 256 } ;
+    float range[] = { minVal, maxVal } ;
     const float* histRange = { range };
     ///We want our bins to have the same size (uniform) and to clear the histograms in the beginning, so:
     bool uniform = true; bool accumulate = false;
@@ -281,15 +285,50 @@ bool ossimDispMerging::imgGetHisto()
     /// Compute the histograms:
     cv::calcHist( &master_mat, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
 
+
+
+    //LE95 computation
+    cout << "size\t" << hist.size() << endl;
+    //cout << "ihst\t" << hist << endl;
+
+    //devo sommare tutti i valori dei bin
+    //devo trovare i valori di i per cui tolgo il 5%
+    int sum = 0;
+    bool control = true;
+    int i = hist.rows;
+    int col = master_mat.cols;
+    int row =master_mat.rows;
+
+    cout <<"num colonne istogramma: " <<i << " col master\t" << col << " righe master " << row << endl;
+
+    cout << hist.at<float>(785,0) << endl; // con at<int>  e at<float> sballa il risultato
+    while(control)
+    {
+        sum+=hist.at<float>(i-1,0);
+        //cout << "somma " << sum << endl;
+        i--;
+        if (sum*100.0/(col*row) > 5.0) control = false;
+    }
+
+    cout << "indice dell'istogramma fino al quale ho il 95% della distribuzione' "<<i << endl;
+    cout << "somma dei valori che scarto " << sum<< endl;
+
+    //Ora "i" deve diventare il mio nuovo maxVal su cui stretcho l'istogramma?
+
+
+
+
     /// Create an image to display the histograms
     ///Draw the histograms
     int hist_w = 512; int hist_h = 400;
-    int bin_w = cvRound( (double) hist_w/histSize );
+    int bin_w = cvRound( (double) hist_w/histSize);
 
     cv::Mat histImage( hist_h, hist_w, CV_8UC3, cv::Scalar( 0,0,0) );
 
     /// Normalize the result to [ 0, histImage.rows ]
     normalize(hist, hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+
+    cout << hist.at<float>(785,0) << endl;
 
     /// Draw
     for( int i = 1; i < histSize; i++ )
@@ -299,44 +338,11 @@ bool ossimDispMerging::imgGetHisto()
                          cv::Scalar( 255, 0, 0), 2, 8, 0  );
     }
 
-    /*int hbins = 30, sbins = 32;
-    int histSize[] = {hbins, sbins};
-    // hue varies from 0 to 179, see cvtColor
-    float hranges[] = { 0, 180 };
-    // saturation varies from 0 (black-gray-white) to
-    // 255 (pure spectrum color)
-    float sranges[] = { 0, 256 };
-    const float* ranges[] = { hranges, sranges };
-    int channels[] = {0,1};
-    cv::MatND hist;
-    cout << "a" << endl;
-    cv::calcHist(&master_mat, 1, channels, cv::Mat(), hist, 2, histSize, ranges, true, false);
-
-    double maxVal=0;
-    cv::minMaxLoc(hist, 0, &maxVal, 0, 0);
-cout << "a" << endl;
-        int scale = 10;
-        cv::Mat histImg = cv::Mat::zeros(sbins*scale, hbins*10, CV_8UC3);
-
-        for( int h = 0; h < hbins; h++ )
-            for( int s = 0; s < sbins; s++ )
-            {
-                float binVal = hist.at<float>(h, s);
-                int intensity = cvRound(binVal*255/maxVal);
-                cv::rectangle( histImg, cv::Point(h*scale, s*scale),
-                            cv::Point( (h+1)*scale - 1, (s+1)*scale - 1),
-                            cv::Scalar::all(intensity),
-                            CV_FILLED );
-            }*/
-
-
-
-
     cv::namedWindow( "histogram", 1 );
     cv::imshow("histogram", histImage);
     cv::waitKey(0);
     return true;
-//V_WINDOW_NORMAL
+//CV_WINDOW_NORMAL
 }
 
 
