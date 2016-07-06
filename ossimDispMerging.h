@@ -35,7 +35,7 @@ private:
 
         bool imgConversionToMat(); //apre le img ortho e diventano opencv mat
         bool imgPreProcessing(); //vedi wallis
-        bool imgGetHisto();
+        bool imgGetHisto(cv::Mat image, double threshold, double *minHisto, double *maxHisto);
         bool imgConversionTo8bit();
         bool disparityFusion();
 

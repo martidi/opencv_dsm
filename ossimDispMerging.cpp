@@ -55,8 +55,6 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList)
 
         imgPreProcessing(); // wallis filter
 
-        imgGetHisto(); // histogram computation
-
         imgConversionTo8bit();      // Conversion from 16 bit to 8 bit
 
         // TPs generation
@@ -80,8 +78,8 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList)
 
     cout<< " " << endl << "DISPARITY MAPS FUSION \t wait few minutes..." << endl;
 
-    //cout << "n° rows\t" << merged_disp.rows << endl;
-    //cout << "n° columns\t" << merged_disp.cols << endl;
+    cout << "n° rows\t" << merged_disp.rows << endl;
+    cout << "n° columns\t" << merged_disp.cols << endl;
 
     for (int i=0; i< disp_array[0].rows; i++) // for every row
     {
@@ -104,7 +102,8 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList)
 
                     else
                     {
-                        merged_disp.at<double>(i,j) = disp_array[1].at<double>(i,j);
+                       num = 1.0;
+                       merged_disp.at<double>(i,j) = disp_array[0].at<double>(i,j);
                     }
 
                 //}
@@ -237,11 +236,11 @@ bool ossimDispMerging::imgConversionToMat()
 
     // Rotation for along-track OPTICAL images
     //********* To be commented for SAR images *********
-    //cv::transpose(master_mat, master_mat);
-    //cv::flip(master_mat, master_mat, 1);
+    cv::transpose(master_mat, master_mat);
+    cv::flip(master_mat, master_mat, 1);
 
-    //cv::transpose(slave_mat, slave_mat);
-    //cv::flip(slave_mat, slave_mat, 1);
+    cv::transpose(slave_mat, slave_mat);
+    cv::flip(slave_mat, slave_mat, 1);
     //********* To be commented for SAR images *********
 
     return true;
@@ -263,12 +262,12 @@ bool ossimDispMerging::imgPreProcessing()
 
 
 
-bool ossimDispMerging::imgGetHisto()
+bool ossimDispMerging::imgGetHisto(cv::Mat image, double threshold,  double *minHisto, double *maxHisto)
 {
     cout << "Histogram computation " << endl;
 
     double minVal, maxVal;
-    minMaxLoc( master_mat, &minVal, &maxVal );
+    minMaxLoc( image, &minVal, &maxVal );
     cout << "min\t" << minVal << " " << "max\t" << maxVal << endl;
 
     /// Establish the number of bins
@@ -283,11 +282,11 @@ bool ossimDispMerging::imgGetHisto()
     cv::Mat hist;
 
     /// Compute the histograms:
-    cv::calcHist( &master_mat, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
+    cv::calcHist( &image, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
 
 
 
-    //LE95 computation
+    //Scarto il 10% dei valori più alti
     cout << "size\t" << hist.size() << endl;
     //cout << "ihst\t" << hist << endl;
 
@@ -295,25 +294,57 @@ bool ossimDispMerging::imgGetHisto()
     //devo trovare i valori di i per cui tolgo il 5%
     int sum = 0;
     bool control = true;
-    int i = hist.rows;
-    int col = master_mat.cols;
-    int row =master_mat.rows;
+    int max = hist.rows;
+    int min = 0;
+    int col = image.cols;
+    int row = image.rows;
+    //double threshold = 5.0;
 
-    cout <<"num colonne istogramma: " <<i << " col master\t" << col << " righe master " << row << endl;
+    cout <<"num colonne istogramma: " <<max << " col master\t" << col << " righe master " << row << endl;
 
     cout << hist.at<float>(785,0) << endl; // con at<int>  e at<float> sballa il risultato
     while(control)
     {
-        sum+=hist.at<float>(i-1,0);
+        sum+=hist.at<float>(max-1,0) ;
         //cout << "somma " << sum << endl;
-        i--;
-        if (sum*100.0/(col*row) > 5.0) control = false;
+        max--;
+        if (sum*100.0/(col*row) > threshold) control = false;
+    }
+    //cout << "somma dei valori che scarto " << sum<< endl;
+    sum = 0;
+    control = true;
+
+    while(control)
+    {
+        sum+=hist.at<float>(min,0) ;
+        //cout << "somma " << sum << endl;
+        min++;
+        if (sum*100.0/(col*row) > threshold) control = false;
     }
 
-    cout << "indice dell'istogramma fino al quale ho il 95% della distribuzione' "<<i << endl;
-    cout << "somma dei valori che scarto " << sum<< endl;
 
+    cout << "indice dell'istogramma fino al quale ho il 95% della distribuzione "<<max << endl;
+    //cout << "somma dei valori che scarto " << sum<< endl;
+    cout << "indice minimo dell'istogramma "<< min << endl;
+    maxVal = minVal + max;
+    minVal = minVal + min;
+
+    *maxHisto = maxVal;
+    *minHisto = minVal;
+
+    cout << "nuovo max " << maxVal << "nuovo min " << minVal << endl;
     //Ora "i" deve diventare il mio nuovo maxVal su cui stretcho l'istogramma?
+
+
+    // Histo remapping
+    histSize = maxVal - minVal;
+    /// Set the ranges ( for B,G,R) )
+    float rangeEqual[] = { minVal, maxVal } ;
+    histRange = { rangeEqual };
+    ///We want our bins to have the same size (uniform) and to clear the histograms in the beginning, so:
+
+    /// Compute the histograms:
+    cv::calcHist( &image , 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
 
 
 
@@ -338,9 +369,9 @@ bool ossimDispMerging::imgGetHisto()
                          cv::Scalar( 255, 0, 0), 2, 8, 0  );
     }
 
-    cv::namedWindow( "histogram", 1 );
+    /*cv::namedWindow( "histogram", 1 );
     cv::imshow("histogram", histImage);
-    cv::waitKey(0);
+    cv::waitKey(0);*/
     return true;
 //CV_WINDOW_NORMAL
 }
@@ -349,9 +380,15 @@ bool ossimDispMerging::imgGetHisto()
 bool ossimDispMerging::imgConversionTo8bit()
 {
     double minVal_master, maxVal_master, minVal_slave, maxVal_slave;
+    double threshold = 5.0;
 
-    minMaxLoc( master_mat, &minVal_master, &maxVal_master );
-    minMaxLoc( slave_mat, &minVal_slave, &maxVal_slave );
+    imgGetHisto(master_mat, threshold, &minVal_master, &maxVal_master ); // histogram computation and equalization; riempie min e max
+    imgGetHisto(slave_mat, threshold, &minVal_slave, &maxVal_slave ); // histogram computation and equalization; riempie min e max
+
+    //minMaxLoc( master_mat, &minVal_master, &maxVal_master );
+    //minMaxLoc( slave_mat, &minVal_slave, &maxVal_slave );
+
+    cout << minVal_master << " max master"<< maxVal_master << "min slave " << minVal_slave << " max slave " << maxVal_slave << endl;
     master_mat.convertTo( master_mat_8U, CV_8UC1, 255.0/(maxVal_master - minVal_master), -minVal_master*255.0/(maxVal_master - minVal_master));
     slave_mat.convertTo( slave_mat_8U, CV_8UC1, 255.0/(maxVal_slave - minVal_slave), -minVal_slave*255.0/(maxVal_slave - minVal_slave));
 

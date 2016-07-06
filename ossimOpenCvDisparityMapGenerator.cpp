@@ -93,8 +93,8 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 
     // Rotation for along-track OPTICAL images
     //********* To be commented for SAR images *********
-    //cv::transpose(array_disp, array_disp);
-    //cv::flip(array_disp, array_disp, 0);
+    cv::transpose(array_disp, array_disp);
+    cv::flip(array_disp, array_disp, 0);
     //********* To be commented for SAR images *********
 
     array_disp.convertTo(array_disp, CV_64F);
