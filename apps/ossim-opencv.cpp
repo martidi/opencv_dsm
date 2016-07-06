@@ -323,11 +323,24 @@ int main(int argc,  char* argv[])
         {
             iter;
 
+
+            // Elevation manager instance for coarse DSM reading
+            ossimFilename tempDSM = ossimFilename(ap[3]) + ossimString("DSM/") + ossimFilename(ap[4]) + ossimString(".TIF");
+            ossimElevManager* elev = ossimElevManager::instance();
+
+            if(i != nsteps-1)
+            {
+                cout << "Prendo il DSM temporaneo" << endl;
+                elev->loadElevationPath(tempDSM, true);
+                //ossimElevManager::instance()->loadElevationPath(tempDSM, true);
+            }
+
+
             std::ostringstream strs;
             strs << iter;
             std::string nLev = strs.str();
 
-            ossimElevManager* elev = ossimElevManager::instance();
+
 
             master_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoMaster.TIF"));
             slave_key.add( ossimKeywordNames::OUTPUT_FILE_KW, ossimFilename(ap[3]) + ossimString("ortho_images/") + ossimFilename(ap[4]) + ossimString("_level") + nLev + ossimString("_orthoSlave.TIF"));
