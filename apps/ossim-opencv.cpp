@@ -86,6 +86,100 @@ bool ortho (ossimKeywordlist kwl)
 	return true;
 }
 
+
+bool imageSimulation (ossimString imageName, ossimElevManager* elev, ossimArgumentParser ap, string imageNum)
+{
+    ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(imageName));
+    ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();
+    ossimIpt image_size = raw_master_geom->getImageSize();
+    cout << image_size << endl;
+    cout << "path " << imageName  << endl;
+
+    // Vector cointaining corners generation
+    vector<ossimGpt> corners;
+    ossimGpt ul, ur, lr, ll;
+
+    //ossimGrect ground_rect;
+    raw_master_geom->getCornerGpts(ul, ur, lr, ll);
+    corners.push_back(ul);
+    corners.push_back(ur);
+    corners.push_back(lr);
+    corners.push_back(ll);
+
+    //cout << ul << endl;
+    //cout << ur << endl;
+    //cout << lr << endl;
+    //cout << ll << endl;
+
+    // min & max lat & lon initialitation
+        ossim_float64 MaxLat, MaxLon, MinLat, MinLon;
+    MaxLat = MinLat = corners[0].lat;
+    MaxLon = MinLon = corners[0].lon;
+
+    for (int i=1; i<4; i++)
+    {
+        if (MaxLat < corners[i].lat) MaxLat=corners[i].lat;
+        if (MinLat > corners[i].lat) MinLat=corners[i].lat;
+        if (MaxLon < corners[i].lon) MaxLon=corners[i].lon;
+        if (MinLon > corners[i].lon) MinLon=corners[i].lon;
+    }
+
+    cout << MinLat << "\t" <<  MaxLat << "\t"<< MinLon << "\t" << MaxLon <<  endl;
+
+    // Set the destination image size:
+    ossimRefPtr<ossimImageData>  simulated_image = ossimImageDataFactory::instance()->create(0, OSSIM_UINT16, 1, image_size.x, image_size.y);
+
+    ossim_float64 Dlon = (MaxLon - MinLon) / image_size.x;
+    ossim_float64 Dlat = (MaxLat - MinLat) / image_size.y;
+
+    //cout << fixed;
+    cout << setprecision(7);
+
+    cout << "step for lon in degrees " << Dlon << endl;
+    cout << "step for lat in degrees " << Dlat << endl;
+
+    if(simulated_image.valid()) simulated_image->initialize();
+
+    for (int i=0; i< image_size.x; i++) // for every column
+    {
+        for(int j=0; j< image_size.y; j++) // for every row
+        {
+            ossim_float64 lat_i = MinLat + j*Dlat ;
+            ossim_float64 lon_i = MinLon + i*Dlon ;
+
+            ossimGpt world_pt(lat_i, lon_i); //lat e lon del punto a terra da cui voglio arrivare all'immagine
+            world_pt.height(elev->getHeightAboveEllipsoid(world_pt)); // height del punto a terra da cui voglio arrivare all'immagine
+
+            ossimDpt imagePoint;
+            raw_master_geom->worldToLocal(world_pt,imagePoint);
+
+            if (imagePoint.x > 0 && imagePoint.x < image_size.x -1 )
+                if (imagePoint.y > 0 && imagePoint.y < image_size.y -1) // check for positive coordinates (altrimenti vuol dire che sono fuori dall'immagine)
+
+                    simulated_image->setValue( int(imagePoint.x), int(imagePoint.y), simulated_image->getPix(imagePoint) + 1 ); // così mi assicuro che i pixel mappati più volte hanno un valore più alto
+        }
+        //cout << i << endl;
+    }
+
+    ossimFilename pathDSM = ossimFilename(ap[2]) + ossimString("mask/") + ossimString("image_") +  imageNum + ossimString("_mask.TIF");
+
+    // Create output image chain:
+    ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
+    memSource->setImage(simulated_image);
+    memSource->setImageGeometry(raw_master_handler->getImageGeometry().get());
+    memSource->saveImageGeometry();
+
+    ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(pathDSM);
+    writer->connectMyInputTo(0, memSource.get());
+    writer->execute();
+
+    writer->close();
+    writer = 0;
+    memSource = 0;
+    return true;
+}
+
+
 static ossimTrace traceDebug = ossimTrace("ossim-chipper:debug");
 
 int main(int argc,  char* argv[])
@@ -354,7 +448,31 @@ int main(int argc,  char* argv[])
 
                 ortho(image_key);
                 //cout << image_key << endl << endl;
+
+
+                /*cout << "dir_image_0 " << imageList[0] << endl;
+                cout << "dir_image_1 " << imageList[1] << endl;
+                cout << "dir_image_2 " << imageList[2] << endl;
+                cout << "dir_image_3 " << imageList[3] << endl;
+                cout << "dir_image_2 " << imageList[4] << endl;
+                cout << "dir_image_3 " << imageList[5] << endl<< endl;*/
+
+                // Funzione per  la generazione delle pesature (maschere/immagini simulate)
+                //imageSimulation(imageList[n], elev, ap, Result);
+
+                // FAccio l'orto delle singole maschere; faccio ortho sulla image key che si riferisce ad un nuovo file (cambio path)
+                // Per fare ortho ho bisogno dei metadati!
+                ossimFilename pathMask = ossimFilename(ap[2]) + ossimString("mask/") + ossimString("image_") +  Result + ossimString("_mask.TIF");
+                image_key.addPair("image1.file", pathMask);
+
+                cout << "ORTHO FOR MASK LEVEL: "<< Level << endl << endl;
+                cout << "path " << pathMask << endl;
+                ossimString orthoMaskPath = ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("Mask_level") + Level + ossimString("_image_") + Result + ossimString("_ortho.TIF");
+                image_key.add( ossimKeywordNames::OUTPUT_FILE_KW, orthoMaskPath);
+                ortho(image_key);
             }
+
+            // Faccio la somma delle maschere ortorettificate
 
             cout << endl << "UPDATED KEY: "<< endl<< endl;
             cout <<image_key << endl << endl;
