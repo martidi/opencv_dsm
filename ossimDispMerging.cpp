@@ -29,7 +29,7 @@ ossimDispMerging::ossimDispMerging()
 }
 
 
-bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList)
+bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<ossimString> orthoListMask)
 {
     /*cout << endl << "ortho master path "<<StereoPairList[0].getOrthoMasterPath() << endl << endl;
     cout << "ortho slave path " <<StereoPairList[0].getOrthoSlavePath() << endl << endl;
@@ -69,6 +69,28 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList)
         disp_array.push_back(dense_matcher->getDisp());
         null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
         }
+
+    cv::Mat mask_mat, mask_ascending_tot, mask_descending_tot;
+    for(int i=0; i < orthoListMask.size(); i++)
+    {
+    // Mask ImageHandlers
+    ossimImageHandler* mask_handler = ossimImageHandlerRegistry::instance()->open(orthoListMask[i]);
+
+    // Load ortho images
+    ossimIrect bounds_master = mask_handler->getBoundingRect(0);
+    ossimRefPtr<ossimImageData> img_master = mask_handler->getTile(bounds_master, 0);
+
+    // Create the OpenCV images
+    mask_mat.create(cv::Size(img_master->getWidth(), img_master->getHeight()), CV_16UC1);
+    memcpy(mask_mat.ptr(), (void*) img_master->getUshortBuf(), 2*img_master->getWidth()*img_master->getHeight());
+
+    cout << endl << "OSSIM->OpenCV image conversion done" << endl;
+    }
+
+
+
+
+
 
     cout << endl << "Disparity maps number " << disp_array.size() << endl;
 

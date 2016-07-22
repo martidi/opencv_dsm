@@ -428,7 +428,7 @@ int main(int argc,  char* argv[])
             image_key.addPair(METERS_KW, ResParam);
 
             // Ortho cycle for all the input images
-            vector<ossimString> orthoList;
+            vector<ossimString> orthoList, orthoListMask;
             for (int n=0; n < imagesNumb ; n++)
             {
                 image_key.addPair("image1.file", imageList[n]);
@@ -449,7 +449,6 @@ int main(int argc,  char* argv[])
                 ortho(image_key);
                 //cout << image_key << endl << endl;
 
-
                 /*cout << "dir_image_0 " << imageList[0] << endl;
                 cout << "dir_image_1 " << imageList[1] << endl;
                 cout << "dir_image_2 " << imageList[2] << endl;
@@ -457,19 +456,29 @@ int main(int argc,  char* argv[])
                 cout << "dir_image_2 " << imageList[4] << endl;
                 cout << "dir_image_3 " << imageList[5] << endl<< endl;*/
 
-                // Funzione per  la generazione delle pesature (maschere/immagini simulate)
-                //imageSimulation(imageList[n], elev, ap, Result);
+                // For the first pyramidal level, mask generation and projection
+                if(b = nsteps-1)
+                {
+                    //Funzione per  la generazione delle pesature (maschere/immagini simulate)
+                    imageSimulation(imageList[n], elev, ap, Result);
 
-                // FAccio l'orto delle singole maschere; faccio ortho sulla image key che si riferisce ad un nuovo file (cambio path)
-                // Per fare ortho ho bisogno dei metadati!
-                ossimFilename pathMask = ossimFilename(ap[2]) + ossimString("mask/") + ossimString("image_") +  Result + ossimString("_mask.TIF");
-                image_key.addPair("image1.file", pathMask);
+                    // Faccio l'orto delle singole maschere; faccio ortho sulla image key che si riferisce ad una nuova path
+                    // Per fare ortho ho bisogno dei metadati!
 
-                cout << "ORTHO FOR MASK LEVEL: "<< Level << endl << endl;
-                cout << "path " << pathMask << endl;
-                ossimString orthoMaskPath = ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("Mask_level") + Level + ossimString("_image_") + Result + ossimString("_ortho.TIF");
-                image_key.add( ossimKeywordNames::OUTPUT_FILE_KW, orthoMaskPath);
-                ortho(image_key);
+                    ossimFilename pathMask = ossimFilename(ap[2]) + ossimString("mask/") + ossimString("image_") +  Result + ossimString("_mask.TIF");
+                    image_key.addPair("image1.file", pathMask);
+
+                    cout << "ORTHO FOR MASK LEVEL: "<< Level << endl << endl;
+                    cout << "path " << pathMask << endl;
+                    ossimString orthoMaskPath = ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("Mask_level") + Level + ossimString("_image_") + Result + ossimString("_ortho.TIF");
+                    image_key.add( ossimKeywordNames::OUTPUT_FILE_KW, orthoMaskPath);
+                    orthoListMask.push_back(orthoMaskPath);
+
+                    //ossimFilename::copyFileTo(ossimFilename("install_manifest.txt") ossimString("/bin/"));
+
+                    ortho(image_key);
+
+                }
             }
 
             // Faccio la somma delle maschere ortorettificate
@@ -484,11 +493,14 @@ int main(int argc,  char* argv[])
                     //int idMaster,idSlave;
                     //f_input >> idMaster >>  idSlave;
                     //cout << "pippo " << orthoList[idMaster] << endl;
+
                     StereoPairList[i].setOrthoPath(orthoList[StereoPairList[i].get_id_master()], orthoList[StereoPairList[i].get_id_slave()]);
 
                     cout << "Pair " << StereoPairList[i].get_id_master() << StereoPairList[i].get_id_slave() <<endl;
                     cout << "path ortho master\t" << StereoPairList[i].getOrthoMasterPath() << endl;
                     cout << "path ortho slave\t" << StereoPairList[i].getOrthoSlavePath() << endl << endl;
+
+                    //StereoPairList[i].setMaskPath(orthoListMask[StereoPairList[i].get_id_master());
                 }
 
                 iterationLeft --;
@@ -508,7 +520,7 @@ int main(int argc,  char* argv[])
             //StereoPairList[i].getOrthoSlavePath();
 
             ossimDispMerging *mergedDisp = new ossimDispMerging() ;
-            mergedDisp->execute(StereoPairList); // da qui voglio ottenere mappa di disparità fusa e metrica
+            mergedDisp->execute(StereoPairList, orthoListMask); // da qui voglio ottenere mappa di disparità fusa e metrica
             cv::Mat FinalDisparity = mergedDisp->getMergedDisparity(); // questa è mappa di disparità fusa e metrica
 
             // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse
@@ -528,12 +540,8 @@ int main(int argc,  char* argv[])
 
         f_input.close();
 
-            /*  remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
+        /*   cout << "ciclo" << k << endl;*/
 
-                cout << "ciclo" << k << endl;
-
- /*            }
-        }*/
         cout << endl << "D.A.T.E. Plug-in has successfully generated a Digital Surface Model from your triplet!\n" << endl;
     }
 	catch (const ossimException& e)
