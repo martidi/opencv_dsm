@@ -71,25 +71,38 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         }
 
     cv::Mat mask_mat, mask_ascending_tot, mask_descending_tot;
+    vector<cv::Mat> mask_mat_array;
+    // Conversion from ossim image to opencv matrix
     for(int i=0; i < orthoListMask.size(); i++)
-    {
-    // Mask ImageHandlers
-    ossimImageHandler* mask_handler = ossimImageHandlerRegistry::instance()->open(orthoListMask[i]);
+        {
+        // Mask ImageHandlers
+        ossimImageHandler* mask_handler = ossimImageHandlerRegistry::instance()->open(orthoListMask[i]);
 
-    // Load ortho images
-    ossimIrect bounds_master = mask_handler->getBoundingRect(0);
-    ossimRefPtr<ossimImageData> img_master = mask_handler->getTile(bounds_master, 0);
+        // Load ortho images
+        ossimIrect bounds_master = mask_handler->getBoundingRect(0);
+        ossimRefPtr<ossimImageData> img_master = mask_handler->getTile(bounds_master, 0);
 
-    // Create the OpenCV images
-    mask_mat.create(cv::Size(img_master->getWidth(), img_master->getHeight()), CV_16UC1);
-    memcpy(mask_mat.ptr(), (void*) img_master->getUshortBuf(), 2*img_master->getWidth()*img_master->getHeight());
+        // Create the OpenCV images
+        mask_mat.create(cv::Size(img_master->getWidth(), img_master->getHeight()), CV_16UC1);
+        memcpy(mask_mat.ptr(), (void*) img_master->getUshortBuf(), 2*img_master->getWidth()*img_master->getHeight());
 
-    cout << endl << "OSSIM->OpenCV image conversion done" << endl;
-    }
+        cout << endl << "OSSIM->OpenCV image conversion done" << endl;
 
+        // Rotation for along-track OPTICAL images
+        //********* To be commented for SAR images *********
+        //cv::transpose(mask_mat, mask_mat);
+        //cv::flip(mask_mat, mask_mat, 1);
+        //********* To be commented for SAR images *********
 
+        // così creo ad ogni ciclo un'immagine, la salvo in un'array per poi sommare le prime tre e
+        // le seconde tre
 
+        mask_mat_array.push_back(mask_mat);
+        }
 
+        // Sommo le prime tre maschere e poi le altre tre
+        mask_ascending_tot = mask_mat_array[0] + mask_mat_array[1] + mask_mat_array[2];
+        mask_descending_tot = mask_mat_array[3] + mask_mat_array[4] + mask_mat_array[5];
 
 
     cout << endl << "Disparity maps number " << disp_array.size() << endl;
