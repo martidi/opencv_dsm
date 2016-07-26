@@ -69,8 +69,9 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         disp_array.push_back(dense_matcher->getDisp());
         null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
         }
+cout << "I'm here " << endl;
+    cv::Mat mask_mat;
 
-    cv::Mat mask_mat, mask_ascending_tot, mask_descending_tot;
     vector<cv::Mat> mask_mat_array;
     // Conversion from ossim image to opencv matrix
     for(int i=0; i < orthoListMask.size(); i++)
@@ -86,7 +87,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         mask_mat.create(cv::Size(img_master->getWidth(), img_master->getHeight()), CV_16UC1);
         memcpy(mask_mat.ptr(), (void*) img_master->getUshortBuf(), 2*img_master->getWidth()*img_master->getHeight());
 
-        cout << endl << "OSSIM->OpenCV image conversion done" << endl;
+        cout << endl << "OSSIM->OpenCV mask conversion done" << endl;
 
         // Rotation for along-track OPTICAL images
         //********* To be commented for SAR images *********
@@ -100,10 +101,39 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         mask_mat_array.push_back(mask_mat);
         }
 
-        // Sommo le prime tre maschere e poi le altre tre
-        mask_ascending_tot = mask_mat_array[0] + mask_mat_array[1] + mask_mat_array[2];
-        mask_descending_tot = mask_mat_array[3] + mask_mat_array[4] + mask_mat_array[5];
+    //per ora ne faccio uno solo per asc e desc, poi vorrei farne due separati
+    int rowsNumb_asc, colsNumb_asc;
+    rowsNumb_asc = mask_mat_array[0].size[0];
+    colsNumb_asc = mask_mat_array[0].size[1];
+ //cout << "size list ortho mask" << orthoListMask.size() << endl;
+ // cout << "size array mask " << mask_mat_array.size() << endl;
+    for(int i=0; i < mask_mat_array.size(); i++)
+    {
+        if (rowsNumb_asc > mask_mat_array[i].size[0]) rowsNumb_asc=mask_mat_array[i].size[0];
+        if (colsNumb_asc > mask_mat_array[i].size[1]) colsNumb_asc=mask_mat_array[i].size[1];
+    }
 
+    // Ridimensiono tutte le immagini sulle dimensioni più piccole
+    for(int i=0; i < mask_mat_array.size(); i++)
+    {
+        mask_mat_array[i](cv::Rect(0,0,colsNumb_asc,rowsNumb_asc)).copyTo(mask_mat_array[i]);
+    }
+
+    cout << "righe " << rowsNumb_asc << endl;
+    cout << "colonne " << colsNumb_asc << endl;
+    cout << "Size mask 0 " << mask_mat_array[0].size[0] << endl;
+    cout << "Size mask 1 " << mask_mat_array[1].size() << endl;
+    cout << "Size mask 2 " << mask_mat_array[2].size() << endl;
+    cout << "Size mask 3 " << mask_mat_array[3].size() << endl;
+    cout << "Size mask 4 " << mask_mat_array[4].size() << endl;
+    cout << "Size mask 5 " << mask_mat_array[5].size() << endl;
+
+    cv::Mat mask_ascending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
+    cv::Mat mask_descending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
+
+    // Sommo le tre maschere ascendenti e poi le altre tre discendenti
+    mask_ascending_tot = mask_mat_array[0] + mask_mat_array[1] + mask_mat_array[2];
+    mask_descending_tot = mask_mat_array[3] + mask_mat_array[4] + mask_mat_array[5];
 
     cout << endl << "Disparity maps number " << disp_array.size() << endl;
 

@@ -89,6 +89,7 @@ bool ortho (ossimKeywordlist kwl)
 
 bool imageSimulation (ossimString imageName, ossimElevManager* elev, ossimArgumentParser ap, string imageNum)
 {
+    cout << "MASK GENERATION " << endl;
     ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(imageName));
     ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();
     ossimIpt image_size = raw_master_geom->getImageSize();
@@ -457,10 +458,12 @@ int main(int argc,  char* argv[])
                 cout << "dir_image_3 " << imageList[5] << endl<< endl;*/
 
                 // For the first pyramidal level, mask generation and projection
-                if(b = nsteps-1)
+                if(b == nsteps-1)
                 {
+                    cout << "This is the first pyramidal level ---> mask generation " << endl;
+
                     //Funzione per  la generazione delle pesature (maschere/immagini simulate)
-                    imageSimulation(imageList[n], elev, ap, Result);
+                    //imageSimulation(imageList[n], elev, ap, Result);
 
                     // Faccio l'orto delle singole maschere; faccio ortho sulla image key che si riferisce ad una nuova path
                     // Per fare ortho ho bisogno dei metadati!
@@ -476,12 +479,12 @@ int main(int argc,  char* argv[])
 
                     //ossimFilename::copyFileTo(ossimFilename("install_manifest.txt") ossimString("/bin/"));
 
-                    ortho(image_key);
+                    //ortho(image_key);
 
                 }
             }
 
-            // Faccio la somma delle maschere ortorettificate
+            // Faccio la somma delle maschere ortorettificate in ossimDispMerging
 
             cout << endl << "UPDATED KEY: "<< endl<< endl;
             cout <<image_key << endl << endl;
