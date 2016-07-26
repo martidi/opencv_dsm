@@ -70,8 +70,16 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
         }
 cout << "I'm here " << endl;
-    cv::Mat mask_mat;
 
+    // Only for the first pyramidal level; check if mask file already exist
+
+    fstream f_input;
+    f_input.open("Ascending_total_mask.tif");
+
+    if (f_input.fail())
+    {
+        cout << "Le maschere ancora non sono state generate! " << endl;
+    cv::Mat mask_mat;
     vector<cv::Mat> mask_mat_array;
     // Conversion from ossim image to opencv matrix
     for(int i=0; i < orthoListMask.size(); i++)
@@ -134,6 +142,18 @@ cout << "I'm here " << endl;
     // Sommo le tre maschere ascendenti e poi le altre tre discendenti
     mask_ascending_tot = mask_mat_array[0] + mask_mat_array[1] + mask_mat_array[2];
     mask_descending_tot = mask_mat_array[3] + mask_mat_array[4] + mask_mat_array[5];
+
+
+    // Salvo su file le due maschere
+    cv::namedWindow( "Ascending total mask", CV_WINDOW_NORMAL );
+    cv::imshow( "Ascending total mask", mask_ascending_tot);
+    cv::imwrite( "Ascending_total_mask.tif", mask_ascending_tot);
+    cv::namedWindow( "Descending total mask", CV_WINDOW_NORMAL );
+    cv::imshow( "Descending total mask", mask_descending_tot);
+    cv::imwrite( "Descending_total_mask.tif", mask_descending_tot);
+
+    //cv::waitKey(0);
+    }
 
     cout << endl << "Disparity maps number " << disp_array.size() << endl;
 
