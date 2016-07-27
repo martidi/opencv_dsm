@@ -66,139 +66,222 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         dense_matcher->execute(master_mat_8U, stereoTP->getWarpedImage(), StereoPairList[i]); // dopo questo execute ho disp metrica
 
         // Nel vettore globale di cv::Mat immagazzino tutte le mappe di disparità che genero ad ogni ciclo
-        disp_array.push_back(dense_matcher->getDisp());
+        array_metric_disp.push_back(dense_matcher->getDisp());
         null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
         }
-cout << "I'm here " << endl;
+    cout << "I'm here " << endl;
 
     // Only for the first pyramidal level; check if mask file already exist
-
     fstream f_input;
     f_input.open("Ascending_total_mask.tif");
 
     if (f_input.fail())
     {
         cout << "Le maschere ancora non sono state generate! " << endl;
-    cv::Mat mask_mat;
-    vector<cv::Mat> mask_mat_array;
-    // Conversion from ossim image to opencv matrix
-    for(int i=0; i < orthoListMask.size(); i++)
-        {
-        // Mask ImageHandlers
-        ossimImageHandler* mask_handler = ossimImageHandlerRegistry::instance()->open(orthoListMask[i]);
+        cv::Mat mask_mat;
+        vector<cv::Mat> mask_mat_array;
 
-        // Load ortho images
-        ossimIrect bounds_master = mask_handler->getBoundingRect(0);
-        ossimRefPtr<ossimImageData> img_master = mask_handler->getTile(bounds_master, 0);
+        // Conversion from ossim image to opencv matrix
+        for(int i=0; i < orthoListMask.size(); i++)
+            {
+            // Mask ImageHandlers
+            ossimImageHandler* mask_handler = ossimImageHandlerRegistry::instance()->open(orthoListMask[i]);
 
-        // Create the OpenCV images
-        mask_mat.create(cv::Size(img_master->getWidth(), img_master->getHeight()), CV_16UC1);
-        memcpy(mask_mat.ptr(), (void*) img_master->getUshortBuf(), 2*img_master->getWidth()*img_master->getHeight());
+            // Load ortho images
+            ossimIrect bounds_master = mask_handler->getBoundingRect(0);
+            ossimRefPtr<ossimImageData> img_master = mask_handler->getTile(bounds_master, 0);
 
-        cout << endl << "OSSIM->OpenCV mask conversion done" << endl;
+            // Create the OpenCV images
+            mask_mat.create(cv::Size(img_master->getWidth(), img_master->getHeight()), CV_16UC1);
+            memcpy(mask_mat.ptr(), (void*) img_master->getUshortBuf(), 2*img_master->getWidth()*img_master->getHeight());
 
-        // Rotation for along-track OPTICAL images
-        //********* To be commented for SAR images *********
-        //cv::transpose(mask_mat, mask_mat);
-        //cv::flip(mask_mat, mask_mat, 1);
-        //********* To be commented for SAR images *********
+            cout << endl << "OSSIM->OpenCV mask conversion done" << endl;
 
-        // così creo ad ogni ciclo un'immagine, la salvo in un'array per poi sommare le prime tre e
-        // le seconde tre
+            // Rotation for along-track OPTICAL images
+            //********* To be commented for SAR images *********
+            //cv::transpose(mask_mat, mask_mat);
+            //cv::flip(mask_mat, mask_mat, 1);
+            //********* To be commented for SAR images *********
 
-        mask_mat_array.push_back(mask_mat);
-        }
+            // così creo ad ogni ciclo un'immagine di tipo cv::Mat, la salvo in un'array per poi sommare le prime tre e
+            // le seconde tre
 
-    //per ora ne faccio uno solo per asc e desc, poi vorrei farne due separati
-    int rowsNumb_asc, colsNumb_asc;
-    rowsNumb_asc = mask_mat_array[0].size[0];
-    colsNumb_asc = mask_mat_array[0].size[1];
+            mask_mat_array.push_back(mask_mat);
+            }
+
+        //per ora ne faccio uno solo per asc e desc, poi vorrei farne due separati
+        int rowsNumb_asc, colsNumb_asc;
+        rowsNumb_asc = mask_mat_array[0].size[0];
+        colsNumb_asc = mask_mat_array[0].size[1];
  //cout << "size list ortho mask" << orthoListMask.size() << endl;
  // cout << "size array mask " << mask_mat_array.size() << endl;
-    for(int i=0; i < mask_mat_array.size(); i++)
-    {
-        if (rowsNumb_asc > mask_mat_array[i].size[0]) rowsNumb_asc=mask_mat_array[i].size[0];
-        if (colsNumb_asc > mask_mat_array[i].size[1]) colsNumb_asc=mask_mat_array[i].size[1];
+        for(int i=0; i < mask_mat_array.size(); i++)
+        {
+            if (rowsNumb_asc > mask_mat_array[i].size[0]) rowsNumb_asc=mask_mat_array[i].size[0];
+            if (colsNumb_asc > mask_mat_array[i].size[1]) colsNumb_asc=mask_mat_array[i].size[1];
+        }
+
+        // Ridimensiono tutte le immagini sulle dimensioni più piccole
+        for(int i=0; i < mask_mat_array.size(); i++)
+        {
+            mask_mat_array[i](cv::Rect(0,0,colsNumb_asc,rowsNumb_asc)).copyTo(mask_mat_array[i]);
+        }
+
+        /*cout << "righe " << rowsNumb_asc << endl;
+        cout << "colonne " << colsNumb_asc << endl;
+        cout << "Size mask 0 " << mask_mat_array[0].size[0] << endl;
+        cout << "Size mask 1 " << mask_mat_array[1].size() << endl;
+        cout << "Size mask 2 " << mask_mat_array[2].size() << endl;
+        cout << "Size mask 3 " << mask_mat_array[3].size() << endl;
+        cout << "Size mask 4 " << mask_mat_array[4].size() << endl;
+        cout << "Size mask 5 " << mask_mat_array[5].size() << endl;*/
+
+        cv::Mat mask_ascending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
+        cv::Mat mask_descending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
+
+        // Sommo le tre maschere ascendenti e poi le altre tre discendenti
+        mask_ascending_tot = mask_mat_array[0] + mask_mat_array[1] + mask_mat_array[2];
+        mask_descending_tot = mask_mat_array[3] + mask_mat_array[4] + mask_mat_array[5];
+
+        // Saving masks on file
+        //cv::namedWindow( "Ascending total mask", CV_WINDOW_NORMAL );
+        //cv::imshow( "Ascending total mask", mask_ascending_tot);
+        cv::imwrite( "Ascending_total_mask.tif", mask_ascending_tot);
+        //cv::namedWindow( "Descending total mask", CV_WINDOW_NORMAL );
+        //cv::imshow( "Descending total mask", mask_descending_tot);
+        cv::imwrite( "Descending_total_mask.tif", mask_descending_tot);
+
+        //cv::waitKey(0);
     }
 
-    // Ridimensiono tutte le immagini sulle dimensioni più piccole
-    for(int i=0; i < mask_mat_array.size(); i++)
-    {
-        mask_mat_array[i](cv::Rect(0,0,colsNumb_asc,rowsNumb_asc)).copyTo(mask_mat_array[i]);
-    }
-
-    cout << "righe " << rowsNumb_asc << endl;
-    cout << "colonne " << colsNumb_asc << endl;
-    cout << "Size mask 0 " << mask_mat_array[0].size[0] << endl;
-    cout << "Size mask 1 " << mask_mat_array[1].size() << endl;
-    cout << "Size mask 2 " << mask_mat_array[2].size() << endl;
-    cout << "Size mask 3 " << mask_mat_array[3].size() << endl;
-    cout << "Size mask 4 " << mask_mat_array[4].size() << endl;
-    cout << "Size mask 5 " << mask_mat_array[5].size() << endl;
-
-    cv::Mat mask_ascending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
-    cv::Mat mask_descending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
-
-    // Sommo le tre maschere ascendenti e poi le altre tre discendenti
-    mask_ascending_tot = mask_mat_array[0] + mask_mat_array[1] + mask_mat_array[2];
-    mask_descending_tot = mask_mat_array[3] + mask_mat_array[4] + mask_mat_array[5];
-
-
-    // Salvo su file le due maschere
-    cv::namedWindow( "Ascending total mask", CV_WINDOW_NORMAL );
-    cv::imshow( "Ascending total mask", mask_ascending_tot);
-    cv::imwrite( "Ascending_total_mask.tif", mask_ascending_tot);
-    cv::namedWindow( "Descending total mask", CV_WINDOW_NORMAL );
-    cv::imshow( "Descending total mask", mask_descending_tot);
-    cv::imwrite( "Descending_total_mask.tif", mask_descending_tot);
-
-    //cv::waitKey(0);
-    }
-
-    cout << endl << "Disparity maps number " << disp_array.size() << endl;
+    cout << endl << "Disparity maps number: " << array_metric_disp.size() << endl;
+    /*cout << "Zero " << array_metric_disp[0].rows << " " << array_metric_disp[0].cols << endl;
+    cout << "Uno " << array_metric_disp[1].rows << " " << array_metric_disp[1].cols << endl;
+    cout << "Due " << array_metric_disp[2].rows << " " << array_metric_disp[2].cols << endl;
+    cout << "Tre " << array_metric_disp[3].rows << " " << array_metric_disp[3].cols << endl;
+    cout << "Quattro " << array_metric_disp[4].rows << " " << array_metric_disp[4].cols << endl;
+    cout << "Cinque " << array_metric_disp[5].rows << " " << array_metric_disp[5].cols << endl;*/
+    // sembra che non siano tutte uguali, per ora me ne frego e prendo come dimensione la prima
 
     // DISPARITY MAPS FUSION
-
-    merged_disp = cv::Mat::zeros(disp_array[0].rows, disp_array[0].cols, CV_64F);
+    // Ora fondo le mappe di disparità tutte insieme dando un peso differente (tramite le due maschere appena generate)
+    merged_disp = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
 
     cout<< " " << endl << "DISPARITY MAPS FUSION \t wait few minutes..." << endl;
 
     cout << "n° rows\t" << merged_disp.rows << endl;
     cout << "n° columns\t" << merged_disp.cols << endl;
 
-    for (int i=0; i< disp_array[0].rows; i++) // for every row
+    // Creo la matrice con i valori Mediani e dev.st. dell'array ascending
+    cv::Mat median_ascending_array = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
+    cv::Mat std_ascending_array = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
+
+    // Creo la matrice con i valori Mediani e dev.st. dell'array descending
+    cv::Mat median_descending_array = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
+    cv::Mat std_descending_array = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
+
+    // Per ogni riga, per ogni colonna, per le prima 3 mappe di disp, calcolo mediana e deviazione standard
+
+    float alpha = 0.5;
+    float beta = 0.5;
+    for (int i=0; i< array_metric_disp[0].rows; i++) // for every row
     {
-        for(int j=0; j< disp_array[0].cols; j++) // for every column
+        for(int j=0; j< array_metric_disp[0].cols; j++) // for every column
         {
-            int num=0.0;
-
-            for (unsigned int k = 0; k < disp_array.size(); k++)  // for every disparity map
+            // ASCENDING MEAN AND ST.DEV COMPUTATION
+            vector<double> temp_asc, temp_desc;
+            //for (unsigned int k = 0; k < array_metric_disp.size(); k++)  // for every disparity map
+            for (unsigned int k = 0; k < 3; k++)  // for every ASCENDING disparity map
             {
-                //for (int z = 0; z < k; z++)
-                //{
-                    //if(fabs(disp_array[z].at<double>(i,j) - disp_array[z+1].at<double>(i,j)) < 5)
-                    //{
-                        if(disp_array[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
-                        {
-                            merged_disp.at<double>(i,j) += disp_array[k].at<double>(i,j);
-                            num++;
-                        }
-                    //}
-
-                    else
-                    {
-                       num = 1.0;
-                       merged_disp.at<double>(i,j) = disp_array[0].at<double>(i,j);
-                    }
-
-                //}
-            merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;
+                // creo un array con i valori in (i,j) delle k mappe di disparità
+                double single_pixel_value = array_metric_disp[k].at<double>(i,j);
+                temp_asc.push_back(single_pixel_value);
             }
+
+            // Calcolo media e dev.st. con meanStdDev, poi faccio il push_back del valore nella Mat
+            // median_ascending_array.push_back(mean_ascending)
+
+            cv::Scalar mean_ascending, stDev_ascending;
+            cv::meanStdDev(temp_asc, mean_ascending, stDev_ascending);
+            //median_ascending_array(i,j).push_back(mean_ascending);
+            //std_ascending_array.push_back(stDev_ascending);
+
+            median_ascending_array.at<cv::Scalar>(i,j) = mean_ascending;
+            std_ascending_array.at<cv::Scalar>(i,j) = stDev_ascending;
+
+            // DESCENDING MEAN AND ST.DEV COMPUTATION
+            for (unsigned int k = 3; k < 6; k++)  // for every DESCENDING disparity map
+            {
+                // creo un array con i valori in (i,j) delle k mappe di disparità
+                double single_pixel_value = array_metric_disp[k].at<double>(i,j);
+                temp_desc.push_back(single_pixel_value);
+            }
+
+            // Calcolo media e dev.st. con meanStdDev, poi faccio il push_back del valore nella Mat
+            // median_ascending_array.push_back(mean_ascending)
+
+            cv::Scalar mean_descending, stDev_descending;
+            cv::meanStdDev(temp_desc, mean_descending, stDev_descending);
+            //median_ascending_array(i,j).push_back(mean_ascending);
+            //std_ascending_array.push_back(stDev_ascending);
+
+            median_descending_array.at<cv::Scalar>(i,j) = mean_descending;
+            std_descending_array.at<cv::Scalar>(i,j) = stDev_descending;
         }
     }
 
+    // DISPARITY MAP MERGING
+
+    for (int i=0; i< array_metric_disp[0].rows; i++) // for every row
+    {
+        for(int j=0; j< array_metric_disp[0].cols; j++) // for every column
+        {
+            int num=0.0;
+
+            // ma questo for sotto serve????????
+            for (unsigned int k = 0; k < array_metric_disp.size(); k++)  // for every disparity map
+            if(array_metric_disp[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
+            {
+                merged_disp.at<double>(i,j) += array_metric_disp[k].at<double>(i,j);
+                merged_disp.at<double>(i,j) = // formula
+                num++;
+
+            }
+
+            else
+            {
+               num = 1.0;
+               merged_disp.at<double>(i,j) = array_metric_disp[0].at<double>(i,j);
+            }
+            merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;
+        }
+    }
+
+
+    /*
+    //for (int z = 0; z < k; z++)
+    //{
+        //if(fabs(array_metric_disp[z].at<double>(i,j) - array_metric_disp[z+1].at<double>(i,j)) < 5)
+        //{
+            if(array_metric_disp[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
+            {
+                merged_disp.at<double>(i,j) += array_metric_disp[k].at<double>(i,j);
+                num++;
+            }
+        //}
+
+        else
+        {
+           num = 1.0;
+           merged_disp.at<double>(i,j) = array_metric_disp[0].at<double>(i,j);
+        }
+
+    //}
+merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;*/
+
+
+
      //remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
-     //cout << "ciclo" << k << endl;
 
     return true;
 }

@@ -43,7 +43,7 @@ private:
 
         //chiamata dense matching
 
-        vector<cv::Mat> disp_array;
+        vector<cv::Mat> array_metric_disp;
         //cv::Mat disparityMap;
         ossimRefPtr<ossimImageData> finalDSM;
         cv::Mat merged_disp;
