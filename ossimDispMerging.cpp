@@ -136,8 +136,8 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         cout << "Size mask 4 " << mask_mat_array[4].size() << endl;
         cout << "Size mask 5 " << mask_mat_array[5].size() << endl;*/
 
-        cv::Mat mask_ascending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
-        cv::Mat mask_descending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
+        mask_ascending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
+        mask_descending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
 
         // Sommo le tre maschere ascendenti e poi le altre tre discendenti
         mask_ascending_tot = mask_mat_array[0] + mask_mat_array[1] + mask_mat_array[2];
@@ -172,11 +172,11 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
     cout << "n° rows\t" << merged_disp.rows << endl;
     cout << "n° columns\t" << merged_disp.cols << endl;
 
-    // Creo la matrice con i valori Mediani e dev.st. dell'array ascending
+    // Creo la matrice per i valori Mediani e dev.st. dell'array ascending
     cv::Mat median_ascending_array = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
     cv::Mat std_ascending_array = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
 
-    // Creo la matrice con i valori Mediani e dev.st. dell'array descending
+    // Creo la matrice per i valori Mediani e dev.st. dell'array descending
     cv::Mat median_descending_array = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
     cv::Mat std_descending_array = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
 
@@ -206,8 +206,8 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
             //median_ascending_array(i,j).push_back(mean_ascending);
             //std_ascending_array.push_back(stDev_ascending);
 
-            median_ascending_array.at<cv::Scalar>(i,j) = mean_ascending;
-            std_ascending_array.at<cv::Scalar>(i,j) = stDev_ascending;
+            median_ascending_array.at<double>(i,j) = mean_ascending.val[0];
+            std_ascending_array.at<double>(i,j) = stDev_ascending.val[0];
 
             // DESCENDING MEAN AND ST.DEV COMPUTATION
             for (unsigned int k = 3; k < 6; k++)  // for every DESCENDING disparity map
@@ -225,11 +225,16 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
             //median_ascending_array(i,j).push_back(mean_ascending);
             //std_ascending_array.push_back(stDev_ascending);
 
-            median_descending_array.at<cv::Scalar>(i,j) = mean_descending;
-            std_descending_array.at<cv::Scalar>(i,j) = stDev_descending;
+            median_descending_array.at<double>(i,j) = mean_descending.val[0];
+            std_descending_array.at<double>(i,j) = stDev_descending.val[0];
+            if (i==0 & j==0) cout << "st.dev " << std_descending_array.at<double>(i,j) << endl;
+
         }
     }
-
+//cout << "array_desc scalar " << median_descending_array.at<cv::Scalar>(0,0) << endl;
+//cout << "array_desc double " << median_descending_array.at<cv::Scalar>(0,0).val[0] << endl;
+//cout << "st.dev " << std_ascending_array.at<cv::Scalar>(10,0).val[0] << endl;
+cout << "st.dev " << std_descending_array.at<double>(0,0) << endl;
     // DISPARITY MAP MERGING
 
     for (int i=0; i< array_metric_disp[0].rows; i++) // for every row
@@ -238,22 +243,37 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         {
             int num=0.0;
 
-            // ma questo for sotto serve????????
-            for (unsigned int k = 0; k < array_metric_disp.size(); k++)  // for every disparity map
-            if(array_metric_disp[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
-            {
-                merged_disp.at<double>(i,j) += array_metric_disp[k].at<double>(i,j);
-                merged_disp.at<double>(i,j) = // formula
-                num++;
+            // ma questo FOR sotto serve????????
+            // non credo a questo punto serva ciclare sulle mappe di disparità...
+            //for (unsigned int k = 0; k < array_metric_disp.size(); k++)  // for every disparity map
+            //if(array_metric_disp[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
+            //{
+               // merged_disp.at<double>(i,j) += array_metric_disp[k].at<double>(i,j);
+                //merged_disp.at<double>(i,j) = // formula
+                //num++;
 
-            }
+            //}
+//cout << "st.dev " << std_ascending_array.at<cv::Scalar>(0,0).val[0] << endl;
+//cout << "mask " << mask_ascending_tot.at<float>(i,j) << endl;
 
-            else
+// se non sono al primo giro, lui non calcola mask_ascending_tot, usa quella di prima
+            // ma che ha dimensione sbagliata e quindi ho core dump!!!!
+// se simulo direttamente secondo ciclo con maschera precedentemente creata...
+
+            cv::resize(mask_ascending_tot, mask_ascending_tot, cv::Size(array_metric_disp[0].cols, array_metric_disp[0].rows), cv::INTER_LINEAR);
+
+
+            double asc_num = 1/(alpha * std_ascending_array.at<double>(i,j) + beta * mask_ascending_tot.at<double>(i,j));
+            //cout << asc_num << endl;
+            double desc_num = 1/(alpha * std_descending_array.at<double>(i,j) + beta * mask_descending_tot.at<double>(i,j));
+            //cout << desc_num << endl;
+            merged_disp.at<double>(i,j) = ((asc_num/(asc_num + desc_num))* median_ascending_array.at<double>(i,j)) + ((desc_num/(asc_num + desc_num)) * median_descending_array.at<double>(i,j));
+            /*else
             {
                num = 1.0;
                merged_disp.at<double>(i,j) = array_metric_disp[0].at<double>(i,j);
             }
-            merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;
+            merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;*/
         }
     }
 
@@ -282,7 +302,7 @@ merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;*/
 
 
      //remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
-
+cout << " ci sono? " << endl;
     return true;
 }
 

@@ -46,6 +46,7 @@ private:
         vector<cv::Mat> array_metric_disp;
         //cv::Mat disparityMap;
         ossimRefPtr<ossimImageData> finalDSM;
+        cv::Mat mask_ascending_tot, mask_descending_tot;
         cv::Mat merged_disp;
         cv::Mat master_mat, slave_mat;
         cv::Mat master_mat_8U,slave_mat_8U;
