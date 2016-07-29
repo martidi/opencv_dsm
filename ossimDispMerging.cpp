@@ -14,6 +14,7 @@
 #include "ossimDispMerging.h"
 #include "ossimOpenCvDisparityMapGenerator.h"
 #include "ossimImagePreprocess.h"
+#include "ossimRawImage.h"
 
 #include <ossim/imaging/ossimMemoryImageSource.h>
 #include "ossim/imaging/ossimImageHandlerRegistry.h"
@@ -29,7 +30,7 @@ ossimDispMerging::ossimDispMerging()
 }
 
 
-bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<ossimString> orthoListMask)
+bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<ossimString> orthoListMask, vector<ossimRawImage> imageList)
 {
     /*cout << endl << "ortho master path "<<StereoPairList[0].getOrthoMasterPath() << endl << endl;
     cout << "ortho slave path " <<StereoPairList[0].getOrthoSlavePath() << endl << endl;

@@ -37,7 +37,8 @@
 
 #include "openCVtestclass.h"
 #include "ossimDispMerging.h"
-#include "ossimStereoPair.h"
+#include <../../ossim-plugins/opencv_dsm/ossimStereoPair.h>
+#include <../../ossim-plugins/opencv_dsm/ossimRawImage.h>
 
 #include <iostream>
 #include <fstream>
@@ -336,8 +337,9 @@ int main(int argc,  char* argv[])
         int id;
         int imagesNumb;
         int pairsNumb;
-        ossimString imagePath;
-        vector<ossimString> imageList;
+        ossimString imagePath, orbit;
+        //vector<ossimString> imageList;
+        vector<ossimRawImage> imageList;
         vector<ossimStereoPair> StereoPairList;
 
         f_input >> imagesNumb;
@@ -347,10 +349,20 @@ int main(int argc,  char* argv[])
 
         for (int i=0; i < imagesNumb ; i++)
         {
-            f_input >> id >> imagePath;
-            imageList.push_back(imagePath);
-            cout << id << endl;
-            cout << imagePath << endl;
+            ossimRawImage image;
+            f_input >> id >> imagePath >> orbit;
+
+            image.setID(id);
+            image.setRawPath(imagePath);
+            image.setOrbit(orbit);
+            imageList.push_back(image);
+
+            cout << "id " << imageList[i].getID() << endl;
+            cout << "Path " << imageList[i].getRawPath() << endl;
+            cout << "Orbit " << imageList[i].getOrbit() << endl;
+            //imageList.push_back(imagePath);
+            //cout << id << endl;
+            //cout << imagePath << endl;
         }
         f_input >> pairsNumb;
         cout << endl << "PAIRS NUMBER: " << pairsNumb << endl << endl;
@@ -363,7 +375,7 @@ int main(int argc,  char* argv[])
             f_input >> idMaster >> idSlave;
 
             pair.setID(idMaster, idSlave);
-            pair.setRawPath(imageList[idMaster],imageList[idSlave]);
+            pair.setRawPath(imageList[idMaster].getRawPath(),imageList[idSlave].getRawPath());
             pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, MinHeight, MaxHeight);
             StereoPairList.push_back(pair);
 
@@ -380,8 +392,8 @@ int main(int argc,  char* argv[])
         cout << "Number of images to be processed: " << imageList.size() << endl << endl;
 
         // Per ottenere le path delle singole immagini elencate nel file
-        cout << "dir_image_0 " << imageList[0] << endl;
-        cout << "dir_image_1 " << imageList[1] << endl;
+        cout << "dir_image_0 " << imageList[0].getRawPath() << endl;
+        cout << "dir_image_1 " << imageList[1].getRawPath() << endl;
         //cout << "dir_image_2 " << imageList[2] << endl;
         //cout << "dir_image_3 " << imageList[3] << endl<< endl;
 
@@ -432,7 +444,7 @@ int main(int argc,  char* argv[])
             vector<ossimString> orthoList, orthoListMask;
             for (int n=0; n < imagesNumb ; n++)
             {
-                image_key.addPair("image1.file", imageList[n]);
+                image_key.addPair("image1.file", imageList[n].getRawPath());
 
                 string Result;           // string which will contain the result
                 ostringstream convert;   // stream used for the conversion
@@ -523,7 +535,7 @@ int main(int argc,  char* argv[])
             //StereoPairList[i].getOrthoSlavePath();
 
             ossimDispMerging *mergedDisp = new ossimDispMerging() ;
-            mergedDisp->execute(StereoPairList, orthoListMask); // da qui voglio ottenere mappa di disparità fusa e metrica
+            mergedDisp->execute(StereoPairList, orthoListMask, imageList); // da qui voglio ottenere mappa di disparità fusa e metrica
             cv::Mat FinalDisparity = mergedDisp->getMergedDisparity(); // questa è mappa di disparità fusa e metrica
 
             // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse

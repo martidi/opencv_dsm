@@ -21,12 +21,13 @@
 #include "ossimStereoPair.h"
 #include "ossimOpenCvTPgenerator.h"
 #include "ossimOpenCvDisparityMapGenerator.h"
+#include "ossimRawImage.h"
 
 class ossimDispMerging
 {
 public:
         ossimDispMerging();
-        bool execute(vector<ossimStereoPair> StereoPairList, vector<ossimString> orthoListMask);
+        bool execute(vector<ossimStereoPair> StereoPairList, vector<ossimString> orthoListMask, vector<ossimRawImage> imageList);
         cv::Mat getMergedDisparity();
         bool computeDsm(vector<ossimStereoPair> StereoPairList, ossimElevManager *elev, int b, ossimArgumentParser ap);
         ossimRefPtr<ossimImageData> getDsm();
