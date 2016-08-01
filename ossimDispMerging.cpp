@@ -181,6 +181,24 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
     cv::Mat median_descending_array = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
     cv::Mat std_descending_array = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
 
+    //cout << "image list size " << imageList.size() << endl;
+    int asc_size = 0;
+    int desc_size = 0;
+    for (int i = 0; i < imageList.size(); i++)
+    {
+        if (imageList[i].getOrbit() == "a")
+        {
+            asc_size ++;
+        }
+
+        if (imageList[i].getOrbit() == "d")
+        {
+            desc_size ++;
+        }
+    }
+
+    cout << "size stack asc " << asc_size << endl;
+    cout << "size stack desc " << desc_size << endl;
     // Per ogni riga, per ogni colonna, per le prima 3 mappe di disp, calcolo mediana e deviazione standard
 
     float alpha = 0.5;
@@ -192,7 +210,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
             // ASCENDING MEAN AND ST.DEV COMPUTATION
             vector<double> temp_asc, temp_desc;
             //for (unsigned int k = 0; k < array_metric_disp.size(); k++)  // for every disparity map
-            for (unsigned int k = 0; k < 3; k++)  // for every ASCENDING disparity map
+            for (unsigned int k = 0; k < asc_size; k++)  // for every ASCENDING disparity map
             {
                 // creo un array con i valori in (i,j) delle k mappe di disparità
                 double single_pixel_value = array_metric_disp[k].at<double>(i,j);
@@ -211,7 +229,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
             std_ascending_array.at<double>(i,j) = stDev_ascending.val[0];
 
             // DESCENDING MEAN AND ST.DEV COMPUTATION
-            for (unsigned int k = 3; k < 6; k++)  // for every DESCENDING disparity map
+            for (unsigned int k = asc_size; k < desc_size; k++)  // for every DESCENDING disparity map
             {
                 // creo un array con i valori in (i,j) delle k mappe di disparità
                 double single_pixel_value = array_metric_disp[k].at<double>(i,j);
@@ -262,7 +280,7 @@ cout << "st.dev " << std_descending_array.at<double>(0,0) << endl;
 // se simulo direttamente secondo ciclo con maschera precedentemente creata...
 
             cv::resize(mask_ascending_tot, mask_ascending_tot, cv::Size(array_metric_disp[0].cols, array_metric_disp[0].rows), cv::INTER_LINEAR);
-
+            cv::resize(mask_descending_tot, mask_descending_tot, cv::Size(array_metric_disp[0].cols, array_metric_disp[0].rows), cv::INTER_LINEAR);
 
             double asc_num = 1/(alpha * std_ascending_array.at<double>(i,j) + beta * mask_ascending_tot.at<double>(i,j));
             //cout << asc_num << endl;
