@@ -70,6 +70,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         array_metric_disp.push_back(dense_matcher->getDisp());
         null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
         }
+            cv::imwrite( "float_Disparity_bis.tif", array_metric_disp[5]);
     cout << "I'm here " << endl;
 
     // Only for the first pyramidal level; check if mask file already exist
@@ -229,7 +230,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
             std_ascending_array.at<double>(i,j) = stDev_ascending.val[0];
 
             // DESCENDING MEAN AND ST.DEV COMPUTATION
-            for (unsigned int k = asc_size; k < desc_size; k++)  // for every DESCENDING disparity map
+            for (unsigned int k = asc_size; k < asc_size + desc_size; k++)  // for every DESCENDING disparity map
             {
                 // creo un array con i valori in (i,j) delle k mappe di disparità
                 double single_pixel_value = array_metric_disp[k].at<double>(i,j);
@@ -246,14 +247,40 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
 
             median_descending_array.at<double>(i,j) = mean_descending.val[0];
             std_descending_array.at<double>(i,j) = stDev_descending.val[0];
-            if (i==0 & j==0) cout << "st.dev " << std_descending_array.at<double>(i,j) << endl;
+            if (i==0 & j==0) cout << "st.dev " << std_ascending_array.at<double>(i,j) << endl;
 
         }
     }
+
+        cv::imwrite( "Median_desc.tif", median_descending_array);
+        cv::imwrite( "Median_asc.tif", median_ascending_array);
+        cv::imwrite( "StDev_desc.tif", std_descending_array);
+        cv::imwrite( "StDev_asc.tif", std_ascending_array);
+
+        cv::FileStorage fs("test.yml", cv::FileStorage::WRITE);
+        fs << "cameraMatrix" << median_descending_array;
+        fs.release();
+
 //cout << "array_desc scalar " << median_descending_array.at<cv::Scalar>(0,0) << endl;
 //cout << "array_desc double " << median_descending_array.at<cv::Scalar>(0,0).val[0] << endl;
 //cout << "st.dev " << std_ascending_array.at<cv::Scalar>(10,0).val[0] << endl;
-cout << "st.dev " << std_descending_array.at<double>(0,0) << endl;
+    cout << setprecision(7);
+    cout << "st.dev " << std_descending_array.at<double>(0,0) << endl;
+
+    // Leggo le maschere precedentemente create
+    mask_ascending_tot = cv::imread("Ascending_total_mask.tif");
+    mask_descending_tot = cv::imread("Descending_total_mask.tif");
+
+    cv::namedWindow( "Ascending total mask", CV_WINDOW_NORMAL );
+    cv::imshow( "Ascending total mask", mask_ascending_tot);
+    cv::namedWindow( "Descending total mask", CV_WINDOW_NORMAL );
+    cv::imshow( "Descending total mask", mask_descending_tot);
+    cv::waitKey();
+
+    // Faccio il resize per adattarmi alla risoluzione del ciclo
+    cv::resize(mask_ascending_tot, mask_ascending_tot, cv::Size(array_metric_disp[0].cols, array_metric_disp[0].rows), cv::INTER_LINEAR);
+    cv::resize(mask_descending_tot, mask_descending_tot, cv::Size(array_metric_disp[0].cols, array_metric_disp[0].rows), cv::INTER_LINEAR);
+
     // DISPARITY MAP MERGING
 
     for (int i=0; i< array_metric_disp[0].rows; i++) // for every row
@@ -279,12 +306,10 @@ cout << "st.dev " << std_descending_array.at<double>(0,0) << endl;
             // ma che ha dimensione sbagliata e quindi ho core dump!!!!
 // se simulo direttamente secondo ciclo con maschera precedentemente creata...
 
-            cv::resize(mask_ascending_tot, mask_ascending_tot, cv::Size(array_metric_disp[0].cols, array_metric_disp[0].rows), cv::INTER_LINEAR);
-            cv::resize(mask_descending_tot, mask_descending_tot, cv::Size(array_metric_disp[0].cols, array_metric_disp[0].rows), cv::INTER_LINEAR);
 
-            double asc_num = 1/(alpha * std_ascending_array.at<double>(i,j) + beta * mask_ascending_tot.at<double>(i,j));
+            double asc_num = 1.0/(alpha * std_ascending_array.at<double>(i,j) + beta * mask_ascending_tot.at<double>(i,j));
             //cout << asc_num << endl;
-            double desc_num = 1/(alpha * std_descending_array.at<double>(i,j) + beta * mask_descending_tot.at<double>(i,j));
+            double desc_num = 1.0/(alpha * std_descending_array.at<double>(i,j) + beta * mask_descending_tot.at<double>(i,j));
             //cout << desc_num << endl;
             merged_disp.at<double>(i,j) = ((asc_num/(asc_num + desc_num))* median_ascending_array.at<double>(i,j)) + ((desc_num/(asc_num + desc_num)) * median_descending_array.at<double>(i,j));
             /*else
@@ -295,8 +320,8 @@ cout << "st.dev " << std_descending_array.at<double>(0,0) << endl;
             merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;*/
         }
     }
-
-
+            //cout << asc_num << endl;
+            //cout << desc_num << endl;
     /*
     //for (int z = 0; z < k; z++)
     //{
@@ -321,7 +346,23 @@ merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;*/
 
 
      //remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
-cout << " ci sono? " << endl;
+
+    //cv::namedWindow( "Descending total mask", CV_WINDOW_NORMAL );
+    //cv::imshow( "Descending total mask", mask_descending_tot);
+    cv::imwrite( "Merged_disp.tif", merged_disp);
+
+    cv::Mat merged_disp_8bit;
+    double minVal, maxVal;
+    minMaxLoc( merged_disp, &minVal, &maxVal );
+    merged_disp.convertTo( merged_disp_8bit, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
+
+        cv::namedWindow( "Merged_disp_8bit", CV_WINDOW_NORMAL );
+        cv::imshow( "Merged_disp_8bit", merged_disp_8bit);
+        cv::imwrite( "Merged_disp_8bit.tif", merged_disp_8bit);
+        cv::waitKey(0);
+
+
+
     return true;
 }
 

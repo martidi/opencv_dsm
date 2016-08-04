@@ -66,6 +66,7 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 
     cv::Mat array_disp_8U;
     sgbm(master_mat, slave_mat, array_disp);
+    cv::imwrite( "float_Disparity_0.tif", array_disp);
 
     minMaxLoc( array_disp, &minVal, &maxVal );
     array_disp.convertTo( array_disp_8U, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
@@ -74,6 +75,11 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
     cv::imshow( "SGM Disparity", array_disp_8U);
     cv::imwrite( "SGM Disparity.tif", array_disp_8U);
     cv::waitKey(0);
+
+
+    cv::FileStorage fs("test.yml", cv::FileStorage::WRITE);
+    fs << "cameraMatrix" << array_disp;
+    fs.release();
 
 	//******************************************************
 	// Abilitate for computing disparity on different scales 
@@ -99,7 +105,6 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 
     array_disp.convertTo(array_disp, CV_64F);
     array_disp = ((array_disp/16.0)) / StereoPair.getConversionFactor(); //quando divido per il fattore di conversione le rendo metriche
-
 }
 
 

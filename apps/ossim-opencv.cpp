@@ -475,7 +475,7 @@ int main(int argc,  char* argv[])
                     cout << "This is the first pyramidal level ---> mask generation " << endl;
 
                     //Funzione per  la generazione delle pesature (maschere/immagini simulate)
-                    //imageSimulation(imageList[n], elev, ap, Result);
+                    //imageSimulation(imageList[n].getRawPath(), elev, ap, Result);
 
                     // Faccio l'orto delle singole maschere; faccio ortho sulla image key che si riferisce ad una nuova path
                     // Per fare ortho ho bisogno dei metadati!
@@ -485,14 +485,12 @@ int main(int argc,  char* argv[])
 
                     cout << "ORTHO FOR MASK LEVEL: "<< Level << endl << endl;
                     cout << "path " << pathMask << endl;
-                    ossimString orthoMaskPath = ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("Mask_level") + Level + ossimString("_image_") + Result + ossimString("_ortho.TIF");
+                    ossimString orthoMaskPath = ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_Mask_level") + Level + ossimString("_image_") + Result + ossimString("_ortho.TIF");
                     image_key.add( ossimKeywordNames::OUTPUT_FILE_KW, orthoMaskPath);
                     orthoListMask.push_back(orthoMaskPath);
+                   // ortho(image_key);
 
                     //ossimFilename::copyFileTo(ossimFilename("install_manifest.txt") ossimString("/bin/"));
-
-                    //ortho(image_key);
-
                 }
             }
 
