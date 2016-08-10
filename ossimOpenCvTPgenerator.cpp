@@ -96,7 +96,7 @@ void ossimOpenCvTPgenerator::TPgen()
     vector<cv::DMatch> matches;
 	matcher.match(descriptors1, descriptors2, matches);	
 
-    cerr << matches.size();
+    cerr << "matches " << matches.size() << endl;
 
 	// Calculation of max and min distances between keypoints 
 	double max_dist = matches[0].distance; double min_dist = matches[0].distance;
@@ -110,16 +110,16 @@ void ossimOpenCvTPgenerator::TPgen()
 		if( dist > max_dist ) max_dist = dist;
 	}
 	
-    //cout << "Min dist between keypoints = " << min_dist << endl;
-    //cout << "Max dist between keypoints = " << max_dist << endl;
-		
-    // Selection of the better 80% descriptors
+    cout << "Min dist between keypoints = " << min_dist << endl;
+    cout << "Max dist between keypoints = " << max_dist << endl;
+
+    // Selection of the better 2% descriptors
 	int N_TOT = descriptors1.rows;
 	int N_GOOD = 0, N_ITER = 0;
 
 	double good_dist = (max_dist+min_dist)/2.0;
 	double per = 100;
-	 
+    cerr << "good_dist 2 " << good_dist << endl;
     while (fabs(per-0.98) > 0.001 && N_ITER <= 200)
 	{		
 		for( int i = 0; i < descriptors1.rows; i++ )
@@ -145,7 +145,7 @@ void ossimOpenCvTPgenerator::TPgen()
 		N_ITER++;
 		N_GOOD = 0;
 	} 
-		
+    cerr << "good_dist 3 " << good_dist << endl;
 	for( int i = 0; i < descriptors1.rows; i++ )
 	{
 		if(matches[i].distance <= good_dist)
@@ -165,8 +165,8 @@ void ossimOpenCvTPgenerator::TPgen()
 			}
 		}
 	}
-	
-    cout << "% points found = " << (double)good_matches.size()/(double)matches.size() << endl;
+    cout << "good " << (double)good_matches.size() << " matches " << (double)matches.size() << endl;
+    cout << "% points found = " << ((double)good_matches.size()/(double)matches.size())*100.0 << endl;
 	cout << endl << "Points found before the 3 sigma test = " << (double)good_matches.size() <<endl << endl; 
 	
 	// 3 sigma test
