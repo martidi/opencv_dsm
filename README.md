@@ -1,26 +1,61 @@
 opencv_dsm
 ==========
 
-OSSIM tool for DSM generation using tri-stereo imagery
+OSSIM tool for automatic DSM generation and merging from a stack of optical and SAR images
 
 ===============
 
-This is the repository for OSSIM GSoC 2015: it contains the code of the developed OSSIM plug-In for Digital Surface Models (DSMs) generation from tri-stereo images.
+This is the repository for OSSIM GSoC 2016: it contains the code of DATE (Digital Automatic Terrain Extractor), the developed OSSIM plug-in for automatic Digital Surface Models (DSMs) generation and merging from a stack of optical and SAR images.
 
 For more information about the project see
-https://www.google-melange.com/gsoc/proposal/review/student/google/gsoc2015/martidi/5717271485874176
+https://summerofcode.withgoogle.com/projects/#4790138697678848
 
-This repository only contains the new and updated files, with reference to the structure of the OSSIM repository (http://trac.osgeo.org/ossim/browser/trunk/ossim).
+This repository only contains the new and updated files, with reference to the structure of the OSSIM repository (https://github.com/ossimlabs/ossim).
 
 In order to compile and install this OSSIM plug-In, please observe the following instructions:
 
 	1. Install and compile the latest OSSIM version
-	2. In the OSSIM_DEV_HOME/ossim_plugins directory modify the CMakeLists.txt adding the line "SUBDIRS(opencv_dsm)" in the IF(BUILD_OSSIMOPENCV_PLUGIN) command
-	3. Open a shell in the OSSIM_DEV_HOME/ossim_plugins
-	4. Use the following git commands to download D.A.T.E. plug-In
-		$git init 
-		$git remote add origin https://github.com/martidi/opencv_dsm/tree/triplet
-		$git pull origin master
-	5. Re-compile the OSSIM version enabling the OPENCV plugin option in the configuration file
+	2. Install and compile the latest ossim-plugins version (turn on at least: gdal; geopdf; cnes; hdf5; opencv; potrace; sqlite; web plugins in OSSIM_DEV_HOME/ossim/cmake/scripts/ossim-cmake-config.sh)
+	3. Open a shell in the OSSIM_DEV_HOME/ossim-plugins and copy DATE code using:
+		git clone https://github.com/martidi/opencv_dsm/tree/imageStack
+	4. In  OSSIM_DEV_HOME/ossim-plugins/CmakeLists.txt at line 87 add:
+	   	add_subdirectory(opencv_dsm)
+	5. In OSSIM_DEV_HOME/ossim/scripts run
+		build.sh 
+	6. In the "build" folder type
+		sudo make install 
+	7. If not already existing, In OSSIM_DEV_HOME create
+	data→ for elevation
+	preferences → for preference file
+	folders
+	8. In order to test DATE plug-in, please create a “results” folder, containing:
+		DSM
+		ortho_images
+		temp_elevation
+		mask
+	folders
+	9. Put a .txt file in the “build” folder, containing the list of the images to be used and the pairs to be considered, as in the following example:
+	3 %number of images to be used
+	0 absolute_path_to_image_1
+	1 absolute_path_to_image_2 
+	2 absolute_path_to_image_3 
+
+	3 %number of pairs to be processed
+	0 1
+	1 2
+	0 2
+
+	0 1
+	1 2
+	0 2
+
+	10. From the “build” folder, run DATE:
+	./bin/ossim-dsm-app input_images.txt absolute_path_to_results_folder DSM_name
+	--cut-bbox-ll lat_min lon_min lat_max lon_max --meters xx --nsteps xx --projection utm
+	
 	
 For any doubts or issues please email me: martina.dirita@uniroma1.it
+
+
+				
+				

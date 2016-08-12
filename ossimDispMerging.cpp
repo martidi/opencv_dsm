@@ -313,7 +313,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
             //cout << desc_num << endl;
 
             // condizioni per togliere i -9999 introdotti prima
-            if(median_ascending_array.at<double>(i,j) < -1000 && median_descending_array.at<double>(i,j) < -1000) merged_disp.at<double>(i,j) = 0.0; // sto riempiendo con SRTM -9999
+            if(median_ascending_array.at<double>(i,j) < -1000 && median_descending_array.at<double>(i,j) < -1000) merged_disp.at<double>(i,j) = 0.0; // sto riempiendo con SRTM dove c'era -9999
             else if(median_ascending_array.at<double>(i,j) < -1000) merged_disp.at<double>(i,j) = median_descending_array.at<double>(i,j);
             else if(median_descending_array.at<double>(i,j) < -1000) merged_disp.at<double>(i,j) = median_ascending_array.at<double>(i,j);
             else merged_disp.at<double>(i,j) = ((asc_num/(asc_num + desc_num))* median_ascending_array.at<double>(i,j)) + ((desc_num/(asc_num + desc_num)) * median_descending_array.at<double>(i,j));
