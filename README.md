@@ -34,11 +34,11 @@ In order to compile and install this OSSIM plug-In, please observe the following
 		temp_elevation
 		mask
 	folders
-	9. Put a .txt file in the “build” folder, containing the list of the images to be used and the pairs to be considered, as in the following example:
+	9. Put a .txt file in the “build” folder, containing the list of the images to be used their orbit (write "a" for ascending orbit and "d" for descending) and the pairs to be considered, as in the following example:
 	3 %number of images to be used
-	0 absolute_path_to_image_1
-	1 absolute_path_to_image_2 
-	2 absolute_path_to_image_3 
+	0 absolute_path_to_image_1 orbit
+	1 absolute_path_to_image_2 orbit
+	2 absolute_path_to_image_3 orbit
 
 	3 %number of pairs to be processed
 	0 1
