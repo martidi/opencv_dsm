@@ -40,8 +40,6 @@ private:
         bool imgConversionTo8bit();
         bool disparityFusion();
 
-        //chiamata TPgenerator -> slave_warped
-
         //chiamata dense matching
 
         vector<cv::Mat> array_metric_disp;

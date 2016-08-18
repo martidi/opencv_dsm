@@ -49,7 +49,6 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         slave_handler = ossimImageHandlerRegistry::instance()->open(StereoPairList[i].getOrthoSlavePath());
 
         //if(master_handler && slave_handler && raw_master_handler && raw_slave_handler) // enter if exist both master and slave
-        //{
 
         // Conversion from ossim image to opencv matrix
         imgConversionToMat(); //apre le img ortho e diventano opencv mat
@@ -135,8 +134,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         int rowsNumb_asc, colsNumb_asc;
         rowsNumb_asc = mask_mat_array[0].size[0];
         colsNumb_asc = mask_mat_array[0].size[1];
- //cout << "size list ortho mask" << orthoListMask.size() << endl;
- // cout << "size array mask " << mask_mat_array.size() << endl;
+
         for(int i=0; i < mask_mat_array.size(); i++)
         {
             if (rowsNumb_asc > mask_mat_array[i].size[0]) rowsNumb_asc=mask_mat_array[i].size[0];
@@ -178,9 +176,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         }
         mask_descending_tot = temp_desc_mask;
 
-        // maschera ascendente e discendente sono uguali
-        // se calcolo con il primo ed il secondo metodo non corrispondono....
-
+        //Trivial method to sum
          //mask_ascending_tot = mask_mat_array[0] + mask_mat_array[1] + mask_mat_array[2];
          //mask_descending_tot = mask_mat_array[3] + mask_mat_array[4] + mask_mat_array[5];
 
@@ -292,21 +288,6 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
     {
         for(int j=0; j< array_metric_disp[0].cols; j++) // for every column
         {
-            int num=0.0;
-
-            // ma questo FOR sotto serve????????
-            // non credo a questo punto serva ciclare sulle mappe di disparità...
-            //for (unsigned int k = 0; k < array_metric_disp.size(); k++)  // for every disparity map
-            //if(array_metric_disp[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
-            //{
-               // merged_disp.at<double>(i,j) += array_metric_disp[k].at<double>(i,j);
-                //merged_disp.at<double>(i,j) = // formula
-                //num++;
-
-            //}
-//cout << "st.dev " << std_ascending_array.at<cv::Scalar>(0,0).val[0] << endl;
-//cout << "mask " << mask_ascending_tot.at<float>(i,j) << endl;
-
             double asc_num = 1.0/(alpha * std_ascending_array.at<double>(i,j) + beta * mask_ascending_tot.at<double>(i,j));
             //cout << asc_num << endl;
             double desc_num = 1.0/(alpha * std_descending_array.at<double>(i,j) + beta * mask_descending_tot.at<double>(i,j));
@@ -317,40 +298,10 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
             else if(median_ascending_array.at<double>(i,j) < -1000) merged_disp.at<double>(i,j) = median_descending_array.at<double>(i,j);
             else if(median_descending_array.at<double>(i,j) < -1000) merged_disp.at<double>(i,j) = median_ascending_array.at<double>(i,j);
             else merged_disp.at<double>(i,j) = ((asc_num/(asc_num + desc_num))* median_ascending_array.at<double>(i,j)) + ((desc_num/(asc_num + desc_num)) * median_descending_array.at<double>(i,j));
-            /*else
-            {
-               num = 1.0;
-               merged_disp.at<double>(i,j) = array_metric_disp[0].at<double>(i,j);
-            }
-            merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;*/
         }
     }
             //cout << asc_num << endl;
             //cout << desc_num << endl;
-    /*
-    //for (int z = 0; z < k; z++)
-    //{
-        //if(fabs(array_metric_disp[z].at<double>(i,j) - array_metric_disp[z+1].at<double>(i,j)) < 5)
-        //{
-            if(array_metric_disp[k].at<double>(i,j) > null_disp_threshold) // sto togliendo i valori minori della threshold
-            {
-                merged_disp.at<double>(i,j) += array_metric_disp[k].at<double>(i,j);
-                num++;
-            }
-        //}
-
-        else
-        {
-           num = 1.0;
-           merged_disp.at<double>(i,j) = array_metric_disp[0].at<double>(i,j);
-        }
-
-    //}
-    merged_disp.at<double>(i,j)  = merged_disp.at<double>(i,j) /num;*/
-
-
-
-     //remove(ossimFilename(ossimFilename(ap[2]) + ossimString("temp_elevation/") + ossimFilename(ap[3])+ossimString(".TIF")));
 
     cv::imwrite( "Merged_disp.tif", merged_disp);
 
@@ -409,10 +360,10 @@ bool ossimDispMerging::computeDsm(vector<ossimStereoPair> StereoPairList, ossimE
     cv::minMaxLoc( merged_disp, &minVal, &maxVal );
     merged_disp.convertTo( merged_disp_compute1, CV_8UC1, 255/(maxVal - minVal), -minVal*255/(maxVal - minVal));
 
-        cv::namedWindow( "merged_disp_compute1", CV_WINDOW_NORMAL );
-        cv::imshow( "merged_disp_compute1", merged_disp_compute1);
-        cv::imwrite( "merged_disp_compute1.tif", merged_disp_compute1);
-        cv::waitKey(0);
+    cv::namedWindow( "merged_disp_compute1", CV_WINDOW_NORMAL );
+    cv::imshow( "merged_disp_compute1", merged_disp_compute1);
+    cv::imwrite( "merged_disp_compute1.tif", merged_disp_compute1);
+    cv::waitKey(0);
 
     // Set the destination image size:
     ossimIpt image_size (merged_disp.cols , merged_disp.rows);
@@ -533,7 +484,6 @@ bool ossimDispMerging::imgGetHisto(cv::Mat image, double threshold,  double *min
     cv::calcHist( &image, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
 
 
-
     //Scarto il 10% dei valori più alti
     cout << "size\t" << hist.size() << endl;
     //cout << "ihst\t" << hist << endl;
@@ -561,7 +511,6 @@ bool ossimDispMerging::imgGetHisto(cv::Mat image, double threshold,  double *min
     //cout << "somma dei valori che scarto " << sum<< endl;
     sum = 0;
     control = true;
-
     while(control)
     {
         sum+=hist.at<float>(min,0) ;
@@ -595,8 +544,6 @@ bool ossimDispMerging::imgGetHisto(cv::Mat image, double threshold,  double *min
     cv::calcHist( &image , 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
 
 
-
-
     /// Create an image to display the histograms
     ///Draw the histograms
     int hist_w = 512; int hist_h = 400;
@@ -621,7 +568,6 @@ bool ossimDispMerging::imgGetHisto(cv::Mat image, double threshold,  double *min
     cv::imshow("histogram", histImage);
     cv::waitKey(0);*/
     return true;
-//CV_WINDOW_NORMAL
 }
 
 

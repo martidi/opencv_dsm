@@ -42,8 +42,8 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 	cv::imshow( "Scaled slave", slave_mat);
 	*/	
 					
-    ndisparities = 16; //Maximum disparity minus minimum disparity
-    minimumDisp = -8;
+    ndisparities = 16; //Maximum disparity minus minimum disparity - prove a 128
+    minimumDisp = -8; //prova a -32
     SADWindowSize = 5; //Matched block size
 
     // Disparity Map generation

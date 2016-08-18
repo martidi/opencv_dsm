@@ -22,7 +22,7 @@ class ossimImagePreprocess
 {
 public:
 	ossimImagePreprocess();
-        cv::Mat wallis(cv::Mat image);
+    cv::Mat wallis(cv::Mat image);
 };
 
 #endif /* #ifndef ossimImagePreprocess_HEADER */

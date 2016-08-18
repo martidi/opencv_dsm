@@ -195,7 +195,7 @@ int main(int argc,  char* argv[])
 		// PARSER *******************************
 		cout << "Arg number " << ap.argc() << endl;
 
-        // SISTEMARE, DEVE ESSERE <5, IL PIU GEN POSSIBILE (SOLO CON 2 IMMAGINI)
+        // <5 to be more general (only with 2 images)
         if(ap.argc() < 5) //ap.argv[0] is the application name
         {
             ap.writeErrorMessages(ossimNotify(ossimNotifyLevel_NOTICE));
@@ -393,9 +393,7 @@ int main(int argc,  char* argv[])
 
         // Per ottenere le path delle singole immagini elencate nel file
         cout << "dir_image_0 " << imageList[0].getRawPath() << endl;
-        cout << "dir_image_1 " << imageList[1].getRawPath() << endl;
-        //cout << "dir_image_2 " << imageList[2] << endl;
-        //cout << "dir_image_3 " << imageList[3] << endl<< endl;
+        cout << "dir_image_1 " << imageList[1].getRawPath() << endl << endl;
 
         /*******************************************************/
         /*******************************************************/
@@ -416,7 +414,6 @@ int main(int argc,  char* argv[])
             {
                 cout << "Prendo il DSM temporaneo" << endl;
                 elev->loadElevationPath(tempDSM, true);
-                //ossimElevManager::instance()->loadElevationPath(tempDSM, true);
             }
 
             cout <<"indice b " << b << endl;
@@ -475,7 +472,7 @@ int main(int argc,  char* argv[])
                     cout << "This is the first pyramidal level ---> mask generation " << endl;
 
                     //Funzione per  la generazione delle pesature (maschere/immagini simulate)
-                    //imageSimulation(imageList[n].getRawPath(), elev, ap, Result);
+                    imageSimulation(imageList[n].getRawPath(), elev, ap, Result);
 
                     // Faccio l'orto delle singole maschere; faccio ortho sulla image key che si riferisce ad una nuova path
                     // Per fare ortho ho bisogno dei metadati!
@@ -488,7 +485,7 @@ int main(int argc,  char* argv[])
                     ossimString orthoMaskPath = ossimFilename(ap[2]) + ossimString("ortho_images/") + ossimFilename(ap[3]) + ossimString("_Mask_level") + Level + ossimString("_image_") + Result + ossimString("_ortho.TIF");
                     image_key.add( ossimKeywordNames::OUTPUT_FILE_KW, orthoMaskPath);
                     orthoListMask.push_back(orthoMaskPath);
-                   // ortho(image_key);
+                    ortho(image_key);
 
                     //ossimFilename::copyFileTo(ossimFilename("install_manifest.txt") ossimString("/bin/"));
                 }
@@ -500,7 +497,7 @@ int main(int argc,  char* argv[])
             cout <<image_key << endl << endl;
             //cout << "ortholist" << orthoList[0] << endl << endl;
 
-            // Riempio il vettore della coppia con info su path delle ortho
+            // Pairs array filling with ortho path information
             for (int i=0; i < pairsNumb ; i++)
                 {
                     //int idMaster,idSlave;

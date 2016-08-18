@@ -49,18 +49,6 @@ ossimString ossimRawImage::getOrbit()
 	return orbit;
 }
 	
-	
-/*
-ossimString ossimRawImage::getOrthoMasterPath()
-{
-        return ortho_master;
-}
-
-void ossimStereoPair::setOrthoPath(ossimString ortho_master_path, ossimString ortho_slave_path)
-{
-        ortho_master = ortho_master_path;
-        ortho_slave = ortho_slave_path;
-}*/
-    
+	    
     
     
