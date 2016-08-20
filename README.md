@@ -55,7 +55,7 @@ In order to compile and install this OSSIM plug-In, please observe the following
 	
 	
 Here https://trac.osgeo.org/ossim/wiki/ACompletePhotogrammetricOSSIMtoolForAutomaticDSMenerationUsingMultiViewOpticalAndSARimages 
-you can find all my weekly reports.
+you can find all my 2016 GSoC reports, describing the project and the work carried out weekly.
 
 For any doubts or issues please email me: martina.dirita@uniroma1.it
 
