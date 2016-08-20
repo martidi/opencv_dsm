@@ -14,8 +14,8 @@ This repository only contains the new and updated files, with reference to the s
 
 In order to compile and install this OSSIM plug-In, please observe the following instructions:
 
-	1. Install and compile the latest OSSIM version
-	2. Install and compile the latest ossim-plugins version (turn on at least: gdal; geopdf; cnes; hdf5; opencv; potrace; sqlite; web plugins in OSSIM_DEV_HOME/ossim/cmake/scripts/ossim-cmake-config.sh)
+	1. Install and compile the latest OSSIM version (git clone https://github.com/ossimlabs/ossim) - Remember to set in the .bashrc file OSSIM environmental variables
+	2. Install and compile the latest ossim-plugins version (turn on at least: gdal; geopdf; cnes; hdf5; opencv; potrace; sqlite; web plugins in OSSIM_DEV_HOME/ossim/cmake/scripts/ossim-cmake-config.sh) - (git clone https://github.com/ossimlabs/ossim- plugins)
 	3. Open a shell in the OSSIM_DEV_HOME/ossim-plugins and copy DATE code using:
 		git clone https://github.com/martidi/opencv_dsm/tree/imageStack
 	4. In  OSSIM_DEV_HOME/ossim-plugins/CmakeLists.txt at line 87 add:
@@ -25,8 +25,8 @@ In order to compile and install this OSSIM plug-In, please observe the following
 	6. In the "build" folder type
 		sudo make install 
 	7. If not already existing, In OSSIM_DEV_HOME create
-	data→ for elevation
-	preferences → for preference file
+		data → for elevation
+		preferences → for preference file
 	folders
 	8. In order to test DATE plug-in, please create a “results” folder, containing:
 		DSM
