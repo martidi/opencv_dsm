@@ -54,6 +54,9 @@ In order to compile and install this OSSIM plug-In, please observe the following
 	--cut-bbox-ll lat_min lon_min lat_max lon_max --meters xx --nsteps xx --projection utm
 	
 	
+Here https://trac.osgeo.org/ossim/wiki/ACompletePhotogrammetricOSSIMtoolForAutomaticDSMenerationUsingMultiViewOpticalAndSARimages 
+you can find all my weekly reports.
+
 For any doubts or issues please email me: martina.dirita@uniroma1.it
 
 
