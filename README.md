@@ -33,7 +33,9 @@ In order to compile and install this OSSIM plug-In, please observe the following
 		ortho_images
 		temp_elevation
 		mask
-	folders
+	folders.
+	Note that, by now, the mask folder has to contain fake metadata files (mask_name.hdr mask_name.xml mask_name_rpc.txt with the same content of raw images) in order to be able to orthorectify the masks.
+
 	9. Put a .txt file in the “build” folder, containing the list of the images to be used their orbit (write "a" for ascending orbit and "d" for descending) and the pairs to be considered, as in the following example:
 	3 %number of images to be used
 	0 absolute_path_to_image_1 orbit
