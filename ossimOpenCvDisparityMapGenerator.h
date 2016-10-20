@@ -19,7 +19,7 @@ class ossimOpenCvDisparityMapGenerator
 {
 public:
 	ossimOpenCvDisparityMapGenerator();
-    void execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair);
+    void execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair, int rows, int cols);
     cv::Mat getDisp();
 
     cv::Mat array_disp;

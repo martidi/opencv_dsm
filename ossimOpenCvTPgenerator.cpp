@@ -42,7 +42,9 @@ bool ossimOpenCvTPgenerator::execute()
 
     //cv::Mat slave_mat_warp = TPfinder->warp(slave_mat);
    // slave_mat_warp = TPfinder->warp(slave_mat);
-/*
+
+    //spostao in dispMapGen
+    /*
     ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
     out_disp = dense_matcher->execute(master_mat_8U, slave_mat_warp);
 
@@ -154,7 +156,7 @@ void ossimOpenCvTPgenerator::TPgen()
 			double px = keypoints1[i].pt.x - keypoints2[matches[i].trainIdx].pt.x;
 			double py = keypoints1[i].pt.y - keypoints2[matches[i].trainIdx].pt.y;	
 			
-            if(fabs(py) <  10)
+            if(fabs(py) <  100)
 			{
 				good_matches.push_back(matches[i]);
 

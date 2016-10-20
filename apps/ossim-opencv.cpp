@@ -22,6 +22,7 @@
 #include <ossim/base/ossimStdOutProgress.h>
 
 #include <ossim/elevation/ossimElevManager.h>
+#include <ossim/projection/ossimUtmpt.h>
 
 #include "ossim/imaging/ossimImageHandlerRegistry.h"
 #include "ossim/imaging/ossimImageHandler.h"
@@ -180,6 +181,74 @@ bool imageSimulation (ossimString imageName, ossimElevManager* elev, ossimArgume
     memSource = 0;
     return true;
 }
+
+bool epipolarDirection(ossimString masterName, ossimString slaveName)
+{
+    //Per una data I e J (anzi, per un grigliato di I e J), uso gli RPC per scendere a due quote:h1 e h2
+    //devo prendere l'immagine e dividerla in n=grid parti uguali
+    //mi servono le dimensioni dell'immagine
+
+    //devo capire come settare la minima e la massima altezza da investigare, vorrei un ciclo
+
+    cout <<"EPIPOLAR DIRECTION COMPUTATION " << endl;
+    ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(masterName));
+    ossimImageHandler* raw_slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(slaveName));
+    ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();
+    ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry();
+
+    int grid = 10;
+    double MinimumHeight= 1600.0;
+    double MaximumHeight= 1800.0;
+    ossimIpt image_size = raw_master_geom->getImageSize();
+    cout << "image size " <<image_size << endl;
+
+    double deltaI = image_size.x /(grid +1);
+    cout << "delta I " <<deltaI << endl;
+    double deltaJ = image_size.y /(grid +1);
+    cout << "delta J " <<deltaJ << endl;
+
+    //Create and write the log file
+    ofstream epi_direction;
+    epi_direction.open("Epipolar_direction_1800.txt");
+
+    for (int i=1 ; i<grid+1 ; i++) //LAT
+    {
+        for (int j=1 ; j<grid+1 ; j++) //LON
+        {
+        ossimDpt imagePoint_master(deltaI*i,deltaJ*j);
+        ossimDpt imagePoint_slave(0.,0.);
+        ossimGpt groundPoint_master(0.,0.,MaximumHeight);
+        ossimGpt groundPoint_slave(0.,0.,MaximumHeight);
+        ossimGpt groundPointDown(0.,0.,MinimumHeight);
+        cout << imagePoint_master << "" << imagePoint_slave << "" << groundPoint_master <<"" << groundPoint_slave << "" << groundPointDown << endl;
+        raw_master_geom->localToWorld(imagePoint_master, MaximumHeight, groundPoint_master);  //con qst trasf ottengo groundPoint_master
+        raw_master_geom->localToWorld(imagePoint_master,MinimumHeight,groundPointDown);
+        cout << imagePoint_master << "" << imagePoint_slave << "" << groundPoint_master <<"" << groundPoint_slave << "" << groundPointDown << endl;
+
+        //una volta riempito il punto a terra più basso, vado sul piano immagine della slave
+        raw_slave_geom->worldToLocal(groundPointDown, imagePoint_slave);
+        //dal piano immagine della slave vado a terra alla quota più alta
+        raw_slave_geom->localToWorld(imagePoint_slave, MaximumHeight,groundPoint_slave);
+
+        //Geographic --> UTM conversion
+        ossimUtmpt UTMgroundPoint_master(groundPoint_master);
+        ossimUtmpt UTMgroundPoint_slave(groundPoint_slave);
+
+        //la direzione di epi è data da groundPoint_master e groundPoint_slave
+        cout << "Epipolar direction " << endl;
+        cout << "Point 1 geog " << groundPoint_master << " Point 2 geog " << groundPoint_slave << endl;
+        cout << "Point 1 UTM East " << UTMgroundPoint_master.easting() << " Point 1 UTM North " << UTMgroundPoint_master.northing() << endl;
+        cout << "Point 2 UTM East " << UTMgroundPoint_slave.easting() << " Point 2 UTM North " << UTMgroundPoint_slave.northing() << endl;
+
+        // "fixed" for set decimals numbers
+        epi_direction << fixed << setprecision(12) << UTMgroundPoint_master.easting() << " " << UTMgroundPoint_master.northing() << " " << UTMgroundPoint_slave.easting()  << " " << UTMgroundPoint_slave.northing() << endl;
+        }
+    }
+    epi_direction.close();
+
+    return true;
+}
+
 
 
 static ossimTrace traceDebug = ossimTrace("ossim-chipper:debug");
@@ -367,6 +436,10 @@ int main(int argc,  char* argv[])
         f_input >> pairsNumb;
         cout << endl << "PAIRS NUMBER: " << pairsNumb << endl << endl;
 
+  //Create and write the log file
+  //ofstream conv_factor;
+  //conv_factor.open("Fattore_conversione.txt");
+
         // Riempio il vettore della coppia con info su id, path e fattore di conversione per ciascuna coppia
         for (int i=0; i < pairsNumb ; i++)
         {
@@ -376,14 +449,30 @@ int main(int argc,  char* argv[])
 
             pair.setID(idMaster, idSlave);
             pair.setRawPath(imageList[idMaster].getRawPath(),imageList[idSlave].getRawPath());
+
+  //for (int z=1; z < 100; z++)
+  //{
+  //  pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, 0.0, z*20);
+  // conv_factor << 20*z << " " << pair.getConversionFactor() <<  endl;
+  //}
             pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, MinHeight, MaxHeight);
+           /*pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, 100.0, 150.0);
+             pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, 100.0, 300.0);
+            pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, 100.0, 600.0);
+            pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, 100.0, 900.0);
+            pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, 100.0, 1200.0);
+            pair.computeConversionFactor(lon_max, lon_min, lat_max, lat_min, 100.0, 2000.0);*/
             StereoPairList.push_back(pair);
+
+            //qui richiamo la funzione per il check dell'epipolarità
+            epipolarDirection(StereoPairList[i].getRawMasterPath(), StereoPairList[i].getRawSlavePath());
 
             cout << "Pair " << idMaster << idSlave <<endl;
             cout << "path master\t" << StereoPairList[i].getRawMasterPath() << endl;
             cout << "path slave\t" << StereoPairList[i].getRawSlavePath() << endl;
             cout << "conv factor pair: " << idMaster << idSlave << "\t" << StereoPairList[i].getConversionFactor() << endl<< endl << endl<< endl;
         }
+  //conv_factor.close();
 
         //cout << StereoPairList[2].getRawMasterPath() << endl; // così entro nella path della master della coppia
         //cout << StereoPairList[2].getConversionFactor() << endl;
@@ -456,7 +545,7 @@ int main(int argc,  char* argv[])
                 cout << "Start orthorectification level " << Level << endl;
                 //cout << n << endl << endl;
 
-                ortho(image_key);
+                //ortho(image_key);
                 //cout << image_key << endl << endl;
 
                 /*cout << "dir_image_0 " << imageList[0] << endl;
@@ -466,7 +555,8 @@ int main(int argc,  char* argv[])
                 cout << "dir_image_2 " << imageList[4] << endl;
                 cout << "dir_image_3 " << imageList[5] << endl<< endl;*/
 
-                // For the first pyramidal level, mask generation and projection
+                // For the first pyramidal level, mask generation and projection for SAR imagery
+                /*
                 if(b == nsteps-1)
                 {
                     cout << "This is the first pyramidal level ---> mask generation " << endl;
@@ -488,7 +578,7 @@ int main(int argc,  char* argv[])
                     ortho(image_key);
 
                     //ossimFilename::copyFileTo(ossimFilename("install_manifest.txt") ossimString("/bin/"));
-                }
+                }*/
             }
 
             // Faccio la somma delle maschere ortorettificate in ossimDispMerging

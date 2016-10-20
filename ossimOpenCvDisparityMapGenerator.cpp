@@ -25,7 +25,7 @@ ossimOpenCvDisparityMapGenerator::ossimOpenCvDisparityMapGenerator()
 	
 }
 
-void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair)
+void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair, int rows, int cols)
 {
 	cout << "DISPARITY MAP GENERATION \t in progress..." << endl;
 		
@@ -42,8 +42,8 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 	cv::imshow( "Scaled slave", slave_mat);
 	*/	
 					
-    ndisparities = 16; //Maximum disparity minus minimum disparity - prove a 128
-    minimumDisp = -8; //prova a -32
+    ndisparities = 32; //Maximum disparity minus minimum disparity - prove a 128  16
+    minimumDisp = -8; //prova a -32   -8
     SADWindowSize = 5; //Matched block size
 
     // Disparity Map generation
@@ -99,9 +99,37 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 
     // Rotation for along-track OPTICAL images
     //********* To be commented for SAR images *********
-    //cv::transpose(array_disp, array_disp);
-    //cv::flip(array_disp, array_disp, 0);
+    cv::transpose(array_disp, array_disp);
+    cv::flip(array_disp, array_disp, 0);
     //********* To be commented for SAR images *********
+
+
+    double angle = -13; // - senso orario; + senso antiorario
+    // get rotation matrix for rotating the image around its center
+    cv::Point2f center(array_disp.cols/2.0, array_disp.rows/2.0);
+    cv::Mat rot = cv::getRotationMatrix2D(center, angle, 1.0);
+
+    // determine bounding rectangle
+    cv::Rect bbox = cv::RotatedRect(center,array_disp.size(), angle).boundingRect();
+    // adjust transformation matrix
+    rot.at<double>(0,2) += bbox.width/2.0 - center.x;
+    rot.at<double>(1,2) += bbox.height/2.0 - center.y;
+
+    cv::warpAffine(array_disp, array_disp, rot, bbox.size());
+
+    //resize for rotation
+    // prendo le dimensioni della ortho, mi metto al centro dell'immagine etaglio a dx, sx, sopra e sotto della quantità richiesta
+    int xTopLeft = (bbox.width - cols)/2;
+    int yTopLeft = (bbox.height - rows)/2;
+    // Setup a rectangle to define your region of interest
+    cv::Rect myROI(xTopLeft, yTopLeft, cols, rows);
+
+    // Crop the full image to that image contained by the rectangle myROI
+    // Note that this doesn't copy the data
+    array_disp = array_disp(myROI);
+    cv::imwrite("rotated_disp_a.tiff", array_disp);
+
+
 
 
 
@@ -122,8 +150,6 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
     cv::FileStorage valori("valori.yml", cv::FileStorage::WRITE);
     valori << "cameraMatrix" << array_disp;
     valori.release();
-
-
 }
 
 

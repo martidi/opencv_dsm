@@ -52,7 +52,7 @@ private:
         ossimImageHandler* master_handler;
         ossimImageHandler* slave_handler;
         double null_disp_threshold;
-
+        int ortho_rows, ortho_cols;
 };
 
 #endif /* #ifndef ossimDispMerging_HEADER */

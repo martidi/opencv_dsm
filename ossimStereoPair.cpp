@@ -78,6 +78,7 @@ void ossimStereoPair::computeConversionFactor( double longitude_max, double long
         // variabile is intialized=True per vedere se le path sono riempite
         // sennò dai errore
 
+        cout << "Min height for conv. fact." << MinimumHeight << " Max height for conv. fact. " << MaximumHeight << endl;
         ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(raw_master));
         ossimImageHandler* raw_slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(raw_slave));
         cout << "CONVERSION FACTOR COMPUTATION FOR IMAGES: " << endl << endl;
@@ -138,16 +139,16 @@ void ossimStereoPair::computeConversionFactor( double longitude_max, double long
         cv::meanStdDev(conv_factor_I, mean_conv_factor_I, stDev_conv_factor_I);
 
         double stDev_conversionF_J = stDev_conv_factor_J.val[0];
-        double mean_conversionF_J = mean_conv_factor_J.val[0]/(MaximumHeight -MinimumHeight + 100);
+        double mean_conversionF_J = mean_conv_factor_J.val[0]/(MaximumHeight -MinimumHeight);
         double stDev_conversionF_I = stDev_conv_factor_I.val[0];
-        double mean_conversionF_I = mean_conv_factor_I.val[0]/(MaximumHeight -MinimumHeight + 100);
+        double mean_conversionF_I = mean_conv_factor_I.val[0]/(MaximumHeight -MinimumHeight );
 
         //double mean_conversionF;
 
         if (abs(mean_conv_factor_J.val[0]) > abs(mean_conv_factor_I.val[0]))
             conversion_factor = mean_conv_factor_J.val[0];
         else conversion_factor = mean_conv_factor_I.val[0];
-        conversion_factor /= (MaximumHeight -MinimumHeight + 100);
+        conversion_factor /= (MaximumHeight -MinimumHeight);
 
         cout << "J Conversion Factor from pixels to meters\t" << mean_conversionF_J << endl;
         cout << "Standard deviation J Conversion Factor\t" << stDev_conversionF_J << endl << endl;

@@ -63,14 +63,15 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
 
         // Disparity map generation
         ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
-        dense_matcher->execute(master_mat_8U, stereoTP->getWarpedImage(), StereoPairList[i]); // dopo questo execute ho disp metrica
+        dense_matcher->execute(master_mat_8U, stereoTP->getWarpedImage(), StereoPairList[i], ortho_rows, ortho_cols); // dopo questo execute ho disp metrica
 
         // Nel vettore globale di cv::Mat immagazzino tutte le mappe di disparità che genero ad ogni ciclo
         array_metric_disp.push_back(dense_matcher->getDisp());
         null_disp_threshold = (dense_matcher->minimumDisp)+0.5;
     }
-    cv::imwrite( "float_Disparity_bis.tif", array_metric_disp[5]);
+    cv::imwrite( "float_Disparity_bis.tif", array_metric_disp[StereoPairList.size()-1]);
 
+    /*
     // Ascending and descending stacks size
     //cout << "image list size " << imageList.size() << endl;
     int asc_size = 0;
@@ -147,14 +148,14 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
             mask_mat_array[i](cv::Rect(0,0,colsNumb_asc,rowsNumb_asc)).copyTo(mask_mat_array[i]);
         }
 
-        /*cout << "righe " << rowsNumb_asc << endl;
-        cout << "colonne " << colsNumb_asc << endl;
-        cout << "Size mask 0 " << mask_mat_array[0].size[0] << endl;
-        cout << "Size mask 1 " << mask_mat_array[1].size() << endl;
-        cout << "Size mask 2 " << mask_mat_array[2].size() << endl;
-        cout << "Size mask 3 " << mask_mat_array[3].size() << endl;
-        cout << "Size mask 4 " << mask_mat_array[4].size() << endl;
-        cout << "Size mask 5 " << mask_mat_array[5].size() << endl;*/
+        //cout << "righe " << rowsNumb_asc << endl;
+        //cout << "colonne " << colsNumb_asc << endl;
+        //cout << "Size mask 0 " << mask_mat_array[0].size[0] << endl;
+        //cout << "Size mask 1 " << mask_mat_array[1].size() << endl;
+        //cout << "Size mask 2 " << mask_mat_array[2].size() << endl;
+        //cout << "Size mask 3 " << mask_mat_array[3].size() << endl;
+        //cout << "Size mask 4 " << mask_mat_array[4].size() << endl;
+        //cout << "Size mask 5 " << mask_mat_array[5].size() << endl;
 
         mask_ascending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
         mask_descending_tot = cv::Mat::zeros(rowsNumb_asc, colsNumb_asc, CV_64F);
@@ -176,9 +177,9 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         }
         mask_descending_tot = temp_desc_mask;
 
-        //Trivial method to sum
-         //mask_ascending_tot = mask_mat_array[0] + mask_mat_array[1] + mask_mat_array[2];
-         //mask_descending_tot = mask_mat_array[3] + mask_mat_array[4] + mask_mat_array[5];
+        // Trivial method to sum
+        //mask_ascending_tot = mask_mat_array[0] + mask_mat_array[1] + mask_mat_array[2];
+        //mask_descending_tot = mask_mat_array[3] + mask_mat_array[4] + mask_mat_array[5];
 
         // Saving masks on file
         cv::imwrite( "Ascending_total_mask.tif", mask_ascending_tot);
@@ -186,12 +187,12 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
     }
 
     cout << endl << "Disparity maps number: " << array_metric_disp.size() << endl;
-    /*cout << "Zero " << array_metric_disp[0].rows << " " << array_metric_disp[0].cols << endl;
-    cout << "Uno " << array_metric_disp[1].rows << " " << array_metric_disp[1].cols << endl;
-    cout << "Due " << array_metric_disp[2].rows << " " << array_metric_disp[2].cols << endl;
-    cout << "Tre " << array_metric_disp[3].rows << " " << array_metric_disp[3].cols << endl;
-    cout << "Quattro " << array_metric_disp[4].rows << " " << array_metric_disp[4].cols << endl;
-    cout << "Cinque " << array_metric_disp[5].rows << " " << array_metric_disp[5].cols << endl;*/
+    //cout << "Zero " << array_metric_disp[0].rows << " " << array_metric_disp[0].cols << endl;
+    //cout << "Uno " << array_metric_disp[1].rows << " " << array_metric_disp[1].cols << endl;
+    //cout << "Due " << array_metric_disp[2].rows << " " << array_metric_disp[2].cols << endl;
+    //cout << "Tre " << array_metric_disp[3].rows << " " << array_metric_disp[3].cols << endl;
+    //cout << "Quattro " << array_metric_disp[4].rows << " " << array_metric_disp[4].cols << endl;
+    //cout << "Cinque " << array_metric_disp[5].rows << " " << array_metric_disp[5].cols << endl;
     // sembra che non siano tutte uguali, per ora me ne frego e prendo come dimensione la prima
 
     // DISPARITY MAPS FUSION
@@ -272,11 +273,11 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
     mask_ascending_tot = cv::imread("Ascending_total_mask.tif");
     mask_descending_tot = cv::imread("Descending_total_mask.tif");
 
-    /*cv::namedWindow( "Ascending total mask", CV_WINDOW_NORMAL );
-    cv::imshow( "Ascending total mask", mask_ascending_tot);
-    cv::namedWindow( "Descending total mask", CV_WINDOW_NORMAL );
-    cv::imshow( "Descending total mask", mask_descending_tot);
-    cv::waitKey();*/
+    //cv::namedWindow( "Ascending total mask", CV_WINDOW_NORMAL );
+    //cv::imshow( "Ascending total mask", mask_ascending_tot);
+    //cv::namedWindow( "Descending total mask", CV_WINDOW_NORMAL );
+    //cv::imshow( "Descending total mask", mask_descending_tot);
+    //cv::waitKey();
 
     // Faccio il resize per adattarmi alla risoluzione del ciclo
     cv::resize(mask_ascending_tot, mask_ascending_tot, cv::Size(array_metric_disp[0].cols, array_metric_disp[0].rows), cv::INTER_LINEAR);
@@ -307,7 +308,17 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
 
     cv::FileStorage file("Merged_disp.yml", cv::FileStorage::WRITE);
     file << "Disparity" << merged_disp;
-    file.release();
+    file.release();*/
+
+    merged_disp = cv::Mat::zeros(array_metric_disp[0].rows, array_metric_disp[0].cols, CV_64F);
+
+    for (int i=0; i< array_metric_disp[0].rows; i++) // for every row
+    {
+        for(int j=0; j< array_metric_disp[0].cols; j++) // for every column
+        {
+            merged_disp.at<double>(i,j) = array_metric_disp[0].at<double>(i,j);
+        }
+    }
 
     return true;
 }
@@ -431,19 +442,40 @@ bool ossimDispMerging::imgConversionToMat()
     memcpy(master_mat.ptr(), (void*) img_master->getUshortBuf(), 2*img_master->getWidth()*img_master->getHeight());
     memcpy(slave_mat.ptr(), (void*) img_slave->getUshortBuf(), 2*img_slave->getWidth()*img_slave->getHeight());
 
+    ortho_rows= master_mat.rows;
+    ortho_cols= master_mat.cols;
+
     cout << endl << "OSSIM->OpenCV image conversion done" << endl;
 
     // Rotation for along-track OPTICAL images
     //********* To be commented for SAR images *********
-    //cv::transpose(master_mat, master_mat);
-    //cv::flip(master_mat, master_mat, 1);
+    cv::transpose(master_mat, master_mat);
+    cv::flip(master_mat, master_mat, 1);
 
-    //cv::transpose(slave_mat, slave_mat);
-    //cv::flip(slave_mat, slave_mat, 1);
+    cv::transpose(slave_mat, slave_mat);
+    cv::flip(slave_mat, slave_mat, 1);
     //********* To be commented for SAR images *********
 
-    return true;
+        double angle = 13; // - senso orario; + senso antiorario
 
+        // get rotation matrix for rotating the image around its center
+        cv::Point2f center(master_mat.cols/2.0, master_mat.rows/2.0);
+        cv::Mat rot = cv::getRotationMatrix2D(center, angle, 1.0);
+
+        // determine bounding rectangle
+        cv::Rect bbox = cv::RotatedRect(center,master_mat.size(), angle).boundingRect();
+        // adjust transformation matrix
+        rot.at<double>(0,2) += bbox.width/2.0 - center.x;
+        rot.at<double>(1,2) += bbox.height/2.0 - center.y;
+
+        //cv::Mat dst_master, dst_slave;
+        cv::warpAffine(master_mat, master_mat, rot, bbox.size());
+        cv::warpAffine(slave_mat, slave_mat, rot, bbox.size());
+        cv::imwrite("rotated_master.tiff", master_mat);
+        cv::imwrite("rotated_slave.tiff", slave_mat);
+        cv::waitKey(0);
+
+    return true;
 }
 
 
