@@ -53,6 +53,28 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         // Conversion from ossim image to opencv matrix
         imgConversionToMat(); //apre le img ortho e diventano opencv mat
 
+
+        // Image rotation
+        // get rotation matrix for rotating the image around its center
+        cv::Point2f center(master_mat.cols/2.0, master_mat.rows/2.0);
+        cv::Mat rot = cv::getRotationMatrix2D(center, - StereoPairList[i].getMeanRotationAngle(), 1.0);
+
+        // determine bounding rectangle
+        cv::Rect bbox = cv::RotatedRect(center,master_mat.size(), - StereoPairList[i].getMeanRotationAngle()).boundingRect();
+        // adjust transformation matrix
+        rot.at<double>(0,2) += bbox.width/2.0 - center.x;
+        rot.at<double>(1,2) += bbox.height/2.0 - center.y;
+
+        //cv::Mat dst_master, dst_slave;
+        cv::warpAffine(master_mat, master_mat, rot, bbox.size());
+        cv::warpAffine(slave_mat, slave_mat, rot, bbox.size());
+        cv::imwrite("rotated_master.tiff", master_mat);
+        cv::imwrite("rotated_slave.tiff", slave_mat);
+        cv::waitKey(0);
+
+
+
+
         imgPreProcessing(); // wallis filter
 
         imgConversionTo8bit();      // Conversion from 16 bit to 8 bit
@@ -447,9 +469,10 @@ bool ossimDispMerging::imgConversionToMat()
 
     cout << endl << "OSSIM->OpenCV image conversion done" << endl;
 
+    //SPOSTATO SOPRA
     // Rotation for along-track OPTICAL images
     //********* To be commented for SAR images *********
-    cv::transpose(master_mat, master_mat);
+    /*cv::transpose(master_mat, master_mat);
     cv::flip(master_mat, master_mat, 1);
 
     cv::transpose(slave_mat, slave_mat);
@@ -473,7 +496,7 @@ bool ossimDispMerging::imgConversionToMat()
         cv::warpAffine(slave_mat, slave_mat, rot, bbox.size());
         cv::imwrite("rotated_master.tiff", master_mat);
         cv::imwrite("rotated_slave.tiff", slave_mat);
-        cv::waitKey(0);
+        cv::waitKey(0);*/
 
     return true;
 }

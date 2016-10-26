@@ -23,8 +23,12 @@ public:
     ossimString raw_master, raw_slave;
     ossimString ortho_master, ortho_slave;
     int id;
-    float conversion_factor; //=0;
+    //float conversion_factor; //=0;
     int id_slave, id_master;
+    double deltaH;
+    double mean_rotation_angle;
+    double mean_conversion_factor;
+
 
     ossimStereoPair();
     void setID(int IDM, int IDS);
@@ -36,8 +40,12 @@ public:
     ossimString getRawSlavePath();
     ossimString getOrthoMasterPath();
     ossimString getOrthoSlavePath();
-    void computeConversionFactor( double longitude_max, double longitude_min, double latitude_max, double latitude_min, double MinimumHeight , double MaximumHeight);
-    float getConversionFactor();
+    void epipolarDirection();
+    double getMeanRotationAngle();
+    double getConversionFactor();
+
+    //void computeConversionFactor( double longitude_max, double longitude_min, double latitude_max, double latitude_min, double MinimumHeight , double MaximumHeight);
+    //float getConversionFactor();
 };
 
 #endif /* #ifndef ossimStereoPair_HEADER */

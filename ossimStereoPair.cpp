@@ -9,10 +9,16 @@
 // Description: Class for disparity map extraction and merging
 //
 //----------------------------------------------------------------------------
-
+#include <ossim/projection/ossimUtmpt.h>
 #include "ossim/imaging/ossimImageHandlerRegistry.h"
 #include "ossim/imaging/ossimImageHandler.h"
 #include "ossimStereoPair.h"
+
+#include <math.h>
+#include <vector>
+#include <numeric>
+
+#define PI 3.14159265
 
 ossimStereoPair::ossimStereoPair()
 {
@@ -45,8 +51,8 @@ void ossimStereoPair::setRawPath(ossimString raw_master_path, ossimString raw_sl
 
 void ossimStereoPair::setOrthoPath(ossimString ortho_master_path, ossimString ortho_slave_path)
 {
-        ortho_master = ortho_master_path;
-        ortho_slave = ortho_slave_path;
+    ortho_master = ortho_master_path;
+    ortho_slave = ortho_slave_path;
 }
 
 ossimString ossimStereoPair::getRawMasterPath()
@@ -69,7 +75,7 @@ ossimString ossimStereoPair::getOrthoSlavePath()
         return ortho_slave;
 }
 
-void ossimStereoPair::computeConversionFactor( double longitude_max, double longitude_min, double latitude_max, double latitude_min, double MinimumHeight , double MaximumHeight)
+/*void ossimStereoPair::computeConversionFactor( double longitude_max, double longitude_min, double latitude_max, double latitude_min, double MinimumHeight , double MaximumHeight)
 {
         /*******************************************************/
         /************ BEGIN CONV FACTOR COMPUTATION ************/
@@ -78,7 +84,7 @@ void ossimStereoPair::computeConversionFactor( double longitude_max, double long
         // variabile is intialized=True per vedere se le path sono riempite
         // sennò dai errore
 
-        cout << "Min height for conv. fact." << MinimumHeight << " Max height for conv. fact. " << MaximumHeight << endl;
+      /*  cout << "Min height for conv. fact." << MinimumHeight << " Max height for conv. fact. " << MaximumHeight << endl;
         ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(raw_master));
         ossimImageHandler* raw_slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(raw_slave));
         cout << "CONVERSION FACTOR COMPUTATION FOR IMAGES: " << endl << endl;
@@ -159,13 +165,103 @@ void ossimStereoPair::computeConversionFactor( double longitude_max, double long
         /*****************************************************/
         /************ END CONV FACTOR COMPUTATION ************/
         /*****************************************************/
+//}
+
+//void ossimEpipolarity::epipolarDirection(double MinimumHeight , double MaximumHeight)
+void ossimStereoPair::epipolarDirection()
+{
+    //Per una data I e J (anzi, per un grigliato di I e J), uso gli RPC per scendere a due quote:h1 e h2
+    //devo prendere l'immagine e dividerla in n=grid parti uguali
+    //mi servono le dimensioni dell'immagine
+
+    //devo capire come settare la minima e la massima altezza da investigare, vorrei un ciclo
+
+    cout <<"EPIPOLAR DIRECTION COMPUTATION " << endl;
+    ossimImageHandler* raw_master_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(raw_master));
+    ossimImageHandler* raw_slave_handler = ossimImageHandlerRegistry::instance()->open(ossimFilename(raw_slave));
+    ossimRefPtr<ossimImageGeometry> raw_master_geom = raw_master_handler->getImageGeometry();
+    ossimRefPtr<ossimImageGeometry> raw_slave_geom = raw_slave_handler->getImageGeometry();
+
+    int grid = 10;
+    double MinimumHeight= 500.0;
+    double MaximumHeight= 1000.0;
+    deltaH = MaximumHeight - MinimumHeight;
+    ossimIpt image_size = raw_master_geom->getImageSize();
+    cout << "image size " <<image_size << endl;
+
+    double deltaI = image_size.x /(grid +1);
+    cout << "delta I " <<deltaI << endl;
+    double deltaJ = image_size.y /(grid +1);
+    cout << "delta J " <<deltaJ << endl;
+
+    //Create and write the log file
+    ofstream epi_direction;
+    epi_direction.open("Epipolar_direction_1800.txt");
+    std::vector<double> array_angle, array_convFact;
+
+    for (int i=1 ; i<grid+1 ; i++) //LAT
+    {
+        for (int j=1 ; j<grid+1 ; j++) //LON
+        {
+        ossimDpt imagePoint_master(deltaI*i,deltaJ*j);
+        ossimDpt imagePoint_slave(0.,0.);
+        ossimGpt groundPoint_master(0.,0.,MaximumHeight);
+        ossimGpt groundPoint_slave(0.,0.,MaximumHeight);
+        ossimGpt groundPointDown(0.,0.,MinimumHeight);
+        //cout << imagePoint_master << "" << imagePoint_slave << "" << groundPoint_master <<"" << groundPoint_slave << "" << groundPointDown << endl;
+        raw_master_geom->localToWorld(imagePoint_master, MaximumHeight, groundPoint_master);  //con qst trasf ottengo groundPoint_master
+        raw_master_geom->localToWorld(imagePoint_master,MinimumHeight,groundPointDown);
+        //cout << imagePoint_master << "" << imagePoint_slave << "" << groundPoint_master <<"" << groundPoint_slave << "" << groundPointDown << endl;
+
+        //una volta riempito il punto a terra più basso, vado sul piano immagine della slave
+        raw_slave_geom->worldToLocal(groundPointDown, imagePoint_slave);
+        //dal piano immagine della slave vado a terra alla quota più alta
+        raw_slave_geom->localToWorld(imagePoint_slave, MaximumHeight,groundPoint_slave);
+
+        //Geographic --> UTM conversion
+        ossimUtmpt UTMgroundPoint_master(groundPoint_master);
+        ossimUtmpt UTMgroundPoint_slave(groundPoint_slave);
+
+        //la direzione di epi è data da groundPoint_master e groundPoint_slave
+        /*cout << "Epipolar direction " << endl;
+        cout << "Point 1 geog " << groundPoint_master << " Point 2 geog " << groundPoint_slave << endl;
+        cout << "Point 1 UTM East " << UTMgroundPoint_master.easting() << " Point 1 UTM North " << UTMgroundPoint_master.northing() << endl;
+        cout << "Point 2 UTM East " << UTMgroundPoint_slave.easting() << " Point 2 UTM North " << UTMgroundPoint_slave.northing() << endl;
+*/
+        double DE = UTMgroundPoint_slave.easting() - UTMgroundPoint_master.easting();
+        double DN = UTMgroundPoint_slave.northing() - UTMgroundPoint_master.northing();
+
+        // faccio un vettore di double in cui pusho i valori e poi ne faccio la media
+        double rotation_angle = atan (DN/DE) * 180 / PI;
+        array_angle.push_back(rotation_angle);
+        mean_rotation_angle = std::accumulate( array_angle.begin(), array_angle.end(), 0.0)/array_angle.size();
+
+        //cout << mean_rotation_angle << endl;
+        // "fixed" for set decimals numbers
+        epi_direction << fixed << setprecision(12) << UTMgroundPoint_master.easting() << " " << UTMgroundPoint_master.northing() << " " << UTMgroundPoint_slave.easting()  << " " << UTMgroundPoint_slave.northing() << endl;
+
+        double conversion_factor = (sqrt((DE*DE) + (DN*DN)))/deltaH;
+        array_convFact.push_back(conversion_factor);
+        mean_conversion_factor = std::accumulate( array_convFact.begin(), array_convFact.end(), 0.0)/array_convFact.size();
+        //cout << "Fattore di conversione " << mean_conversion_factor << endl;
+        }
+    }
+    cout << "Angolo di rotazione " << mean_rotation_angle << endl;
+    cout << "Fattore di conversione " << mean_conversion_factor << endl;
+    epi_direction.close();
 }
 
-float ossimStereoPair::getConversionFactor()
+double ossimStereoPair::getMeanRotationAngle()
 {
-	return conversion_factor;
+        return mean_rotation_angle;
 }
-    
+
+double ossimStereoPair::getConversionFactor()
+{
+        return mean_conversion_factor;
+}
+
+
     
     
     

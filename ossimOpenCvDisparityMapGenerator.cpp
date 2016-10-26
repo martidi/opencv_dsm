@@ -99,18 +99,18 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 
     // Rotation for along-track OPTICAL images
     //********* To be commented for SAR images *********
-    cv::transpose(array_disp, array_disp);
-    cv::flip(array_disp, array_disp, 0);
+    //cv::transpose(array_disp, array_disp);
+    //cv::flip(array_disp, array_disp, 0);
     //********* To be commented for SAR images *********
 
 
-    double angle = -13; // - senso orario; + senso antiorario
+    //double angle = -13; // - senso orario; + senso antiorario
     // get rotation matrix for rotating the image around its center
     cv::Point2f center(array_disp.cols/2.0, array_disp.rows/2.0);
-    cv::Mat rot = cv::getRotationMatrix2D(center, angle, 1.0);
+    cv::Mat rot = cv::getRotationMatrix2D(center,  StereoPair.getMeanRotationAngle(), 1.0);
 
     // determine bounding rectangle
-    cv::Rect bbox = cv::RotatedRect(center,array_disp.size(), angle).boundingRect();
+    cv::Rect bbox = cv::RotatedRect(center,array_disp.size(),  StereoPair.getMeanRotationAngle()).boundingRect();
     // adjust transformation matrix
     rot.at<double>(0,2) += bbox.width/2.0 - center.x;
     rot.at<double>(1,2) += bbox.height/2.0 - center.y;
@@ -135,12 +135,14 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 
    array_disp.convertTo(array_disp, CV_64F);
    array_disp = ((array_disp/16.0)) / StereoPair.getConversionFactor(); //quando divido per il fattore di conversione le rendo metriche
+   //array_disp = ((array_disp/16.0)) / 0.602; //quando divido per il fattore di conversione le rendo metriche
 
     for(int i=0; i< array_disp.rows; i++)
     {
         for(int j=0; j< array_disp.cols; j++)
         {
             if(array_disp.at<double>(i,j) < (minimumDisp + 0.5 - 1 )/ StereoPair.getConversionFactor())
+            //if(array_disp.at<double>(i,j) < (minimumDisp + 0.5 - 1 )/ 0.602)
             {
                 array_disp.at<double>(i,j) = -9999.0;
             }
