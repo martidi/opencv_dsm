@@ -14,14 +14,17 @@
 
 #include <opencv/cv.h>
 #include "ossimStereoPair.h"
+#include "ossim/imaging/ossimImageHandler.h"
 
 class ossimOpenCvDisparityMapGenerator
 {
 public:
 	ossimOpenCvDisparityMapGenerator();
-    void execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair, int rows, int cols);
+    //void execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair, int rows, int cols, double currentRes);
+    void execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair, int rows, int cols, double currentRes, ossimImageHandler *master_handler);
     cv::Mat getDisp();
 
+    ossimRefPtr<ossimImageData> finalDisparity;
     cv::Mat array_disp;
     cv::Mat mergedDisp_array;
     int ndisparities; //Maximum disparity minus minimum disparity

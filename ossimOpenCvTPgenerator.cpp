@@ -255,17 +255,20 @@ bool ossimOpenCvTPgenerator::TPwarp()
      
 	// Estimate quasi-epipolar transformation model 
 	cv::Mat rot_matrix = estRT(aff_match2, aff_match1);
-	
-	//cout << "Rotation matrix" << endl;
-	//cout << rot_matrix << endl;
- 
+    cout << "matrice di rotazione " << rot_matrix << endl;
+
     // Set the destination image the same type and size as source
 	cv::Mat warp_dst = cv::Mat::zeros(master_mat.rows, master_mat.cols, master_mat.type());
     //cv::Mat warp_dst_16bit = cv::Mat::zeros(slave_16bit.rows, slave_16bit.cols, slave_16bit.type());
-	
-	cv::warpAffine(slave_mat, warp_dst, rot_matrix, warp_dst.size());
+
+    //cout << "Warp pre" << warp_dst << endl;
+
+    cv::warpAffine(slave_mat, warp_dst, rot_matrix, warp_dst.size());
+    // perchè rot_matrix non ha tx nulla?
     //cv::warpAffine(slave_16bit, warp_dst_16bit, rot_matrix, warp_dst.size());
-    
+
+    //cout << "Warp post" << warp_dst << endl;
+
     //cv::namedWindow("Master image", CV_WINDOW_NORMAL);
     //cv::imshow("Master image", master_mat );
 	cv::imwrite("Master_8bit.tif",  master_mat);
@@ -275,7 +278,7 @@ bool ossimOpenCvTPgenerator::TPwarp()
 	cv::imwrite("Slave_8bit.tif",  warp_dst);
 
     slave_mat_warp = warp_dst;
-
+    //slave_mat_warp = slave_mat; // for SAR
     //cv::waitKey(0);
     
     return true;

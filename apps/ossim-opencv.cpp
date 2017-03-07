@@ -108,6 +108,7 @@ bool imageSimulation (ossimString imageName, ossimElevManager* elev, ossimArgume
 
     //ossimGrect ground_rect;
     raw_master_geom->getCornerGpts(ul, ur, lr, ll);
+    //raw_master_geom->getCornerGpts(ll, lr, ur, ul); // NON C'È BISOGNO CHE SIANO IN ORDINE, TANTO LO SISTEMO DOPO
     corners.push_back(ul);
     corners.push_back(ur);
     corners.push_back(lr);
@@ -131,7 +132,7 @@ bool imageSimulation (ossimString imageName, ossimElevManager* elev, ossimArgume
         if (MinLon > corners[i].lon) MinLon=corners[i].lon;
     }
 
-    cout << MinLat << "\t" <<  MaxLat << "\t"<< MinLon << "\t" << MaxLon <<  endl;
+    cout << "Maximum geometry extension " <<  MinLat << "\t" <<  MaxLat << "\t"<< MinLon << "\t" << MaxLon <<  endl;
 
     // Set the destination image size:
     ossimRefPtr<ossimImageData>  simulated_image = ossimImageDataFactory::instance()->create(0, OSSIM_UINT16, 1, image_size.x, image_size.y);
@@ -163,7 +164,7 @@ bool imageSimulation (ossimString imageName, ossimElevManager* elev, ossimArgume
             if (imagePoint.x > 0 && imagePoint.x < image_size.x -1 )
                 if (imagePoint.y > 0 && imagePoint.y < image_size.y -1) // check for positive coordinates (altrimenti vuol dire che sono fuori dall'immagine)
 
-                    simulated_image->setValue( int(imagePoint.x), int(imagePoint.y), simulated_image->getPix(imagePoint) + 1 ); // così mi assicuro che i pixel mappati più volte hanno un valore più alto
+                    simulated_image->setValue( int(imagePoint.x), int(imagePoint.y), simulated_image->getPix(imagePoint) + 10 ); // così mi assicuro che i pixel mappati più volte hanno un valore più alto
         }
         //cout << i << endl;
     }
@@ -186,6 +187,7 @@ bool imageSimulation (ossimString imageName, ossimElevManager* elev, ossimArgume
     return true;
 }
 
+// SPOSTATO IN ossimStereoPair!!!
 /*bool epipolarDirection(ossimString masterName, ossimString slaveName)
 {
     //Per una data I e J (anzi, per un grigliato di I e J), uso gli RPC per scendere a due quote:h1 e h2
@@ -450,8 +452,6 @@ int main(int argc,  char* argv[])
         f_input >> pairsNumb;
         cout << endl << "PAIRS NUMBER: " << pairsNumb << endl << endl;
 
-        ossimEpipolarity epi;
-
         // Riempio il vettore della coppia con info su id, path e fattore di conversione per ciascuna coppia
         for (int i=0; i < pairsNumb ; i++)
         {
@@ -560,10 +560,10 @@ int main(int argc,  char* argv[])
                 cout << "dir_image_3 " << imageList[3] << endl;
                 cout << "dir_image_2 " << imageList[4] << endl;
                 cout << "dir_image_3 " << imageList[5] << endl<< endl;*/
-
+/*
                 // For the first pyramidal level, mask generation and projection for SAR imagery
-                /*
-                if(b == nsteps-1)
+
+               if(b == nsteps-1)
                 {
                     cout << "This is the first pyramidal level ---> mask generation " << endl;
 
@@ -626,7 +626,7 @@ int main(int argc,  char* argv[])
             //StereoPairList[i].getOrthoSlavePath();
 
             ossimDispMerging *mergedDisp = new ossimDispMerging() ;
-            mergedDisp->execute(StereoPairList, orthoListMask, imageList); // da qui voglio ottenere mappa di disparità fusa e metrica
+            mergedDisp->execute(StereoPairList, orthoListMask, imageList, orthoRes); // da qui voglio ottenere mappa di disparità fusa e metrica
             cv::Mat FinalDisparity = mergedDisp->getMergedDisparity(); // questa è mappa di disparità fusa e metrica
 
             // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse

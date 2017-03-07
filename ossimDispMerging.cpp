@@ -30,7 +30,7 @@ ossimDispMerging::ossimDispMerging()
 }
 
 
-bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<ossimString> orthoListMask, vector<ossimRawImage> imageList)
+bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<ossimString> orthoListMask, vector<ossimRawImage> imageList, double currentRes)
 {
     /*cout << endl << "ortho master path "<<StereoPairList[0].getOrthoMasterPath() << endl << endl;
     cout << "ortho slave path " <<StereoPairList[0].getOrthoSlavePath() << endl << endl;
@@ -70,7 +70,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
         cv::warpAffine(slave_mat, slave_mat, rot, bbox.size());
         cv::imwrite("rotated_master.tiff", master_mat);
         cv::imwrite("rotated_slave.tiff", slave_mat);
-        cv::waitKey(0);
+        //cv::waitKey(0);
 
 
 
@@ -85,7 +85,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
 
         // Disparity map generation
         ossimOpenCvDisparityMapGenerator* dense_matcher = new ossimOpenCvDisparityMapGenerator();
-        dense_matcher->execute(master_mat_8U, stereoTP->getWarpedImage(), StereoPairList[i], ortho_rows, ortho_cols); // dopo questo execute ho disp metrica
+        dense_matcher->execute(master_mat_8U, stereoTP->getWarpedImage(), StereoPairList[i], ortho_rows, ortho_cols, currentRes, master_handler); // dopo questo execute ho disp metrica
 
         // Nel vettore globale di cv::Mat immagazzino tutte le mappe di disparità che genero ad ogni ciclo
         array_metric_disp.push_back(dense_matcher->getDisp());
@@ -93,7 +93,7 @@ bool ossimDispMerging::execute(vector<ossimStereoPair> StereoPairList, vector<os
     }
     cv::imwrite( "float_Disparity_bis.tif", array_metric_disp[StereoPairList.size()-1]);
 
-    /*
+/*
     // Ascending and descending stacks size
     //cout << "image list size " << imageList.size() << endl;
     int asc_size = 0;
@@ -352,7 +352,7 @@ bool ossimDispMerging::computeDsm(vector<ossimStereoPair> StereoPairList, ossimE
 
     // Qui voglio sommare alla mappa di disparità fusa e metrica il dsm coarse
     // poi faccio il geocoding
-    // poi esco da ciclo, torno nel mail e rinizio a diversa risoluzione
+    // poi esco da ciclo, torno nel main e rinizio a diversa risoluzione
 
     // From Disparity to DSM
     ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
@@ -384,7 +384,19 @@ bool ossimDispMerging::computeDsm(vector<ossimStereoPair> StereoPairList, ossimE
             ossim_float64 hgtAboveMSL = elev->getHeightAboveMSL(world_pt);
             //ossim_float64 hgtAboveMSL =  elev->getHeightAboveEllipsoid(world_pt); //ellipsoidic height
 
+            //if(merged_disp.at<double>(i,j) >= null_disp_threshold/abs(StereoPairList[i].getConversionFactor()))
+            if(merged_disp.at<double>(i,j) >= -9000) //E' giusto? Ad occhio sembra di sì
+            {
+
             merged_disp.at<double>(i,j) += hgtAboveMSL;
+
+            }
+
+            //To fill holes with DSM coarse (ai vari cicli, ma non all'ultimo)
+            else if (b != 0)
+            {
+             merged_disp.at<double>(i,j) = hgtAboveMSL;
+            }
         }
     }
 
@@ -404,6 +416,7 @@ bool ossimDispMerging::computeDsm(vector<ossimStereoPair> StereoPairList, ossimE
 
     if(finalDSM.valid())
        finalDSM->initialize();
+
     // else
     //  return -1;
 

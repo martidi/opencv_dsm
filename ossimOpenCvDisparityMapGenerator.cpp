@@ -11,6 +11,9 @@
 //----------------------------------------------------------------------------
 
 #include <ossim/imaging/ossimImageSource.h>
+#include <ossim/imaging/ossimMemoryImageSource.h>
+#include "ossim/imaging/ossimImageFileWriter.h"
+#include "ossim/imaging/ossimImageWriterFactoryRegistry.h"
 #include "ossimOpenCvDisparityMapGenerator.h"
 
 #include <opencv2/highgui/highgui.hpp>
@@ -25,7 +28,8 @@ ossimOpenCvDisparityMapGenerator::ossimOpenCvDisparityMapGenerator()
 	
 }
 
-void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair, int rows, int cols)
+//void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair, int rows, int cols, double currentRes)
+void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave_mat, ossimStereoPair StereoPair, int rows, int cols, double currentRes, ossimImageHandler* master_handler)
 {
 	cout << "DISPARITY MAP GENERATION \t in progress..." << endl;
 		
@@ -42,8 +46,8 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 	cv::imshow( "Scaled slave", slave_mat);
 	*/	
 					
-    ndisparities = 32; //Maximum disparity minus minimum disparity - prove a 128  16
-    minimumDisp = -8; //prova a -32   -8
+    ndisparities = 16; //Maximum disparity minus minimum disparity - prove a 128  64
+    minimumDisp = -8; //prova a    -32
     SADWindowSize = 5; //Matched block size
 
     // Disparity Map generation
@@ -134,15 +138,19 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
 
 
    array_disp.convertTo(array_disp, CV_64F);
-   array_disp = ((array_disp/16.0)) / StereoPair.getConversionFactor(); //quando divido per il fattore di conversione le rendo metriche
-   //array_disp = ((array_disp/16.0)) / 0.602; //quando divido per il fattore di conversione le rendo metriche
+   array_disp = currentRes*((array_disp/16.0)) / StereoPair.getConversionFactor(); //quando divido per il fattore di conversione le rendo metriche
+   /*cv::Scalar tempVal = mean( array_disp );
+   float myMAtMean = tempVal.val[0];
+   cout << "media "<< myMAtMean << endl;
+   cout << "conv " << StereoPair.getConversionFactor() << endl;*/
+   cout << "risoluzione " << currentRes << endl;
+   cout << "fattore di conv " << StereoPair.getConversionFactor() << endl;
 
     for(int i=0; i< array_disp.rows; i++)
     {
         for(int j=0; j< array_disp.cols; j++)
         {
             if(array_disp.at<double>(i,j) < (minimumDisp + 0.5 - 1 )/ StereoPair.getConversionFactor())
-            //if(array_disp.at<double>(i,j) < (minimumDisp + 0.5 - 1 )/ 0.602)
             {
                 array_disp.at<double>(i,j) = -9999.0;
             }
@@ -152,6 +160,41 @@ void ossimOpenCvDisparityMapGenerator::execute(cv::Mat master_mat, cv::Mat slave
     cv::FileStorage valori("valori.yml", cv::FileStorage::WRITE);
     valori << "cameraMatrix" << array_disp;
     valori.release();
+
+
+    // DISPARITY MAP GEOREFERENCE
+    // Set the destination image size:
+   ossimIpt image_size (array_disp.cols , array_disp.rows);
+    finalDisparity = ossimImageDataFactory::instance()->create(0, OSSIM_FLOAT32, 1, image_size.x, image_size.y);
+
+    if(finalDisparity.valid())
+       finalDisparity->initialize();
+    // else
+    //  return -1;
+
+    for (int i=0; i< array_disp.cols; i++) // for every column
+    {
+        for(int j=0; j< array_disp.rows; j++) // for every row
+        {
+            finalDisparity->setValue(i,j,array_disp.at<double>(j,i));
+        }
+    }
+
+    // Create output image chain:
+    ossimImageGeometry* master_geom = master_handler->getImageGeometry().get();
+    ossimRefPtr<ossimMemoryImageSource> memSource = new ossimMemoryImageSource;
+    memSource->setImage(finalDisparity);
+    memSource->setImageGeometry(master_geom);
+    cout << "disparity map size " << master_geom->getImageSize() << endl;
+    memSource->saveImageGeometry();
+
+    ossimImageFileWriter* writer = ossimImageWriterFactoryRegistry::instance()->createWriter(ossimFilename("Disparity.TIF"));
+    writer->connectMyInputTo(0, memSource.get());
+    writer->execute();
+    writer->close();
+    writer = 0;
+    memSource = 0;
+
 }
 
 
